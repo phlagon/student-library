@@ -3,69 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="/manifest.json">
-    <title>Online Library</title>
+    <title>Library Admin Dashboard</title>
     <style>
-        :root { --primary: #2563eb; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        header { text-align: center; margin-bottom: 40px; }
-        header h1 { color: #60a5fa; font-size: 1.5rem; letter-spacing: 1px; margin-bottom: 5px; }
-        header h2 { font-size: 2.5rem; margin: 0; }
-        .library-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; }
-        .book-card { background: var(--card); border-radius: 16px; padding: 24px; border: 1px solid #334155; transition: transform 0.2s; }
-        .book-card:hover { transform: translateY(-5px); border-color: var(--primary); }
-        .book-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 8px; display: block; }
-        .book-meta { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; display: block; }
-        .actions { display: flex; gap: 10px; }
-        .btn { flex: 1; padding: 12px; border-radius: 8px; text-align: center; text-decoration: none; font-weight: 600; cursor: pointer; border: none; font-size: 0.9rem; }
-        .btn-view { background: #334155; color: white; }
-        .btn-download { background: var(--primary); color: white; }
+        :root {
+            --blue: #3b82f6; --orange: #f97316; --green: #10b981; --purple: #a855f7;
+            --bg: #f8fafc; --text-dark: #1e293b;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-dark); }
+        
+        header { margin-bottom: 25px; }
+        header h1 { font-family: 'Cursive', serif; margin: 0; font-size: 24px; color: #1e293b; }
+        header p { margin: 5px 0; color: #64748b; font-size: 14px; }
+        .savior-badge { color: var(--blue); font-weight: bold; font-size: 18px; display: block; margin-bottom: 10px; }
+
+        /* Stat Cards Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
+        .stat-card { border-radius: 15px; padding: 20px; color: white; position: relative; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .stat-card h3 { margin: 0; font-size: 14px; font-weight: 400; opacity: 0.9; }
+        .stat-card .number { font-size: 28px; font-weight: bold; margin-top: 10px; display: block; }
+        
+        .bg-blue { background: var(--blue); }
+        .bg-orange { background: var(--orange); }
+        .bg-green { background: var(--green); }
+        .bg-purple { background: var(--purple); }
+
+        /* Book List Area */
+        .content-section { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-header h2 { font-size: 18px; margin: 0; }
+        
+        .book-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
+        .book-icon { width: 45px; height: 45px; background: #fff7ed; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 15px; color: #f97316; font-size: 20px; }
+        .book-details { flex-grow: 1; }
+        .book-details b { display: block; font-size: 15px; }
+        .book-details span { font-size: 12px; color: #94a3b8; }
+        
+        .action-btns { display: flex; gap: 8px; }
+        .btn { border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; text-decoration: none; }
+        .btn-read { background: #eff6ff; color: var(--blue); }
+        .btn-dl { background: #f1f5f9; color: var(--text-dark); }
+
+        /* Navigation Bar (Bottom) */
+        .nav-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 30px; border-radius: 50px; display: flex; gap: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .nav-item { text-align: center; color: #94a3b8; font-size: 11px; cursor: pointer; text-decoration: none; }
+        .nav-item.active { color: var(--blue); }
+        .nav-item i { display: block; font-size: 20px; margin-bottom: 3px; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>JESUS is the Saviour</h1>
-    <h2>Student Digital Library</h2>
+    <span class="savior-badge">JESUS is the Saviour</span>
+    <h1>Library Admin</h1>
+    <p>Dashboard Overview</p>
 </header>
 
-<div class="library-grid">
-    <div class="book-card">
-        <span class="book-title">Science Textbook</span>
-        <span class="book-meta">Essential Physics & Chemistry</span>
+<div class="stats-grid">
+    <div class="stat-card bg-blue">
+        <h3>Total Books</h3>
+        <span class="number">20</span>
+    </div>
+    <div class="stat-card bg-orange">
+        <h3>Issued</h3>
+        <span class="number">2</span>
+    </div>
+    <div class="stat-card bg-green">
+        <h3>Available</h3>
+        <span class="number">11</span>
+    </div>
+    <div class="stat-card bg-purple">
+        <h3>Members</h3>
+        <span class="number" id="memberCount">120</span>
+    </div>
+</div>
+
+<div class="content-section">
+    <div class="section-header">
+        <h2>Available Books</h2>
+    </div>
+
+    <div class="book-item">
+        <div class="book-icon">📖</div>
+        <div class="book-details">
+            <b>Science Textbook</b>
+            <span>Uploaded: 2026-01-28</span>
+        </div>
         <div class="actions">
-            <a href="public/science_book.pdf" target="_blank" class="btn btn-view">Read Online</a>
-            <button onclick="askCode('public/science_book.pdf')" class="btn btn-download">Download</button>
+            <a href="public/science_book.pdf" target="_blank" class="btn btn-read">Read</a>
+            <button onclick="askCode('public/science_book.pdf')" class="btn btn-dl">Download</button>
         </div>
     </div>
 
-    <div class="book-card">
-        <span class="book-title">Math Lesson Plan</span>
-        <span class="book-meta">Advanced Calculus Prep</span>
+    <div class="book-item">
+        <div class="book-icon">📖</div>
+        <div class="book-details">
+            <b>Math Lesson Plan</b>
+            <span>Uploaded: 2026-01-28</span>
+        </div>
         <div class="actions">
-            <a href="public/math_lesson.pdf" target="_blank" class="btn btn-view">Read Online</a>
-            <button onclick="askCode('public/math_lesson.pdf')" class="btn btn-download">Download</button>
+            <a href="public/math_lesson.pdf" target="_blank" class="btn btn-read">Read</a>
+            <button onclick="askCode('public/math_lesson.pdf')" class="btn btn-dl">Download</button>
         </div>
     </div>
 </div>
 
+<div class="nav-bar">
+    <div class="nav-item active">🏠<br>Home</div>
+    <div class="nav-item">📚<br>Books</div>
+    <div class="nav-item">🔄<br>Returns</div>
+</div>
+
 <script>
+    // Verification system for downloads
     function askCode(fileUrl) {
-        // You can change these codes whenever you want!
-        const validCodes = ["1234", "5678", "202601"]; 
-        
-        let userCode = prompt("Enter your Student ID or Download Code:");
+        const validCodes = ["1234", "5678", "2026"]; 
+        let userCode = prompt("Enter Student ID Card Number to Download:");
         
         if (validCodes.includes(userCode)) {
-            alert("Code verified! Your download will start.");
             const link = document.createElement('a');
             link.href = fileUrl;
             link.download = fileUrl.split('/').pop();
             link.click();
         } else {
-            alert("Invalid Code. Please contact the Admin for your ID card number.");
+            alert("Access Denied. Please contact Admin.");
         }
     }
+
+    // Small effect to show "Active" members changing
+    setInterval(() => {
+        let base = 120;
+        document.getElementById('memberCount').innerText = base + Math.floor(Math.random() * 5);
+    }, 5000);
 </script>
 
 </body>
