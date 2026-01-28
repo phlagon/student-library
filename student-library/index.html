@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <title>Student Library</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f0f2f5; color: #333; }
+        .container { max-width: 600px; margin: auto; }
+        h1 { text-align: center; color: #1a73e8; }
+        p { text-align: center; color: #666; }
+        .book-list { margin-top: 30px; display: flex; flex-direction: column; gap: 15px; }
+        .book-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .book-info h3 { margin: 0; font-size: 18px; }
+        .book-info span { font-size: 14px; color: #888; }
+        .read-btn { background: #1a73e8; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; transition: background 0.3s; }
+        .read-btn:hover { background: #1557b0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Student Online Library</h1>
+        <p>Select a book to start reading</p>
+
+        <div class="book-list">
+            <div class="book-card">
+                <div class="book-info">
+                    <h3>Science Textbook</h3>
+                    <span>PDF Document</span>
+                </div>
+                <a href="/public/science_book.pdf" class="read-btn" target="_blank">Open</a>
+            </div>
+
+            <div class="book-card">
+                <div class="book-info">
+                    <h3>Math Lesson Plan</h3>
+                    <span>PDF Document</span>
+                </div>
+                <a href="/public/math_lesson.pdf" class="read-btn" target="_blank">Open</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
