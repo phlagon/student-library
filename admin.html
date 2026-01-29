@@ -3,55 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Library Admin Control</title>
+    <title>Library Control Center - Live</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; }
-        .container { max-width: 1000px; margin: auto; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
-        h1 { color: #1e293b; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
-        th { background: #f8fafc; color: #64748b; }
-        .badge { padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; }
-        .badge-student { background: #dcfce7; color: #166534; }
-        .badge-faculty { background: #fef9c3; color: #854d0e; }
-        .denied { text-align: center; margin-top: 100px; color: #ef4444; }
-        .hidden { display: none; }
+        :root { --blue: #3b82f6; --purple: #a855f7; --dark: #1e293b; --bg: #f8fafc; --green: #22c55e; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--dark); }
+        .container { max-width: 1150px; margin: auto; animation: fadeIn 0.8s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 3px solid var(--blue); padding-bottom: 15px; }
+        .card { background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); padding: 25px; margin-bottom: 30px; border: 1px solid rgba(0,0,0,0.02); }
+        .card-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: var(--blue); display: flex; align-items: center; gap: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 15px; background: #f1f5f9; color: #64748b; font-size: 12px; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+
+        /* Live Status Pulse */
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .online { background-color: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.5s infinite; }
+        .offline { background-color: #cbd5e1; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .student { background: #dcfce7; color: #166534; }
+        .faculty { background: #fef9c3; color: #854d0e; }
+        .type-usage { background: #eff6ff; color: #1d4ed8; }
+        .type-reading { background: #f5f3ff; color: #6d28d9; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div id="admin-content" class="container hidden">
-    <h1>Library Admin Center</h1>
-    
+<div id="admin-panel" class="container hidden">
+    <div class="admin-header">
+        <h1>Library Admin Center</h1>
+        <div style="text-align: right;">
+            <span id="live-count" style="font-weight: bold; color: var(--green);">0 Students Online</span><br>
+            <small style="color: #94a3b8;">Refreshing every 30s</small>
+        </div>
+    </div>
+
     <div class="card">
-        <h3>Registered Members</h3>
-        <table id="user-table">
+        <div class="card-title">👥 Member Management & Live Status</div>
+        <table id="userTable">
             <thead>
-                <tr><th>Name</th><th>Email</th><th>Institution</th><th>Position</th><th>WhatsApp</th></tr>
+                <tr><th>Status</th><th>Name</th><th>Email</th><th>Institution</th><th>Position</th><th>WhatsApp</th></tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
 
     <div class="card">
-        <h3>Student Reading Logs (Timers)</h3>
-        <table id="log-table">
+        <div class="card-title">⏳ Student Activity Logs</div>
+        <table id="logTable">
             <thead>
-                <tr><th>User</th><th>Activity</th><th>Duration</th><th>Date</th></tr>
+                <tr><th>Student</th><th>Activity Type</th><th>Duration</th><th>Date & Time</th></tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
 </div>
 
-<div id="access-denied" class="denied hidden">
-    <h2>🚫 Access Denied</h2>
-    <p>Only phlagongkk@gmail.com can view this page.</p>
-    <button onclick="window.location.href='index.html'">Back to Library</button>
+<div id="denied" class="container hidden" style="text-align: center; margin-top: 100px;">
+    <h1>🚫 Access Denied</h1>
+    <p>Restricted to <b>phlagongkk@gmail.com</b></p>
 </div>
 
 <script>
@@ -67,46 +86,63 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-
-    // The security check
     const ADMIN_EMAIL = "phlagongkk@gmail.com";
 
     auth.onAuthStateChanged(async (user) => {
         if (user && user.email === ADMIN_EMAIL) {
-            document.getElementById('admin-content').classList.remove('hidden');
-            loadAdminData();
+            document.getElementById('admin-panel').classList.remove('hidden');
+            loadAllData();
+            // Refresh live status every 30 seconds
+            setInterval(loadAllData, 30000);
         } else {
-            document.getElementById('access-denied').classList.remove('hidden');
+            document.getElementById('denied').classList.remove('hidden');
         }
     });
 
-    async function loadAdminData() {
-        // Load Users
+    async function loadAllData() {
         const userSnap = await db.collection("users").get();
-        const userBody = document.querySelector("#user-table tbody");
-        userSnap.forEach(doc => {
-            const d = doc.data();
-            userBody.innerHTML += `<tr>
-                <td><b>${d.fullName}</b></td>
-                <td>${d.email}</td>
-                <td>${d.institution}</td>
-                <td><span class="badge badge-${d.position}">${d.position}</span></td>
-                <td>${d.whatsapp || 'N/A'}</td>
-            </tr>`;
-        });
+        const userTbody = document.querySelector("#userTable tbody");
+        userTbody.innerHTML = "";
+        let onlineCount = 0;
 
-        // Load Logs
-        const logSnap = await db.collection("activity_logs").orderBy("timestamp", "desc").limit(50).get();
-        const logBody = document.querySelector("#log-table tbody");
+        userSnap.forEach(doc => {
+            const u = doc.data();
+            const now = Date.now();
+            const lastActive = u.lastActive ? new Date(u.lastActive).getTime() : 0;
+            // If active in last 3 minutes, show as Online
+            const isOnline = (now - lastActive) < 180000; 
+            if(isOnline) onlineCount++;
+
+            userTbody.innerHTML += `
+                <tr>
+                    <td>
+                        <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
+                        <small>${isOnline ? 'Online' : 'Offline'}</small>
+                    </td>
+                    <td><b>${u.fullName}</b></td>
+                    <td>${u.email}</td>
+                    <td>${u.institution}</td>
+                    <td><span class="badge ${u.position}">${u.position}</span></td>
+                    <td>${u.whatsapp || 'N/A'}</td>
+                </tr>
+            `;
+        });
+        document.getElementById('live-count').innerText = `${onlineCount} Students Online`;
+
+        const logSnap = await db.collection("activity_logs").orderBy("timestamp", "desc").limit(30).get();
+        const logTbody = document.querySelector("#logTable tbody");
+        logTbody.innerHTML = "";
         logSnap.forEach(doc => {
-            const d = doc.data();
-            const date = new Date(d.timestamp).toLocaleDateString();
-            logBody.innerHTML += `<tr>
-                <td>${d.userName}</td>
-                <td>${d.activityType}</td>
-                <td><b>${d.duration}</b></td>
-                <td>${date}</td>
-            </tr>`;
+            const l = doc.data();
+            const typeClass = l.activityType.includes("Usage") ? "type-usage" : "type-reading";
+            logTbody.innerHTML += `
+                <tr>
+                    <td>${l.userName}</td>
+                    <td><span class="badge ${typeClass}">${l.activityType}</span></td>
+                    <td><b>${l.duration}</b></td>
+                    <td style="color: #94a3b8; font-size: 12px;">${new Date(l.timestamp).toLocaleString()}</td>
+                </tr>
+            `;
         });
     }
 </script>
