@@ -21,13 +21,14 @@
         .btn-action { padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; font-size: 13px; }
         .btn-primary { background: var(--blue); color: white; }
         .btn-read-full { background: var(--purple); color: white; }
+        .btn-return { background: #fee2e2; color: #ef4444; margin-left: 5px; }
         .profile-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
         #reader-overlay { position: fixed; inset: 0; background: white; z-index: 2000; display: flex; flex-direction: column; }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
-<div id="loading-screen" style="text-align:center; margin-top:100px;"><h3>Connecting...</h3></div>
+<div id="loading-screen" style="text-align:center; margin-top:100px;"><h3>Connecting to Saviour Library...</h3></div>
 
 <div id="auth-screen" class="hidden">
     <div class="glass-card animate__animated animate__fadeInUp" style="max-width:400px; margin:auto; text-align:center;">
@@ -56,10 +57,10 @@
     <div id="library-view">
         <input type="text" id="searchBar" class="search-box" placeholder="Search books..." onkeyup="searchBooks()">
         <div class="glass-card">
-            <h3 style="font-size:14px; color:#64748b;">RESOURCES</h3>
+            <h3 style="font-size:14px; color:#64748b;">AVAILABLE RESOURCES</h3>
             <div id="available-list">
                 <div class="book-item" data-title="Science Textbook">
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #eee;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;">
                         <span>Science Textbook</span>
                         <div>
                             <button onclick="openReader('public/science_book_read_online.pdf', 'Science Preview')" class="btn-action btn-primary">Read</button>
@@ -67,21 +68,34 @@
                         </div>
                     </div>
                 </div>
+                <div class="book-item" data-title="Math Lesson Plan">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;">
+                        <span>Math Lesson Plan</span>
+                        <div>
+                            <button onclick="openReader('public/math_lesson_read_online.pdf', 'Math Preview')" class="btn-action btn-primary">Read</button>
+                            <button onclick="borrowBook('Math Lesson Plan', 'public/math_lesson.pdf')" class="btn-action">Borrow</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+        
         <div class="glass-card">
             <h3 style="font-size:14px; color:var(--purple);">ACTIVE BORROWS</h3>
-            <div id="dashboard-borrowed-list">Loading borrowed books...</div>
+            <div id="dashboard-borrowed-list">Loading...</div>
         </div>
     </div>
 
     <div id="profile-view" class="hidden">
         <div class="glass-card">
-            <h3>My Info</h3>
-            <div class="profile-row"><b>Email</b> <span id="p-email"></span></div>
+            <h3>My Stats</h3>
             <div class="profile-row"><b>Institution</b> <span id="p-inst"></span></div>
             <div class="profile-row"><b>Total App Use</b> <span id="p-apptime"></span></div>
-            <div class="profile-row"><b>Total Reading</b> <span id="p-readtime"></span></div>
+            <div class="profile-row"><b>Reading Time</b> <span id="p-readtime"></span></div>
+        </div>
+        <div class="glass-card">
+            <h3>Borrow Details</h3>
+            <div id="profile-borrow-details"></div>
         </div>
     </div>
 </div>
@@ -110,6 +124,15 @@
     function updateClock() { document.getElementById('date-time').innerText = new Date().toLocaleString(); }
     setInterval(updateClock, 1000);
 
+    function searchBooks() {
+        let input = document.getElementById('searchBar').value.toLowerCase();
+        let items = document.getElementsByClassName('book-item');
+        for (let i = 0; i < items.length; i++) {
+            let title = items[i].getAttribute('data-title').toLowerCase();
+            items[i].style.display = title.includes(input) ? "" : "none";
+        }
+    }
+
     function switchTab(tab) {
         document.getElementById('library-view').classList.toggle('hidden', tab !== 'library');
         document.getElementById('profile-view').classList.toggle('hidden', tab !== 'profile');
@@ -125,7 +148,7 @@
             document.getElementById('loading-screen').classList.add('hidden');
             if (doc.exists) { 
                 document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('user-welcome').innerText = "Hello, " + doc.data().fullName;
+                document.getElementById('user-welcome').innerText = "Hello, " + doc.data().fullName.split(' ')[0];
                 loadBorrowedBooks(); 
                 setInterval(() => db.collection("users").doc(user.uid).update({ lastActive: new Date().toISOString() }), 60000);
             } else { showRegistration(); }
@@ -140,36 +163,56 @@
             const d = doc.data();
             list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;">
                 <span>${d.title}</span>
-                <button onclick="openReader('${d.url}', 'Borrowed: ${d.title}')" class="btn-action btn-read-full">Open</button>
+                <div>
+                    <button onclick="openReader('${d.url}', 'Borrowed: ${d.title}')" class="btn-action btn-read-full">Open</button>
+                    <button onclick="returnBook('${doc.id}')" class="btn-action btn-return">Return</button>
+                </div>
             </div>`;
         });
     }
 
     async function loadProfileData() {
         const u = auth.currentUser;
-        const doc = await db.collection("users").doc(u.uid).get();
-        document.getElementById('p-email').innerText = u.email;
-        document.getElementById('p-inst').innerText = doc.data().institution;
+        const userDoc = await db.collection("users").doc(u.uid).get();
+        document.getElementById('p-inst').innerText = userDoc.data().institution;
 
         const logs = await db.collection("activity_logs").where("userName", "==", u.displayName).get();
         let appSecs = 0, readSecs = 0;
         logs.forEach(log => {
             let d = log.data();
             let parts = d.duration.match(/\d+/g);
-            let secs = (parseInt(parts[0]) * 60) + (parseInt(parts[1]) || 0);
-            if(d.activityType === "Total App Usage") appSecs += secs;
-            else readSecs += secs;
+            if(parts) {
+                let secs = (parseInt(parts[0]) * 60) + (parseInt(parts[1]) || 0);
+                if(d.activityType === "Total App Usage") appSecs += secs;
+                else readSecs += secs;
+            }
         });
         document.getElementById('p-apptime').innerText = Math.floor(appSecs/60) + "m " + (appSecs%60) + "s";
         document.getElementById('p-readtime').innerText = Math.floor(readSecs/60) + "m " + (readSecs%60) + "s";
+
+        const borrowSnap = await db.collection("borrows").where("userId", "==", u.uid).get();
+        const pBorrowList = document.getElementById('profile-borrow-details');
+        pBorrowList.innerHTML = "";
+        borrowSnap.forEach(doc => {
+            const d = doc.data();
+            const daysLeft = Math.ceil((new Date(d.expiresOn) - new Date()) / (1000*60*60*24));
+            pBorrowList.innerHTML += `<div class="profile-row"><b>${d.title}</b> <span>Due in: ${daysLeft > 0 ? daysLeft : 0} days</span></div>`;
+        });
     }
 
     async function borrowBook(title, url) {
         const existing = await db.collection("borrows").where("userId", "==", auth.currentUser.uid).where("title", "==", title).get();
-        if(!existing.empty) return alert("You already have this book!");
+        if(!existing.empty) return alert("Lock: You already have an active borrow for this book.");
         if(prompt("Code (BORROW2026):") === "BORROW2026") {
             const exp = new Date(); exp.setDate(exp.getDate() + 5);
             await db.collection("borrows").add({ title, url, userId: auth.currentUser.uid, expiresOn: exp.toISOString() });
+            location.reload();
+        }
+    }
+
+    async function returnBook(docId) {
+        if(confirm("Are you sure you want to return this book?")) {
+            await db.collection("borrows").doc(docId).delete();
             location.reload();
         }
     }
