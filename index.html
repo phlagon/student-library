@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jesus is the Saviour - Master Library</title>
+    <title>Jesus is the Saviour - Theological Library</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -16,22 +16,37 @@
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: #e2e8f0; }
         .tab-btn.active { background: var(--blue); color: white; }
-        .folder-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 10px; }
-        .folder { background: white; padding: 15px; border-radius: 15px; text-align: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.03); font-weight: 600; font-size: 12px; transition: 0.2s; border: 1px solid #f1f5f9; }
-        .folder:hover { background: var(--blue); color: white; transform: translateY(-2px); }
+        .folder-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; }
+        .folder { background: white; padding: 15px; border-radius: 20px; text-align: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05); font-weight: 600; font-size: 13px; }
+        .folder:hover { background: var(--blue); color: white; transform: translateY(-3px); }
         .book-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #f1f5f9; }
-        .btn-blue { background: var(--blue); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; }
+        .btn-blue { background: var(--blue); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; }
         .hidden { display: none !important; }
         #reader-overlay { position: fixed; inset: 0; background: white; z-index: 2000; display: flex; flex-direction: column; }
     </style>
 </head>
 <body>
 
-<div id="dashboard">
-    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <div><span style="color:var(--blue); font-weight:800; font-size:10px;">JESUS IS THE SAVIOUR</span><h1 style="margin:0; font-size:24px;">Library Dashboard</h1></div>
-    </header>
+<div id="auth-screen">
+    <div class="glass-card" style="max-width:400px; margin:auto; text-align:center; margin-top:100px;">
+        <h2 style="color:var(--blue)">Jesus is the Saviour</h2>
+        <div id="login-initial">
+            <p>Sign in to access library resources.</p>
+            <button class="btn-blue" style="width:100%; padding:15px;" onclick="signInWithGoogle()">Sign in with Google</button>
+        </div>
+        <div id="registration-form" class="hidden">
+            <h3>Complete Registration</h3>
+            <input type="text" id="reg-inst" placeholder="Institution Name">
+            <select id="reg-position">
+                <option value="student">Student</option>
+                <option value="faculty">Faculty</option>
+            </select>
+            <button class="btn-blue" style="width:100%;" onclick="saveRegistration()">Enter Library</button>
+        </div>
+    </div>
+</div>
 
+<div id="dashboard" class="hidden">
     <div class="nav-tabs">
         <button id="t-lib" class="tab-btn active" onclick="switchMainTab('lib')">Library</button>
         <button id="t-prof" class="tab-btn" onclick="switchMainTab('prof')">Profile & Borrowed</button>
@@ -39,9 +54,10 @@
 
     <div id="lib-view">
         <input type="text" id="libSearch" class="search-box" placeholder="🔍 Search library..." onkeyup="searchLib()">
-
+        <div class="glass-card"><h3>🕒 Recent Uploads</h3><div id="recent-list"></div></div>
+        <div class="glass-card"><h3>🎓 Recommendations</h3><div id="recommendation-list"></div></div>
         <div class="glass-card">
-            <h3>📂 Theological Categories</h3>
+            <h3>📂 Book Categories</h3>
             <div class="folder-grid">
                 <div class="folder" onclick="loadCat('Systematic Theology')">📖 Systematic Theology</div>
                 <div class="folder" onclick="loadCat('CHURCH History')">⛪ CHURCH History</div>
@@ -51,42 +67,27 @@
                 <div class="folder" onclick="loadCat('Introduction to BIBLE')">📘 Intro to BIBLE</div>
             </div>
         </div>
-
-        <div class="glass-card">
-            <h3>📚 All Library PDFs</h3>
-            <div id="all-books-list">Loading full library...</div>
-        </div>
-
-        <div class="glass-card">
-            <h3>🕒 Recent & Trending</h3>
-            <div id="promo-list"></div>
-        </div>
     </div>
 
     <div id="prof-view" class="hidden">
         <div class="glass-card">
             <h3>Student Profile</h3>
-            <p id="p-name"></p>
-            <p id="p-email"></p>
-            <button class="btn-blue" style="background:#ef4444;" onclick="logout()">Logout</button>
+            <p id="p-name"></p><p id="p-email"></p>
+            <button class="btn-blue" style="background:#ef4444; width:100%;" onclick="logout()">Logout From Library</button>
         </div>
-        <div class="glass-card">
-            <h3>📑 My Borrowed Collection</h3>
-            <div id="borrowed-list"></div>
-        </div>
+        <div class="glass-card"><h3>📚 My Borrowed Collection</h3><div id="borrowed-list"></div></div>
     </div>
 
     <div id="cat-view" class="hidden">
-        <button onclick="document.getElementById('cat-view').classList.add('hidden')" class="btn-blue" style="background:#64748b; margin-bottom:15px;">← Back to Main</button>
-        <h3 id="cat-name"></h3>
-        <div id="cat-list"></div>
+        <button onclick="document.getElementById('cat-view').classList.add('hidden')" class="btn-blue" style="background:#64748b;">← Back</button>
+        <h3 id="cat-name"></h3><div id="cat-list"></div>
     </div>
 </div>
 
 <div id="reader-overlay" class="hidden">
-    <div style="padding:15px; background:#1e293b; color:white; display:flex; justify-content:space-between;">
-        <span id="rtitle">Reader Mode</span>
-        <button onclick="document.getElementById('reader-overlay').classList.add('hidden')" style="background:red; color:white; border:none; padding:8px 15px; border-radius:8px;">Exit Reader</button>
+    <div style="padding:15px; background:#1e293b; color:white; display:flex; justify-content:space-between; align-items:center;">
+        <span id="rtitle">Reading Mode</span>
+        <button onclick="document.getElementById('reader-overlay').classList.add('hidden')" style="background:red; color:white; border:none; padding:8px 15px; border-radius:8px;">Exit</button>
     </div>
     <iframe id="pdf-frame" src="" style="flex-grow:1; border:none;"></iframe>
 </div>
@@ -103,25 +104,44 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
-
     let currentUser = null;
+
+    function signInWithGoogle() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        auth.signInWithPopup(provider).catch(err => alert(err.message));
+    }
 
     auth.onAuthStateChanged(async user => {
         if(user) {
             currentUser = user;
-            document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('p-name').innerText = "Name: " + user.displayName;
-            document.getElementById('p-email').innerText = "Email: " + user.email;
-            loadAllBooks();
-            loadPromos();
-            loadBorrowed();
+            const doc = await db.collection("users").doc(user.uid).get();
+            if(doc.exists) {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('p-name').innerText = "Name: " + user.displayName;
+                document.getElementById('p-email').innerText = "Email: " + user.email;
+                loadLibraryData();
+                loadBorrowed();
+            } else {
+                document.getElementById('login-initial').classList.add('hidden');
+                document.getElementById('registration-form').classList.remove('hidden');
+            }
         } else {
-            // Logic to show auth screen
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
         }
     });
 
-    // Renders the row with Read Preview and Borrow
-    function renderBookRow(id, title) {
+    async function saveRegistration() {
+        const inst = document.getElementById('reg-inst').value;
+        const pos = document.getElementById('reg-position').value;
+        if(!inst) return alert("Enter Institution Name");
+        await db.collection("users").doc(currentUser.uid).set({ fullName: currentUser.displayName, email: currentUser.email, institution: inst, position: pos, lastActive: new Date().toISOString() });
+        location.reload();
+    }
+
+    function renderBook(id, title) {
         return `<div class="book-item" data-title="${title.toLowerCase()}">
             <span><b>${title}</b></span>
             <div>
@@ -131,28 +151,25 @@
         </div>`;
     }
 
-    async function loadAllBooks() {
-        const snap = await db.collection("library_settings").get();
-        const list = document.getElementById('all-books-list');
-        list.innerHTML = "";
-        snap.forEach(doc => {
-            list.innerHTML += renderBookRow(doc.id, doc.data().title || doc.id);
-        });
-    }
+    db.collection("library_settings").onSnapshot(snap => {
+        const rList = document.getElementById('recent-list');
+        rList.innerHTML = "";
+        snap.forEach(doc => { if(doc.data().recent) rList.innerHTML += renderBook(doc.id, doc.data().title || doc.id); });
+    });
 
-    async function loadCat(name) {
-        document.getElementById('cat-name').innerText = name;
-        document.getElementById('cat-view').classList.remove('hidden');
-        const snap = await db.collection("library_settings").where("category", "==", name).get();
-        const list = document.getElementById('cat-list');
-        list.innerHTML = snap.empty ? "<p>No books in this folder.</p>" : "";
-        snap.forEach(doc => list.innerHTML += renderBookRow(doc.id, doc.data().title || doc.id));
-    }
+    db.collection("recommendations").onSnapshot(snap => {
+        const recList = document.getElementById('recommendation-list');
+        recList.innerHTML = "";
+        snap.forEach(doc => {
+            const r = doc.data();
+            recList.innerHTML += `<div class="book-item"><span><b>${r.facultyName}</b> recommends ${r.bookId.toUpperCase()}</span><button class="btn-blue" onclick="openPdf('${r.bookId}', '_read_online')">Open</button></div>`;
+        });
+    });
 
     async function borrowBook(bookId, title) {
-        if(prompt("Enter Access Code:") === "BORROW2026") {
-            await db.collection("borrows").add({ userId: currentUser.uid, bookId, title, timestamp: new Date() });
-            alert("Unlocked! Go to your Profile tab to see the Full PDF.");
+        if(prompt("Enter Borrow Code:") === "BORROW2026") {
+            await db.collection("borrows").add({ userId: currentUser.uid, bookId, title });
+            alert("Unlocked! Check Profile tab.");
             loadBorrowed();
         }
     }
@@ -163,23 +180,29 @@
         list.innerHTML = snap.empty ? "<p>No borrowed books yet.</p>" : "";
         snap.forEach(doc => {
             const b = doc.data();
-            list.innerHTML += `<div class="book-item">
-                <span><b>${b.title}</b> (Full Access)</span>
-                <button class="btn-blue" onclick="openPdf('${b.bookId}', '')">Open Full PDF</button>
-            </div>`;
+            list.innerHTML += `<div class="book-item"><span><b>${b.title}</b></span><button class="btn-blue" onclick="openPdf('${b.bookId}', '')">Open Full PDF</button></div>`;
         });
     }
 
-    function openPdf(id, suffix) {
-        document.getElementById('pdf-frame').src = `public/${id}${suffix}.pdf#toolbar=0`;
-        document.getElementById('reader-overlay').classList.remove('hidden');
+    async function loadCat(name) {
+        document.getElementById('cat-name').innerText = name;
+        document.getElementById('cat-view').classList.remove('hidden');
+        const snap = await db.collection("library_settings").where("category", "==", name).get();
+        const list = document.getElementById('cat-list');
+        list.innerHTML = snap.empty ? "<p>No books in this category.</p>" : "";
+        snap.forEach(doc => list.innerHTML += renderBook(doc.id, doc.data().title || doc.id));
     }
 
     function searchLib() {
         const q = document.getElementById('libSearch').value.toLowerCase();
         document.querySelectorAll('.book-item').forEach(el => {
-            el.style.display = el.dataset.title.includes(q) ? "flex" : "none";
+            el.style.display = el.dataset.title ? (el.dataset.title.includes(q) ? "flex" : "none") : "none";
         });
+    }
+
+    function openPdf(id, s) {
+        document.getElementById('pdf-frame').src = `public/${id}${s}.pdf#toolbar=0`;
+        document.getElementById('reader-overlay').classList.remove('hidden');
     }
 
     function switchMainTab(t) {
