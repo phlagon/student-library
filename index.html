@@ -3,114 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Library Admin - Master Control</title>
+    <title>Jesus is the Saviour - Theological Library</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --blue: #3b82f6; --bg: #f8fafc; --card: #ffffff; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
-        .card { background: var(--card); border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: #e2e8f0; }
-        .tab-btn.active { background: var(--blue); color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b; padding: 10px; border-bottom: 2px solid #f1f5f9; }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        .btn-sm { padding: 6px 12px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; margin: 2px; }
-        input, select { padding: 10px; border-radius: 10px; border: 1px solid #ddd; width: 100%; margin-bottom: 10px; box-sizing: border-box; }
+        :root { --blue: #3b82f6; --bg: #f0f4f8; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
+        .glass-card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #e2e8f0; margin-bottom: 20px; font-size: 16px; outline: none; box-sizing: border-box; }
+        .folder-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; }
+        .folder { background: white; padding: 15px; border-radius: 20px; text-align: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05); font-weight: 600; font-size: 13px; transition: 0.3s; }
+        .folder:hover { background: var(--blue); color: white; transform: translateY(-3px); }
+        .book-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #f1f5f9; }
+        .btn-blue { background: var(--blue); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; }
         .hidden { display: none !important; }
-        .badge { padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; }
-        .online { background: #dcfce7; color: #166534; }
+        #reader-overlay { position: fixed; inset: 0; background: white; z-index: 2000; display: flex; flex-direction: column; }
     </style>
 </head>
 <body>
 
-    <div class="nav-tabs">
-        <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">PDF Inventory</button>
-        <button id="t-mem" class="tab-btn" onclick="switchTab('mem')">Members & Activity</button>
+<div id="dashboard">
+    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div><span style="color:var(--blue); font-weight:800; font-size:12px;">JESUS IS THE SAVIOUR</span><h1 style="margin:0;">Theological Library</h1></div>
+    </header>
+
+    <input type="text" id="libSearch" class="search-box" placeholder="🔍 Search for books, authors, categories..." onkeyup="searchLib()">
+
+    <div class="glass-card">
+        <h3>🕒 Recent Uploads</h3>
+        <div id="recent-list"></div>
     </div>
 
-    <div id="inv-section" class="card">
-        <h2>📂 Global PDF Inventory</h2>
-        <div style="background: #f1f5f9; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
-            <h4>Register Uploaded PDF</h4>
-            <input type="text" id="reg-id" placeholder="Exact File Name (e.g., science_textbook)">
-            <input type="text" id="reg-title" placeholder="Display Title (e.g., Science Textbook)">
-            <select id="reg-cat">
-                <option value="Systematic Theology">Systematic Theology</option>
-                <option value="CHURCH History">CHURCH History</option>
-                <option value="Mission">Mission</option>
-                <option value="Acts of Apostles">Acts of Apostles</option>
-                <option value="Synoptic Gospel">Synoptic Gospel</option>
-                <option value="Introduction to BIBLE">Introduction to BIBLE</option>
-            </select>
-            <button class="btn-sm" style="background: var(--blue); color: white; width: 100%; padding: 12px;" onclick="registerPDF()">Save to Inventory</button>
-        </div>
-
-        <table>
-            <thead><tr><th>PDF File</th><th>Category</th><th>Promotions</th><th>Action</th></tr></thead>
-            <tbody id="inventory-list"></tbody>
-        </table>
+    <div class="glass-card">
+        <h3>🔥 Trending Now</h3>
+        <div id="trending-list"></div>
     </div>
 
-    <div id="mem-section" class="hidden">
-        <div class="card">
-            <h3>👥 Member Management & Live Status</h3>
-            <table id="memberTable">
-                <thead><tr><th>Status</th><th>Name</th><th>Email</th><th>Institution</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div class="card">
-            <h3>⏳ Student Activity Logs</h3>
-            <table id="logTable">
-                <thead><tr><th>Student</th><th>Activity</th><th>Duration</th><th>Time</th></tr></thead>
-                <tbody></tbody>
-            </table>
+    <div class="glass-card">
+        <h3>🎓 Faculty Recommendations</h3>
+        <div id="recommendation-list"></div>
+    </div>
+
+    <div class="glass-card">
+        <h3>📂 Book Categories</h3>
+        <div class="folder-grid">
+            <div class="folder" onclick="loadCat('Systematic Theology')">📖<br>Systematic Theology</div>
+            <div class="folder" onclick="loadCat('CHURCH History')">⛪<br>CHURCH History</div>
+            <div class="folder" onclick="loadCat('Mission')">🌍<br>Mission</div>
+            <div class="folder" onclick="loadCat('Acts of Apostles')">📜<br>Acts of Apostles</div>
+            <div class="folder" onclick="loadCat('Synoptic Gospel')">✝️<br>Synoptic Gospel</div>
+            <div class="folder" onclick="loadCat('Introduction to BIBLE')">📘<br>Intro to BIBLE</div>
         </div>
     </div>
+
+    <div id="cat-view" class="hidden" style="margin-top: 20px;">
+        <button onclick="document.getElementById('cat-view').classList.add('hidden')">← Folders</button>
+        <h3 id="cat-name">Category</h3>
+        <div id="cat-list"></div>
+    </div>
+</div>
 
 <script>
-    // Initialize Firebase and Auth logic here...
+    // Initialize Firebase...
     const db = firebase.firestore();
 
-    function switchTab(t) {
-        document.getElementById('inv-section').classList.toggle('hidden', t !== 'inv');
-        document.getElementById('mem-section').classList.toggle('hidden', t !== 'mem');
-        document.getElementById('t-inv').classList.toggle('active', t === 'inv');
-        document.getElementById('t-mem').classList.toggle('active', t === 'mem');
-    }
-
-    async function registerPDF() {
-        const id = document.getElementById('reg-id').value.trim();
-        const title = document.getElementById('reg-title').value.trim();
-        const cat = document.getElementById('reg-cat').value;
-        if(!id || !title) return alert("Fill all fields");
-        await db.collection("library_settings").doc(id).set({ title, category: cat, updatedAt: new Date().toISOString() }, { merge: true });
-        location.reload();
+    function renderBook(id, title) {
+        return `<div class="book-item" data-title="${title.toLowerCase()}">
+            <span><b>${title}</b></span>
+            <div>
+                <button class="btn-blue" onclick="openPdf('${id}', '_read_online')">Read Preview</button>
+                <button class="btn-blue" style="background:#eee; color:#1e293b; margin-left:5px;" onclick="borrowFull('${id}')">Borrow Full</button>
+            </div>
+        </div>`;
     }
 
     db.collection("library_settings").onSnapshot(snap => {
-        const list = document.getElementById('inventory-list');
-        list.innerHTML = "";
-        snap.forEach(doc => {
+        const rList = document.getElementById('recent-list');
+        const tList = document.getElementById('trending-list');
+        rList.innerHTML = ""; tList.innerHTML = "";
+        snap.forEach(doc => { 
             const b = doc.data();
-            list.innerHTML += `<tr>
-                <td><b>${b.title}</b><br><small>${doc.id}.pdf</small></td>
-                <td><span style="color:var(--blue)">${b.category}</span></td>
-                <td>
-                    <button class="btn-sm" style="background:#dcfce7" onclick="updatePromo('${doc.id}', 'recent', 5)">+ Recent</button>
-                    <button class="btn-sm" style="background:#fef9c3" onclick="updatePromo('${doc.id}', 'trending', 10)">+ Trend</button>
-                    <button class="btn-sm" style="background:#f3e8ff" onclick="recommend('${doc.id}')">+ Recommend</button>
-                </td>
-                <td><button class="btn-sm" style="background:#fee2e2" onclick="deleteBook('${doc.id}')">Delete</button></td>
-            </tr>`;
+            if(b.recent) rList.innerHTML += renderBook(doc.id, b.title); 
+            if(b.trending) tList.innerHTML += renderBook(doc.id, b.title); 
         });
     });
 
-    // Activity Log and Member listeners logic here...
+    // Faculty Recommendations and loadCat logic here...
+    function searchLib() {
+        const query = document.getElementById('libSearch').value.toLowerCase();
+        document.querySelectorAll('.book-item').forEach(el => {
+            el.style.display = el.dataset.title.includes(query) ? "flex" : "none";
+        });
+    }
+
+    function borrowFull(id) { if(prompt("Enter Code:") === "BORROW2026") alert("Full Book Granted!"); }
 </script>
 </body>
 </html>
