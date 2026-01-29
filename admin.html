@@ -35,8 +35,8 @@
     <div id="inv-section" class="card">
         <h2>📂 Global PDF Inventory</h2>
         <div style="background: #f1f5f9; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
-            <h4>Register Uploaded PDF</h4>
-            <input type="text" id="reg-id" placeholder="Exact File Name (e.g., science_textbook)">
+            <h4>Register New Uploaded PDF</h4>
+            <input type="text" id="reg-id" placeholder="File Name (e.g., science)">
             <input type="text" id="reg-title" placeholder="Display Title (e.g., Science Textbook)">
             <select id="reg-cat">
                 <option value="Systematic Theology">Systematic Theology</option>
@@ -57,7 +57,7 @@
 
     <div id="mem-section" class="hidden">
         <div class="card">
-            <h3>👥 Member Management & Live Status</h3>
+            <h3>👥 Member Live Status</h3>
             <table id="memberTable">
                 <thead><tr><th>Status</th><th>Name</th><th>Email</th><th>Institution</th></tr></thead>
                 <tbody></tbody>
@@ -73,7 +73,15 @@
     </div>
 
 <script>
-    // Initialize Firebase and Auth logic here...
+    const firebaseConfig = {
+      apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
+      authDomain: "student-library-4a4e7.firebaseapp.com",
+      projectId: "student-library-4a4e7",
+      storageBucket: "student-library-4a4e7.firebasestorage.app",
+      messagingSenderId: "827419448917",
+      appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc"
+    };
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     function switchTab(t) {
@@ -88,6 +96,7 @@
         const title = document.getElementById('reg-title').value.trim();
         const cat = document.getElementById('reg-cat').value;
         if(!id || !title) return alert("Fill all fields");
+        // We use 'title' and 'category' to avoid 'undefined' labels
         await db.collection("library_settings").doc(id).set({ title, category: cat, updatedAt: new Date().toISOString() }, { merge: true });
         location.reload();
     }
@@ -98,8 +107,8 @@
         snap.forEach(doc => {
             const b = doc.data();
             list.innerHTML += `<tr>
-                <td><b>${b.title}</b><br><small>${doc.id}.pdf</small></td>
-                <td><span style="color:var(--blue)">${b.category}</span></td>
+                <td><b>${b.title || doc.id}</b><br><small>${doc.id}.pdf</small></td>
+                <td><span style="color:var(--blue)">${b.category || 'Uncategorized'}</span></td>
                 <td>
                     <button class="btn-sm" style="background:#dcfce7" onclick="updatePromo('${doc.id}', 'recent', 5)">+ Recent</button>
                     <button class="btn-sm" style="background:#fef9c3" onclick="updatePromo('${doc.id}', 'trending', 10)">+ Trend</button>
@@ -110,7 +119,47 @@
         });
     });
 
-    // Activity Log and Member listeners logic here...
+    db.collection("users").onSnapshot(snap => {
+        const tbody = document.querySelector("#memberTable tbody");
+        tbody.innerHTML = "";
+        snap.forEach(doc => {
+            const u = doc.data();
+            const isOnline = (Date.now() - new Date(u.lastActive).getTime()) < 180000;
+            tbody.innerHTML += `<tr>
+                <td><span class="badge ${isOnline?'online':''}">● ${isOnline?'Online':'Offline'}</span></td>
+                <td>${u.fullName}</td><td>${u.email}</td><td>${u.institution || 'N/A'}</td>
+            </tr>`;
+        });
+    });
+
+    db.collection("activity_logs").orderBy("timestamp", "desc").limit(10).onSnapshot(snap => {
+        const tbody = document.querySelector("#logTable tbody");
+        tbody.innerHTML = "";
+        snap.forEach(doc => {
+            const l = doc.data();
+            tbody.innerHTML += `<tr><td>${l.userName}</td><td>${l.activityType}</td><td>${l.duration}</td><td>${new Date(l.timestamp).toLocaleTimeString()}</td></tr>`;
+        });
+    });
+
+    async function updatePromo(id, cat, limit) {
+        const snap = await db.collection("library_settings").where(cat, "==", true).get();
+        if(snap.size >= limit) {
+            let oldestDoc = snap.docs[0].id;
+            await db.collection("library_settings").doc(oldestDoc).update({ [cat]: false });
+        }
+        await db.collection("library_settings").doc(id).update({ [cat]: true, updatedAt: new Date().toISOString() });
+        alert("Updated!");
+    }
+
+    async function recommend(id) {
+        const fName = prompt("Enter Faculty Name to Recommend this book:");
+        if(fName) {
+            await db.collection("recommendations").add({ facultyName: fName, bookId: id, timestamp: new Date().toISOString() });
+            alert("Recommended!");
+        }
+    }
+
+    async function deleteBook(id) { if(confirm("Delete this?")) await db.collection("library_settings").doc(id).delete(); }
 </script>
 </body>
 </html>
