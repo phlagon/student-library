@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Global Library Manager</title>
+    <title>Library Admin - Master Control</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -12,67 +12,67 @@
         :root { --blue: #3b82f6; --bg: #f8fafc; --card: #ffffff; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
         .card { background: var(--card); border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-box { padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: bold; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: #e2e8f0; }
+        .tab-btn.active { background: var(--blue); color: white; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th { text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b; padding: 10px; border-bottom: 2px solid #f1f5f9; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        .btn { padding: 8px 12px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; margin: 2px; }
-        .btn-add { background: #dcfce7; color: #166534; }
-        .btn-rem { background: #fee2e2; color: #ef4444; }
-        input, select { padding: 10px; border-radius: 10px; border: 1px solid #ddd; width: 100%; margin-bottom: 10px; box-sizing: border-box; }
+        .btn-sm { padding: 6px 12px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; margin: 2px; }
         .badge { padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; }
         .online { background: #dcfce7; color: #166534; }
+        .hidden { display: none !important; }
+        input, select { padding: 10px; border-radius: 10px; border: 1px solid #ddd; width: 100%; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-<div class="dashboard-grid">
-    <div class="stat-box" style="background: var(--blue);">Recent: <span id="r-count">0/5</span></div>
-    <div class="stat-box" style="background: #f59e0b;">Trending: <span id="t-count">0/10</span></div>
-    <div class="stat-box" style="background: #a855f7;">Recommendations: <span id="f-count">0</span></div>
-</div>
-
-<div class="card">
-    <h2>📂 Global Content Manager</h2>
-    <div style="background: #f1f5f9; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
-        <h4>Add/Update Book Category</h4>
-        <input type="text" id="book-id" placeholder="Book ID (e.g., theology_01)">
-        <input type="text" id="book-title" placeholder="Full Book Title">
-        <select id="book-cat">
-            <option value="" disabled selected>Select Category</option>
-            <option value="Systematic Theology">Systematic Theology</option>
-            <option value="CHURCH History">CHURCH History</option>
-            <option value="Mission">Mission</option>
-            <option value="Acts of Apostles">Acts of Apostles</option>
-            <option value="Synoptic Gospel">Synoptic Gospel</option>
-            <option value="Introduction to BIBLE">Introduction to BIBLE</option>
-        </select>
-        <button class="btn" style="background:var(--blue); color:white; width:100%; padding:12px;" onclick="saveBook()">Save & Categorize</button>
+    <div class="nav-tabs">
+        <button id="t-content" class="tab-btn active" onclick="switchTab('content')">PDF Inventory</button>
+        <button id="t-members" class="tab-btn" onclick="switchTab('members')">Members & Activity</button>
     </div>
 
-    <input type="text" id="adminSearch" class="search-box" placeholder="Search uploaded PDFs..." onkeyup="filterAdminContent()">
-    <table id="contentTable">
-        <thead><tr><th>BOOK NAME</th><th>CATEGORY</th><th>PROMOTIONS</th></tr></thead>
-        <tbody></tbody>
-    </table>
-</div>
+    <div id="content-section" class="card">
+        <h2>📂 Global PDF Inventory</h2>
+        <p style="font-size: 12px; color: #64748b;">Add and categorize your uploaded PDFs here.</p>
+        
+        <div style="background: #f1f5f9; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+            <h4>Register New Uploaded PDF</h4>
+            <input type="text" id="reg-id" placeholder="PDF File Name (e.g., science_textbook)">
+            <input type="text" id="reg-title" placeholder="Display Title (e.g., Science Textbook Vol 1)">
+            <select id="reg-cat">
+                <option value="Systematic Theology">Systematic Theology</option>
+                <option value="CHURCH History">CHURCH History</option>
+                <option value="Mission">Mission</option>
+                <option value="Acts of Apostles">Acts of Apostles</option>
+                <option value="Synoptic Gospel">Synoptic Gospel</option>
+                <option value="Introduction to BIBLE">Introduction to BIBLE</option>
+            </select>
+            <button class="btn-sm" style="background: var(--blue); color: white; width: 100%; padding: 12px;" onclick="registerPDF()">Save to Inventory</button>
+        </div>
 
-<div class="card">
-    <h3>👥 Member Management & Live Status</h3>
-    <table id="memberTable">
-        <thead><tr><th>Status</th><th>Name</th><th>Email</th><th>Institution</th><th>Position</th></tr></thead>
-        <tbody></tbody>
-    </table>
-</div>
+        <table>
+            <thead><tr><th>PDF File</th><th>Category</th><th>Promotions</th><th>Action</th></tr></thead>
+            <tbody id="inventory-list"></tbody>
+        </table>
+    </div>
 
-<div class="card">
-    <h3>⏳ Student Activity Logs</h3>
-    <table id="logTable">
-        <thead><tr><th>Student</th><th>Activity</th><th>Duration</th><th>Date & Time</th></tr></thead>
-        <tbody></tbody>
-    </table>
-</div>
+    <div id="members-section" class="hidden">
+        <div class="card">
+            <h3>👥 Member Live Status</h3>
+            <table id="memberTable">
+                <thead><tr><th>Status</th><th>Name</th><th>Email</th><th>Institution</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="card">
+            <h3>⏳ Student Activity Logs</h3>
+            <table id="logTable">
+                <thead><tr><th>Student</th><th>Activity</th><th>Duration</th><th>Time</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 
 <script>
     const firebaseConfig = {
@@ -86,37 +86,41 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    async function saveBook() {
-        const id = document.getElementById('book-id').value.trim();
-        const title = document.getElementById('book-title').value.trim();
-        const cat = document.getElementById('book-cat').value;
-        if(!id || !title || !cat) return alert("Required fields missing");
+    function switchTab(tab) {
+        document.getElementById('content-section').classList.toggle('hidden', tab !== 'content');
+        document.getElementById('members-section').classList.toggle('hidden', tab !== 'members');
+        document.getElementById('t-content').classList.toggle('active', tab === 'content');
+        document.getElementById('t-members').classList.toggle('active', tab === 'members');
+    }
+
+    async function registerPDF() {
+        const id = document.getElementById('reg-id').value.trim();
+        const title = document.getElementById('reg-title').value.trim();
+        const cat = document.getElementById('reg-cat').value;
+        if(!id || !title) return alert("Please fill ID and Title");
         await db.collection("library_settings").doc(id).set({ title, category: cat, updatedAt: new Date().toISOString() }, { merge: true });
         location.reload();
     }
 
+    // Load Inventory
     db.collection("library_settings").onSnapshot(snap => {
-        const tbody = document.querySelector("#contentTable tbody");
-        tbody.innerHTML = "";
-        let r=0, t=0;
+        const list = document.getElementById('inventory-list');
+        list.innerHTML = "";
         snap.forEach(doc => {
             const b = doc.data();
-            if(b.recent) r++; if(b.trending) t++;
-            tbody.innerHTML += `<tr>
-                <td><b>${b.title || doc.id}</b></td>
-                <td style="color:var(--blue)">${b.category || 'Uncategorized'}</td>
+            list.innerHTML += `<tr>
+                <td><b>${b.title}</b><br><small>${doc.id}.pdf</small></td>
+                <td><span style="color:var(--blue)">${b.category}</span></td>
                 <td>
-                    <button class="btn btn-add" onclick="togglePromo('${doc.id}', 'recent', 5)">+ Recent</button>
-                    <button class="btn btn-add" onclick="togglePromo('${doc.id}', 'trending', 10)">+ Trending</button>
-                    <button class="btn btn-rem" onclick="unmark('${doc.id}', 'recent')">Remove Recent</button>
-                    <button class="btn btn-rem" onclick="unmark('${doc.id}', 'trending')">Remove Trending</button>
+                    <button class="btn-sm" style="background:#dcfce7" onclick="updatePromo('${doc.id}', 'recent', 5)">+ Recent</button>
+                    <button class="btn-sm" style="background:#fef9c3" onclick="updatePromo('${doc.id}', 'trending', 10)">+ Trend</button>
                 </td>
+                <td><button class="btn-sm" style="background:#fee2e2" onclick="deleteBook('${doc.id}')">Delete</button></td>
             </tr>`;
         });
-        document.getElementById('r-count').innerText = `${r}/5`;
-        document.getElementById('trending-count').innerText = `${t}/10`;
     });
 
+    // Member Logic
     db.collection("users").onSnapshot(snap => {
         const tbody = document.querySelector("#memberTable tbody");
         tbody.innerHTML = "";
@@ -125,34 +129,32 @@
             const isOnline = (Date.now() - new Date(u.lastActive).getTime()) < 180000;
             tbody.innerHTML += `<tr>
                 <td><span class="badge ${isOnline?'online':''}">● ${isOnline?'Online':'Offline'}</span></td>
-                <td><b>${u.fullName}</b></td><td>${u.email}</td><td>${u.institution || 'N/A'}</td><td>${u.position}</td>
+                <td>${u.fullName}</td><td>${u.email}</td><td>${u.institution || 'N/A'}</td>
             </tr>`;
         });
     });
 
-    db.collection("activity_logs").orderBy("timestamp", "desc").limit(10).onSnapshot(snap => {
+    // Log Logic
+    db.collection("activity_logs").orderBy("timestamp", "desc").limit(15).onSnapshot(snap => {
         const tbody = document.querySelector("#logTable tbody");
         tbody.innerHTML = "";
         snap.forEach(doc => {
             const l = doc.data();
-            tbody.innerHTML += `<tr><td>${l.userName}</td><td>${l.activityType}</td><td>${l.duration}</td><td>${new Date(l.timestamp).toLocaleString()}</td></tr>`;
+            tbody.innerHTML += `<tr><td>${l.userName}</td><td>${l.activityType}</td><td>${l.duration}</td><td>${new Date(l.timestamp).toLocaleTimeString()}</td></tr>`;
         });
     });
 
-    async function togglePromo(id, cat, limit) {
+    async function updatePromo(id, cat, limit) {
         const snap = await db.collection("library_settings").where(cat, "==", true).get();
         if(snap.size >= limit) {
-            let oldestId; let oldestTime = Infinity;
-            snap.forEach(d => { 
-                const time = new Date(d.data().updatedAt).getTime();
-                if(time < oldestTime) { oldestTime = time; oldestId = d.id; }
-            });
-            await db.collection("library_settings").doc(oldestId).update({ [cat]: false });
+            let oldestDoc = snap.docs[0].id;
+            await db.collection("library_settings").doc(oldestDoc).update({ [cat]: false });
         }
         await db.collection("library_settings").doc(id).update({ [cat]: true, updatedAt: new Date().toISOString() });
+        alert("Updated!");
     }
 
-    async function unmark(id, cat) { await db.collection("library_settings").doc(id).update({ [cat]: false }); }
+    async function deleteBook(id) { if(confirm("Delete this book?")) await db.collection("library_settings").doc(id).delete(); }
 </script>
 </body>
 </html>
