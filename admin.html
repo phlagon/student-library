@@ -3,33 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Library Admin - Category Manager</title>
+    <title>Admin - Global Library Manager</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --blue: #3b82f6; --bg: #f8fafc; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; }
-        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
-        select, input { padding: 8px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; width: 100%; }
+        :root { --blue: #3b82f6; --bg: #f8fafc; --card: #ffffff; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
+        .card { background: var(--card); border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-box { padding: 20px; border-radius: 15px; text-align: center; color: white; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b; padding: 10px; border-bottom: 2px solid #f1f5f9; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
         .btn { padding: 8px 12px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; margin: 2px; }
-        .btn-add { background: var(--blue); color: white; }
+        .btn-add { background: #dcfce7; color: #166534; }
+        .btn-rem { background: #fee2e2; color: #ef4444; }
+        input, select { padding: 10px; border-radius: 10px; border: 1px solid #ddd; width: 100%; margin-bottom: 10px; box-sizing: border-box; }
+        .badge { padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; }
+        .online { background: #dcfce7; color: #166534; }
     </style>
 </head>
 <body>
 
+<div class="dashboard-grid">
+    <div class="stat-box" style="background: var(--blue);">Recent: <span id="r-count">0/5</span></div>
+    <div class="stat-box" style="background: #f59e0b;">Trending: <span id="t-count">0/10</span></div>
+    <div class="stat-box" style="background: #a855f7;">Faculty Recs: <span id="f-count">0</span></div>
+</div>
+
 <div class="card">
     <h2>📂 Global Content Manager</h2>
-    <p>Assign books to one of the 6 core categories below.</p>
-    
     <div style="background: #f1f5f9; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
         <h4>Add New Book to Category</h4>
-        <input type="text" id="new-book-id" placeholder="Book ID (e.g. theology_vol1)">
-        <input type="text" id="new-book-title" placeholder="Full Book Title">
-        <select id="new-book-cat">
+        <input type="text" id="book-id" placeholder="Book ID (e.g., system_theology_1)">
+        <input type="text" id="book-title" placeholder="Full Title (e.g., Systematic Theology Vol 1)">
+        <select id="book-cat">
+            <option value="" disabled selected>Select Category</option>
             <option value="Systematic Theology">Systematic Theology</option>
             <option value="CHURCH History">CHURCH History</option>
             <option value="Mission">Mission</option>
@@ -37,12 +48,28 @@
             <option value="Synoptic Gospel">Synoptic Gospel</option>
             <option value="Introduction to BIBLE">Introduction to BIBLE</option>
         </select>
-        <button class="btn btn-add" onclick="addNewBook()">Save to Library</button>
+        <button class="btn" style="background:var(--blue); color:white; width:100%; padding:12px;" onclick="saveBook()">Save & Categorize</button>
     </div>
 
-    <table id="book-manager-table">
-        <thead><tr style="text-align:left; font-size:11px; color:#94a3b8;"><th>BOOK</th><th>CATEGORY</th><th>PROMOTIONS</th></tr></thead>
-        <tbody id="admin-book-list"></tbody>
+    <table id="contentTable">
+        <thead><tr><th>BOOK NAME</th><th>CATEGORY</th><th>PROMOTIONS</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>👥 Member Management & Live Status</h3>
+    <table id="memberTable">
+        <thead><tr><th>Status</th><th>Name</th><th>Email</th><th>Institution</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>⏳ Student Activity Logs</h3>
+    <table id="logTable">
+        <thead><tr><th>Student</th><th>Activity</th><th>Duration</th><th>Date</th></tr></thead>
+        <tbody></tbody>
     </table>
 </div>
 
@@ -58,41 +85,66 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    async function addNewBook() {
-        const id = document.getElementById('new-book-id').value.trim();
-        const title = document.getElementById('new-book-title').value.trim();
-        const cat = document.getElementById('new-book-cat').value;
-        
-        if(!id || !title) return alert("Fill all fields");
-
-        await db.collection("library_settings").doc(id).set({
-            title: title,
-            category: cat,
-            recent: true, // Automatically mark as recent
-            updatedAt: new Date().toISOString()
-        }, { merge: true });
-
-        alert("Book Added to " + cat);
+    async function saveBook() {
+        const id = document.getElementById('book-id').value.trim();
+        const title = document.getElementById('book-title').value.trim();
+        const cat = document.getElementById('book-cat').value;
+        if(!id || !title || !cat) return alert("Required fields missing");
+        await db.collection("library_settings").doc(id).set({ title, category: cat, updatedAt: new Date().toISOString() }, { merge: true });
         location.reload();
     }
 
-    // Load list for management
-    async function loadManager() {
-        const snap = await db.collection("library_settings").get();
-        const list = document.getElementById('admin-book-list');
+    db.collection("library_settings").onSnapshot(snap => {
+        const tbody = document.querySelector("#contentTable tbody");
+        tbody.innerHTML = "";
+        let r=0, t=0;
         snap.forEach(doc => {
             const b = doc.data();
-            list.innerHTML += `<tr>
+            if(b.recent) r++; if(b.trending) t++;
+            tbody.innerHTML += `<tr>
                 <td><b>${b.title}</b></td>
-                <td><span style="color:blue">${b.category || 'Uncategorized'}</span></td>
+                <td style="color:var(--blue)">${b.category}</td>
                 <td>
-                    <button class="btn btn-add" onclick="markAuto('${doc.id}', 'recent', 5)">+ Recent</button>
-                    <button class="btn btn-add" onclick="markAuto('${doc.id}', 'trending', 10)">+ Trending</button>
+                    <button class="btn btn-add" onclick="togglePromo('${doc.id}', 'recent', 5)">+ Recent</button>
+                    <button class="btn btn-add" onclick="togglePromo('${doc.id}', 'trending', 10)">+ Trending</button>
                 </td>
             </tr>`;
         });
+        document.getElementById('r-count').innerText = `${r}/5`;
+        document.getElementById('t-count').innerText = `${t}/10`;
+    });
+
+    db.collection("users").onSnapshot(snap => {
+        const tbody = document.querySelector("#memberTable tbody");
+        tbody.innerHTML = "";
+        snap.forEach(doc => {
+            const u = doc.data();
+            const isOnline = (Date.now() - new Date(u.lastActive).getTime()) < 180000; //
+            tbody.innerHTML += `<tr>
+                <td><span class="badge ${isOnline?'online':''}">● ${isOnline?'Online':'Offline'}</span></td>
+                <td><b>${u.fullName}</b></td><td>${u.email}</td><td>${u.institution || 'N/A'}</td>
+            </tr>`;
+        });
+    });
+
+    db.collection("activity_logs").orderBy("timestamp", "desc").limit(10).onSnapshot(snap => {
+        const tbody = document.querySelector("#logTable tbody");
+        tbody.innerHTML = "";
+        snap.forEach(doc => {
+            const l = doc.data();
+            tbody.innerHTML += `<tr><td>${l.userName}</td><td>${l.activityType}</td><td>${l.duration}</td><td>${new Date(l.timestamp).toLocaleString()}</td></tr>`;
+        });
+    });
+
+    async function togglePromo(id, cat, limit) {
+        const snap = await db.collection("library_settings").where(cat, "==", true).get();
+        if(snap.size >= limit) {
+            let oldestId; let oldestTime = Infinity;
+            snap.forEach(d => { if(new Date(d.data().updatedAt) < oldestTime) { oldestTime = d.data().updatedAt; oldestId = d.id; }});
+            await db.collection("library_settings").doc(oldestId).update({ [cat]: false });
+        }
+        await db.collection("library_settings").doc(id).update({ [cat]: true, updatedAt: new Date().toISOString() });
     }
-    loadManager();
 </script>
 </body>
 </html>
