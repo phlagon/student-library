@@ -13,49 +13,43 @@
         :root { --blue: #3b82f6; --purple: #a855f7; --bg: #f0f4f8; --card: rgba(255, 255, 255, 0.95); }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; overflow-x: hidden; }
         .hidden { display: none !important; }
-        .glass-card { background: var(--card); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+        .glass-card { background: var(--card); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); padding: 25px; margin-bottom: 20px; }
         
-        /* Auth Screen */
-        #auth-screen { display: flex; align-items: center; justify-content: center; min-height: 90vh; }
-        .auth-card { padding: 40px; width: 100%; max-width: 400px; text-align: center; }
-        
-        /* Dashboard */
-        header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin: 25px 0; }
-        .stat-card { padding: 25px; border-radius: 20px; color: white; transition: 0.3s; }
-        
-        /* Buttons */
-        .btn-action { padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; font-size: 13px; }
-        .btn-primary { background: var(--blue); color: white; }
-        .btn-borrow { background: #f1f5f9; color: #1e293b; margin-left: 5px; }
-        .btn-read-full { background: var(--purple); color: white; }
+        /* Navigation Tabs */
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: #e2e8f0; color: #64748b; }
+        .tab-btn.active { background: var(--blue); color: white; }
 
-        input, select { width: 100%; padding: 14px; margin-top: 12px; border: 2px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; }
+        /* Search Bar */
+        .search-box { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #e2e8f0; margin-bottom: 20px; font-size: 16px; outline: none; box-sizing: border-box; }
+
+        /* Profile Styles */
+        .profile-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .profile-row b { color: #64748b; }
+
+        /* Existing Buttons */
+        .btn-action { padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; font-size: 13px; transition: 0.2s; }
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-borrow { background: #f1f5f9; color: #1e293b; }
+        
+        header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        #date-time { font-size: 12px; color: #94a3b8; font-weight: 600; margin-bottom: 15px; display: block; }
         #reader-overlay { position: fixed; inset: 0; background: white; z-index: 2000; display: flex; flex-direction: column; }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
-<div id="loading-screen" style="text-align:center; margin-top:100px;">
-    <h3 class="animate__animated animate__pulse animate__infinite">Connecting to Library...</h3>
-</div>
-
 <div id="auth-screen" class="hidden">
-    <div class="auth-card glass-card animate__animated animate__fadeInUp">
+    <div class="glass-card animate__animated animate__fadeInUp" style="max-width: 400px; margin: auto; text-align: center; margin-top: 50px;">
         <h2>Student Library</h2>
-        <p style="color: #64748b; margin-bottom: 25px;">Enter the World of Knowledge</p>
         <button id="login-btn" class="btn-action btn-primary" style="width:100%; padding:15px;" onclick="signInWithGoogle()">Sign in with Google</button>
-
         <div id="registration-form" class="hidden">
-            <h3 style="margin-top:0;">Profile Setup</h3>
-            <input type="text" id="reg-inst" placeholder="Institution Name (Required)" required>
-            <select id="reg-position" required>
-                <option value="" disabled selected>Select Position</option>
-                <option value="student">Student</option>
-                <option value="faculty">Faculty</option>
+            <h3>Complete Profile</h3>
+            <input type="text" id="reg-inst" placeholder="Institution Name" style="width:100%; padding:12px; margin-bottom:10px;">
+            <select id="reg-position" style="width:100%; padding:12px; margin-bottom:10px;">
+                <option value="student">Student</option><option value="faculty">Faculty</option>
             </select>
-            <input type="text" id="reg-whatsapp" placeholder="WhatsApp Number">
-            <button class="btn-action btn-primary" style="width:100%; margin-top:20px;" onclick="saveRegistration()">Enter Library</button>
+            <button class="btn-action btn-primary" onclick="saveRegistration()">Enter Library</button>
         </div>
     </div>
 </div>
@@ -64,50 +58,67 @@
     <header>
         <div>
             <span style="color: var(--blue); font-weight: 800; font-size: 12px; letter-spacing: 1px;">JESUS IS THE SAVIOUR</span>
-            <h1 id="user-welcome" style="margin: 0; font-size: 26px;">Library Dashboard</h1>
+            <h1 id="user-welcome" style="margin: 0;">Dashboard</h1>
         </div>
         <button onclick="logout()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-weight: 600;">LOGOUT</button>
     </header>
+    
+    <span id="date-time">Loading Date & Time...</span>
 
-    <div class="stats-grid">
-        <div class="stat-card" style="background: linear-gradient(135deg, #60a5fa, #3b82f6);">
-            <small>Total Books</small><div style="font-size: 32px; font-weight: 700;">20</div>
-        </div>
-        <div class="stat-card" style="background: linear-gradient(135deg, #c084fc, #a855f7);">
-            <small>Members</small><div style="font-size: 32px; font-weight: 700;">120</div>
+    <div class="nav-tabs">
+        <button id="tab-library" class="tab-btn active" onclick="switchTab('library')">Library</button>
+        <button id="tab-profile" class="tab-btn" onclick="switchTab('profile')">My Profile</button>
+    </div>
+
+    <div id="library-view">
+        <input type="text" id="searchBar" class="search-box" placeholder="🔍 Search for books, subjects, or keywords..." onkeyup="searchBooks()">
+        
+        <div class="glass-card">
+            <h3 style="margin-top:0; font-size: 14px; color: #64748b;">AVAILABLE RESOURCES</h3>
+            <div id="available-list">
+                <div class="book-item" data-title="Science Textbook">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-bottom:1px solid #f1f5f9;">
+                        <div><b>Science Textbook</b><br><small style="color:#94a3b8;">Full Version Available</small></div>
+                        <div>
+                            <button onclick="openReader('public/science_book_read_online.pdf', 'Science Preview')" class="btn-action btn-primary">Read</button>
+                            <button onclick="borrowBook('Science Textbook', 'public/science_book.pdf')" class="btn-action btn-borrow">Borrow</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="book-item" data-title="Math Lesson Plan">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0;">
+                        <div><b>Math Lesson Plan</b><br><small style="color:#94a3b8;">Lesson Plans</small></div>
+                        <div>
+                            <button onclick="openReader('public/math_lesson_read_online.pdf', 'Math Preview')" class="btn-action btn-primary">Read</button>
+                            <button onclick="borrowBook('Math Lesson Plan', 'public/math_lesson.pdf')" class="btn-action btn-borrow">Borrow</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="glass-card" style="padding: 25px;">
-        <h3 style="margin-top:0; color:#64748b; font-size: 14px; letter-spacing: 1px;">AVAILABLE RESOURCES</h3>
-        <div id="available-list">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-bottom:1px solid #f1f5f9;">
-                <div><b>Science Textbook</b><br><small style="color:#94a3b8;">Preview available</small></div>
-                <div>
-                    <button onclick="openReader('public/science_book_read_online.pdf', 'Preview: Science')" class="btn-action btn-primary">Read</button>
-                    <button onclick="borrowBook('Science Textbook', 'public/science_book.pdf')" class="btn-action btn-borrow">Borrow</button>
-                </div>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0;">
-                <div><b>Math Lesson Plan</b><br><small style="color:#94a3b8;">Preview available</small></div>
-                <div>
-                    <button onclick="openReader('public/math_lesson_read_online.pdf', 'Preview: Math')" class="btn-action btn-primary">Read</button>
-                    <button onclick="borrowBook('Math Lesson Plan', 'public/math_lesson.pdf')" class="btn-action btn-borrow">Borrow</button>
-                </div>
-            </div>
+    <div id="profile-view" class="hidden">
+        <div class="glass-card">
+            <h3 style="margin-top:0; color:var(--blue);">Student Profile</h3>
+            <div class="profile-row"><b>User Name</b> <span id="p-name">Loading...</span></div>
+            <div class="profile-row"><b>Email ID</b> <span id="p-email">Loading...</span></div>
+            <div class="profile-row"><b>Institution</b> <span id="p-inst">Loading...</span></div>
+            <div class="profile-row"><b>Total App Time</b> <span id="p-apptime">0m 0s</span></div>
+            <div class="profile-row"><b>Total Reading Time</b> <span id="p-readtime">0m 0s</span></div>
         </div>
-    </div>
 
-    <div class="glass-card" style="padding: 25px; margin-top: 25px;">
-        <h3 style="margin-top:0; color:var(--purple); font-size: 14px; letter-spacing: 1px;">MY BORROWED BOOKS</h3>
-        <div id="borrowed-list"><small style="color:#94a3b8;">No books borrowed yet.</small></div>
+        <div class="glass-card">
+            <h3 style="margin-top:0; color:var(--purple);">Currently Borrowed</h3>
+            <div id="p-borrowed-list"><small>No active borrows.</small></div>
+        </div>
     </div>
 </div>
 
 <div id="reader-overlay" class="hidden">
     <div style="padding:15px; background:#1e293b; color:white; display:flex; justify-content:space-between; align-items:center;">
         <span id="rtitle">Reading Mode</span>
-        <button onclick="closeReader()" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">Exit</button>
+        <button onclick="closeReader()" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">Exit</button>
     </div>
     <iframe id="pdf-frame" src="" style="flex-grow:1; border:none;"></iframe>
 </div>
@@ -125,88 +136,103 @@
     const auth = firebase.auth(); const db = firebase.firestore();
     let sessionStart, readingStart, currBook;
 
-    function signInWithGoogle() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).then(res => handleEntry(res.user)).catch(err => alert(err.message));
+    // --- DATE & TIME ---
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('date-time').innerText = now.toLocaleString();
+    }
+    setInterval(updateClock, 1000);
+
+    // --- SEARCH LOGIC ---
+    function searchBooks() {
+        let input = document.getElementById('searchBar').value.toLowerCase();
+        let items = document.getElementsByClassName('book-item');
+        for (let i = 0; i < items.length; i++) {
+            let title = items[i].getAttribute('data-title').toLowerCase();
+            items[i].style.display = title.includes(input) ? "" : "none";
+        }
     }
 
-    auth.onAuthStateChanged(user => {
-        if (user) { handleEntry(user); } 
-        else { 
-            document.getElementById('loading-screen').classList.add('hidden');
-            document.getElementById('auth-screen').classList.remove('hidden');
-            document.getElementById('dashboard').classList.add('hidden');
-        }
+    // --- TAB SWITCHING ---
+    function switchTab(tab) {
+        document.getElementById('library-view').classList.toggle('hidden', tab !== 'library');
+        document.getElementById('profile-view').classList.toggle('hidden', tab !== 'profile');
+        document.getElementById('tab-library').classList.toggle('active', tab === 'library');
+        document.getElementById('tab-profile').classList.toggle('active', tab === 'profile');
+        if(tab === 'profile') loadProfileData();
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            sessionStart = Date.now();
+            const doc = await db.collection("users").doc(user.uid).get();
+            if (doc.exists) { 
+                showDashboard(doc.data()); 
+                // Pulse Live Status
+                setInterval(() => db.collection("users").doc(user.uid).update({ lastActive: new Date().toISOString() }), 60000);
+            } else { showRegistration(); }
+        } else { showLogin(); }
     });
 
-    async function handleEntry(user) {
-        sessionStart = Date.now();
-        const update = () => { db.collection("users").doc(user.uid).update({ lastActive: new Date().toISOString() }).catch(()=>{}); };
-        update(); setInterval(update, 60000);
+    async function loadProfileData() {
+        const user = auth.currentUser;
+        const userDoc = await db.collection("users").doc(user.uid).get();
+        const data = userDoc.data();
+        
+        document.getElementById('p-name').innerText = data.fullName;
+        document.getElementById('p-email').innerText = data.email;
+        document.getElementById('p-inst').innerText = data.institution;
 
-        const doc = await db.collection("users").doc(user.uid).get();
-        document.getElementById('loading-screen').classList.add('hidden');
-        if (doc.exists) {
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('user-welcome').innerText = "Hello, " + doc.data().fullName.split(' ')[0];
-            loadBorrowedBooks();
-        } else {
-            document.getElementById('auth-screen').classList.remove('hidden');
-            document.getElementById('login-btn').classList.add('hidden');
-            document.getElementById('registration-form').classList.remove('hidden');
-        }
-    }
-
-    async function saveRegistration() {
-        const inst = document.getElementById('reg-inst').value;
-        const pos = document.getElementById('reg-position').value;
-        if(!inst || !pos) return alert("Institution and Position are mandatory!");
-        const u = auth.currentUser;
-        await db.collection("users").doc(u.uid).set({
-            fullName: u.displayName, email: u.email, whatsapp: document.getElementById('reg-whatsapp').value, institution: inst, position: pos, uid: u.uid, lastActive: new Date().toISOString()
+        // Load Stats from activity_logs
+        const logs = await db.collection("activity_logs").where("userName", "==", user.displayName).get();
+        let appMinutes = 0, readMinutes = 0;
+        logs.forEach(log => {
+            let d = log.data();
+            let mins = parseInt(d.duration) || 0;
+            if(d.activityType === "Total App Usage") appMinutes += mins;
+            else readMinutes += mins;
         });
-        location.reload();
-    }
+        document.getElementById('p-apptime').innerText = appMinutes + "m Total";
+        document.getElementById('p-readtime').innerText = readMinutes + "m Total";
 
-    function logout() { auth.signOut().then(() => location.reload()); }
-
-    function openReader(url, t) {
-        currBook = t; readingStart = Date.now();
-        document.getElementById('rtitle').innerText = t;
-        document.getElementById('pdf-frame').src = url + "#toolbar=0";
-        document.getElementById('reader-overlay').classList.remove('hidden');
-    }
-
-    async function closeReader() { 
-        const dur = Math.floor((Date.now() - readingStart) / 1000);
-        if(dur > 2) await db.collection("activity_logs").add({ userName: auth.currentUser.displayName, activityType: "Reading: "+currBook, duration: Math.floor(dur/60)+"m "+(dur%60)+"s", timestamp: new Date().toISOString() });
-        document.getElementById('reader-overlay').classList.add('hidden'); 
-        document.getElementById('pdf-frame').src = "";
+        // Load Borrowed
+        const borrowSnap = await db.collection("borrows").where("userId", "==", user.uid).get();
+        const pList = document.getElementById('p-borrowed-list');
+        pList.innerHTML = "";
+        borrowSnap.forEach(doc => {
+            const d = doc.data();
+            const daysLeft = Math.ceil((new Date(d.expiresOn) - new Date()) / (1000*60*60*24));
+            pList.innerHTML += `<div class="profile-row"><b>${d.title}</b> <span>Return in: ${daysLeft > 0 ? daysLeft : 0} days</span></div>`;
+        });
     }
 
     async function borrowBook(title, url) {
-        const code = prompt("Enter Borrowing Code (BORROW2026):");
+        const user = auth.currentUser;
+        // DUPLICATE CHECK
+        const existing = await db.collection("borrows").where("userId", "==", user.uid).where("title", "==", title).get();
+        if(!existing.empty) {
+            alert("Lock: You have already borrowed this book. Please return or wait for expiry.");
+            return;
+        }
+
+        const code = prompt("Enter Borrow Code (BORROW2026):");
         if(code === "BORROW2026") {
             const exp = new Date(); exp.setDate(exp.getDate() + 5);
-            await db.collection("borrows").add({ title, url, userId: auth.currentUser.uid, expiresOn: exp.toISOString() });
-            alert("Borrowed! Access in the purple section.");
+            await db.collection("borrows").add({ title, url, userId: user.uid, expiresOn: exp.toISOString() });
+            alert("Borrowed Successfully!");
             location.reload();
-        } else { alert("Invalid Code."); }
+        }
     }
 
-    async function loadBorrowedBooks() {
-        const snap = await db.collection("borrows").where("userId", "==", auth.currentUser.uid).get();
-        const list = document.getElementById('borrowed-list');
-        if (snap.empty) return;
-        list.innerHTML = "";
-        snap.forEach(doc => {
-            const d = doc.data();
-            list.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-bottom:1px solid #f1f5f9;">
-                <div><b>${d.title} (Full)</b></div>
-                <button onclick="openReader('${d.url}', 'Borrowed: ${d.title}')" class="btn-action btn-read-full">Open Book</button>
-            </div>`;
-        });
+    function showDashboard(u) { document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden'); document.getElementById('user-welcome').innerText = "Hello, " + u.fullName.split(' ')[0]; }
+    function showRegistration() { document.getElementById('auth-screen').classList.remove('hidden'); document.getElementById('registration-form').classList.remove('hidden'); document.getElementById('login-btn').classList.add('hidden'); }
+    function showLogin() { document.getElementById('auth-screen').classList.remove('hidden'); document.getElementById('dashboard').classList.add('hidden'); }
+    function logout() { auth.signOut().then(() => location.reload()); }
+    function openReader(url, t) { currBook = t; readingStart = Date.now(); document.getElementById('rtitle').innerText = t; document.getElementById('pdf-frame').src = url + "#toolbar=0"; document.getElementById('reader-overlay').classList.remove('hidden'); }
+    async function closeReader() { 
+        const dur = Math.floor((Date.now() - readingStart) / 1000);
+        await db.collection("activity_logs").add({ userName: auth.currentUser.displayName, activityType: "Reading: "+currBook, duration: Math.floor(dur/60)+"m "+(dur%60)+"s", timestamp: new Date().toISOString() });
+        document.getElementById('reader-overlay').classList.add('hidden'); 
     }
 </script>
 </body>
