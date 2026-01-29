@@ -7,43 +7,67 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --blue: #3b82f6; --bg: #f0f4f8; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        :root { --blue: #3b82f6; --purple: #a855f7; --bg: #f0f4f8; --card: rgba(255, 255, 255, 0.95); }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
         .hidden { display: none !important; }
-        .glass-card { background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); padding: 40px; max-width: 400px; margin: 90px auto; text-align: center; }
-        .btn-primary { background: var(--blue); color: white; border: none; padding: 15px; border-radius: 12px; cursor: pointer; width: 100%; font-weight: bold; }
+        .glass-card { background: var(--card); backdrop-filter: blur(10px); border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); padding: 40px; text-align: center; max-width: 400px; margin: auto; }
+        .btn-primary { background: var(--blue); color: white; border: none; padding: 15px; border-radius: 12px; cursor: pointer; width: 100%; font-weight: 600; }
+        input, select { width: 100%; padding: 14px; margin-top: 12px; border: 2px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; }
+        #reader-overlay { position: fixed; inset: 0; background: white; z-index: 2000; display: flex; flex-direction: column; }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
 <div id="loading-screen" style="text-align:center; margin-top:100px;">
-    <h3>Verifying Session...</h3>
+    <div class="animate__animated animate__pulse animate__infinite">Connecting to Library...</div>
 </div>
 
 <div id="auth-screen" class="hidden">
-    <div class="glass-card">
+    <div class="glass-card animate__animated animate__fadeInUp">
         <h2>Student Library</h2>
         <button id="login-btn" class="btn-primary" onclick="signInWithGoogle()">Sign in with Google</button>
+        
         <div id="registration-form" class="hidden">
-            <h3>Profile Setup</h3>
-            <input type="text" id="reg-inst" placeholder="Institution Name" style="width:100%; padding:12px; margin-bottom:10px;" required>
-            <select id="reg-position" style="width:100%; padding:12px; margin-bottom:10px;" required>
+            <h3 style="margin-top:0;">Complete Profile</h3>
+            <input type="text" id="reg-inst" placeholder="Institution Name" required>
+            <select id="reg-position" required>
                 <option value="" disabled selected>Select Position</option>
                 <option value="student">Student</option>
                 <option value="faculty">Faculty</option>
             </select>
-            <button class="btn-primary" onclick="saveRegistration()">Enter Library</button>
+            <input type="text" id="reg-whatsapp" placeholder="WhatsApp (Optional)">
+            <button class="btn-primary" style="margin-top:20px;" onclick="saveRegistration()">Enter Library</button>
         </div>
     </div>
 </div>
 
-<div id="dashboard" class="hidden">
-    <h1 id="user-welcome">Welcome</h1>
-    <button onclick="logout()">Logout</button>
-    <div id="available-list">
-        <p><b>Science Textbook</b> <button onclick="openReader('public/science_book_read_online.pdf', 'Science')">Read</button></p>
+<div id="dashboard" class="hidden animate__animated animate__fadeIn">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <span style="color:var(--blue); font-weight:800; font-size:12px;">JESUS IS THE SAVIOUR</span>
+            <h1 id="user-welcome" style="margin:0;">Dashboard</h1>
+        </div>
+        <button onclick="logout()" style="background:none; border:none; color:#94a3b8; cursor:pointer;">Logout</button>
     </div>
+
+    <div class="glass-card" style="margin-top:30px; text-align:left; max-width:100%;">
+        <h3 style="font-size:14px; color:#64748b;">RESOURCES</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 0;">
+            <b>Science Textbook</b>
+            <button onclick="openReader('public/science_book_read_online.pdf', 'Science')" class="btn-primary" style="width:auto; padding:8px 20px;">Read</button>
+        </div>
+    </div>
+</div>
+
+<div id="reader-overlay" class="hidden">
+    <div style="padding:15px; background:#1e293b; color:white; display:flex; justify-content:space-between;">
+        <span id="rtitle">Reading</span>
+        <button onclick="closeReader()" style="background:#ef4444; color:white; border:none; border-radius:8px; padding:5px 15px; cursor:pointer;">Exit</button>
+    </div>
+    <iframe id="pdf-frame" src="" style="flex-grow:1; border:none;"></iframe>
 </div>
 
 <script>
@@ -57,52 +81,58 @@
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth(); const db = firebase.firestore();
-    let sessionStart;
+    let sessionStart, readingStart, currBook;
 
+    // POPUP MODE
     function signInWithGoogle() {
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithRedirect(provider);
+        auth.signInWithPopup(provider).then(res => handleEntry(res.user)).catch(err => alert(err.message));
     }
 
-    // Capture Redirect result immediately
-    auth.getRedirectResult().catch(err => console.error(err));
-
-    auth.onAuthStateChanged(async (user) => {
-        document.getElementById('loading-screen').classList.add('hidden');
-        if (user) {
-            sessionStart = Date.now();
-            const updateStat = () => { db.collection("users").doc(user.uid).update({ lastActive: new Date().toISOString() }).catch(()=>{}); };
-            updateStat(); setInterval(updateStat, 60000); // Live Pulse
-
-            const doc = await db.collection("users").doc(user.uid).get();
-            if (doc.exists) { 
-                document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('user-welcome').innerText = "Hello, " + doc.data().fullName;
-            } else { 
-                document.getElementById('auth-screen').classList.remove('hidden');
-                document.getElementById('login-btn').classList.add('hidden');
-                document.getElementById('registration-form').classList.remove('hidden');
-            }
-        } else {
+    auth.onAuthStateChanged(user => {
+        if (user) { handleEntry(user); } 
+        else { 
+            document.getElementById('loading-screen').classList.add('hidden');
             document.getElementById('auth-screen').classList.remove('hidden');
-            document.getElementById('dashboard').classList.add('hidden');
         }
     });
+
+    async function handleEntry(user) {
+        sessionStart = Date.now();
+        // Live Pulse
+        const update = () => { db.collection("users").doc(user.uid).update({ lastActive: new Date().toISOString() }).catch(()=>{}); };
+        update(); setInterval(update, 60000);
+
+        const doc = await db.collection("users").doc(user.uid).get();
+        document.getElementById('loading-screen').classList.add('hidden');
+        if (doc.exists) {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('user-welcome').innerText = "Hello, " + doc.data().fullName.split(' ')[0];
+        } else {
+            document.getElementById('login-btn').classList.add('hidden');
+            document.getElementById('registration-form').classList.remove('hidden');
+        }
+    }
 
     async function saveRegistration() {
         const inst = document.getElementById('reg-inst').value;
         const pos = document.getElementById('reg-position').value;
-        if(!inst || !pos) { alert("Please fill mandatory fields."); return; }
-        const user = auth.currentUser;
-        await db.collection("users").doc(user.uid).set({
-            fullName: user.displayName, email: user.email, institution: inst, position: pos, uid: user.uid, lastActive: new Date().toISOString()
+        if(!inst || !pos) return alert("Fields Required!");
+        const u = auth.currentUser;
+        await db.collection("users").doc(u.uid).set({
+            fullName: u.displayName, email: u.email, institution: inst, position: pos, uid: u.uid, lastActive: new Date().toISOString()
         });
-        location.reload(); // Refresh to enter dashboard
+        location.reload();
     }
 
     function logout() { auth.signOut().then(() => location.reload()); }
-    function openReader(url, t) { window.open(url + "#toolbar=0", "_blank"); }
+    function openReader(url, t) { currBook = t; readingStart = Date.now(); document.getElementById('rtitle').innerText = t; document.getElementById('pdf-frame').src = url + "#toolbar=0"; document.getElementById('reader-overlay').classList.remove('hidden'); }
+    async function closeReader() { 
+        const dur = Math.floor((Date.now() - readingStart) / 1000);
+        await db.collection("activity_logs").add({ userName: auth.currentUser.displayName, activityType: "Reading: "+currBook, duration: Math.floor(dur/60)+"m "+(dur%60)+"s", timestamp: new Date().toISOString() });
+        document.getElementById('reader-overlay').classList.add('hidden'); 
+    }
 </script>
 </body>
 </html>
