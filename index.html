@@ -9,7 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
         :root { --blue: #3b82f6; --orange: #f97316; --green: #10b981; --purple: #a855f7; --bg: #f8fafc; --text: #1e293b; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); overflow-x: hidden; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
         .hidden { display: none !important; }
         
         /* Auth Screen */
@@ -17,17 +17,20 @@
         .auth-card { background: white; padding: 30px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 350px; }
         .btn-google { background: white; border: 1px solid #ddd; padding: 12px; border-radius: 12px; width: 100%; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 15px; }
         
-        /* Dashboard Styling */
+        /* Dashboard Header */
         header { margin-bottom: 25px; }
         .savior-badge { color: var(--blue); font-weight: bold; font-size: 18px; display: block; margin-bottom: 5px; }
+        
+        /* Stats Cards */
         .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
         .stat-card { border-radius: 18px; padding: 20px; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .stat-card h3 { margin: 0; font-size: 14px; font-weight: 400; opacity: 0.9; }
         .stat-card .number { font-size: 28px; font-weight: bold; display: block; margin-top: 8px; }
         .bg-blue { background: var(--blue); } .bg-purple { background: var(--purple); }
         
+        /* Sections */
         .section-container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 20px; }
-        .section-title { font-size: 14px; color: #64748b; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .section-title { font-size: 14px; color: #64748b; margin-bottom: 15px; text-transform: uppercase; font-weight: bold; }
         
         .book-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
         .book-item:last-child { border-bottom: none; }
@@ -74,7 +77,7 @@
 
     <div class="stats-grid">
         <div class="stat-card bg-blue"><h3>Total Books</h3><span class="number">2</span></div>
-        <div class="stat-card bg-purple"><h3>Members</h3><span class="number" id="memberCount">120</span></div>
+        <div class="stat-card bg-purple"><h3>Members</h3><span class="number" id="memberCountDisplay">120</span></div>
     </div>
 
     <div class="section-container">
@@ -121,7 +124,6 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    let sessionStartTime;
     let readingStartTime;
     let currentBookName = "";
 
@@ -132,7 +134,6 @@
 
     auth.onAuthStateChanged(async (user) => {
         if (user) {
-            sessionStartTime = Date.now();
             const userDoc = await db.collection("users").doc(user.uid).get();
             if (userDoc.exists) { showDashboard(userDoc.data()); } 
             else { showRegistration(); }
@@ -163,35 +164,41 @@
         document.getElementById('dashboard').classList.add('hidden');
     }
 
-    function logout() { 
-        saveActivity("App Usage", Math.floor((Date.now() - sessionStartTime) / 60000));
-        auth.signOut(); 
-    }
+    function logout() { auth.signOut(); }
 
-    // Secure Reader Functions
+    // --- ENHANCED TIMER LOGIC ---
     function openReader(url, bookTitle) {
         currentBookName = bookTitle;
-        readingStartTime = Date.now();
+        readingStartTime = Date.now(); // Clock starts exactly now
         document.getElementById('reader-book-name').innerText = bookTitle;
-        // #toolbar=0 prevents download/print icons in modern browsers
         document.getElementById('pdf-frame').src = url + "#toolbar=0&navpanes=0";
         document.getElementById('reader-overlay').classList.remove('hidden');
     }
 
     async function closeReader() {
-        const minutes = Math.floor((Date.now() - readingStartTime) / 60000);
-        if (minutes >= 0) { await saveActivity("Reading: " + currentBookName, minutes); }
+        const endTime = Date.now();
+        const totalSeconds = Math.floor((endTime - readingStartTime) / 1000);
+        
+        // Convert to "1m 30s" format
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        const durationText = `${mins}m ${secs}s`;
+
+        if (totalSeconds > 2) { // Save if they read for more than 2 seconds
+            await saveActivity("Reading: " + currentBookName, durationText);
+        }
+
         document.getElementById('reader-overlay').classList.add('hidden');
         document.getElementById('pdf-frame').src = "";
     }
 
-    async function saveActivity(type, minutes) {
+    async function saveActivity(type, durationText) {
         const user = auth.currentUser;
         await db.collection("activity_logs").add({
             userId: user.uid,
             userName: user.displayName,
             activityType: type,
-            duration: minutes + " min",
+            duration: durationText, // Correctly saves minutes and seconds
             timestamp: new Date().toISOString()
         });
     }
@@ -202,7 +209,7 @@
         if(code === "BORROW2026") {
             const expiry = new Date(); expiry.setDate(expiry.getDate() + 5);
             await db.collection("borrows").add({ title, url, userId: user.uid, expiresOn: expiry.toISOString() });
-            alert("Borrowed successfully!");
+            alert("Book added to your Borrowed section!");
             location.reload();
         } else { alert("Invalid Code."); }
     }
@@ -224,7 +231,7 @@
                 else feeStatus = "Late Fee: ₹50";
             }
             list.innerHTML += `<div class="book-item">
-                <div class="book-info"><b>${d.title} (Full Book)</b><small style="color:#ef4444;">${feeStatus}</small></div>
+                <div class="book-info"><b>${d.title} (Full Access)</b><small style="color:#ef4444;">${feeStatus}</small></div>
                 <button onclick="openReader('${d.url}', 'Borrowed: ${d.title}')" class="btn-action btn-read-full">Open Book</button>
             </div>`;
         });
