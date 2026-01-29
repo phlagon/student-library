@@ -29,7 +29,7 @@
         <div><span style="color:var(--blue); font-weight:800; font-size:12px;">JESUS IS THE SAVIOUR</span><h1 style="margin:0;">Theological Library</h1></div>
     </header>
 
-    <input type="text" id="libSearch" class="search-box" placeholder="🔍 Search for books, authors, or categories..." onkeyup="searchLibrary()">
+    <input type="text" id="libSearch" class="search-box" placeholder="🔍 Search for books, categories..." onkeyup="searchLib()">
 
     <div class="glass-card">
         <h3>🕒 Recent Uploads</h3>
@@ -39,11 +39,6 @@
     <div class="glass-card">
         <h3>🔥 Trending Now</h3>
         <div id="trending-list"></div>
-    </div>
-
-    <div class="glass-card">
-        <h3>🎓 Faculty Recommendations</h3>
-        <div id="recommendation-list"></div>
     </div>
 
     <div class="glass-card">
@@ -87,7 +82,7 @@
 
     function renderBook(id, title) {
         return `<div class="book-item" data-title="${title.toLowerCase()}">
-            <span><b>${title || id}</b></span>
+            <span><b>${title}</b></span>
             <div>
                 <button class="btn-blue" onclick="openPdf('${id}', '_read_online')">Read Preview</button>
                 <button class="btn-blue" style="background:#eee; color:#1e293b; margin-left:5px;" onclick="borrowFull('${id}')">Borrow Full</button>
@@ -106,38 +101,28 @@
         });
     });
 
-    db.collection("recommendations").onSnapshot(snap => {
-        const recList = document.getElementById('recommendation-list');
-        recList.innerHTML = "";
-        snap.forEach(doc => {
-            const r = doc.data();
-            recList.innerHTML += `<div class="book-item"><span><b>${r.facultyName}</b> recommends ${r.bookId.toUpperCase()}</span><button class="btn-blue" onclick="openPdf('${r.bookId}', '_read_online')">Open</button></div>`;
-        });
-    });
-
     async function loadCat(name) {
         document.getElementById('cat-name').innerText = name;
         document.getElementById('cat-view').classList.remove('hidden');
         const snap = await db.collection("library_settings").where("category", "==", name).get();
         const list = document.getElementById('cat-list');
-        list.innerHTML = snap.empty ? "<p>No books yet in this category.</p>" : "";
+        list.innerHTML = snap.empty ? "<p>No books in this category.</p>" : "";
         snap.forEach(doc => list.innerHTML += renderBook(doc.id, doc.data().title));
     }
 
-    function searchLibrary() {
+    function searchLib() {
         const query = document.getElementById('libSearch').value.toLowerCase();
-        document.querySelectorAll('.book-item').forEach(item => {
-            item.style.display = item.getAttribute('data-title').includes(query) ? 'flex' : 'none';
+        document.querySelectorAll('.book-item').forEach(el => {
+            el.style.display = el.dataset.title.includes(query) ? "flex" : "none";
         });
     }
 
     function openPdf(id, suffix) {
-        document.getElementById('rtitle').innerText = "Reading Preview";
         document.getElementById('pdf-frame').src = `public/${id}${suffix}.pdf#toolbar=0`;
         document.getElementById('reader-overlay').classList.remove('hidden');
     }
 
-    function borrowFull(id) { if(prompt("Enter Borrow Code:") === "BORROW2026") alert("Full Book Access Granted in 'My Borrowed Books'"); }
+    function borrowFull(id) { if(prompt("Enter Code:") === "BORROW2026") alert("Full Access Granted in 'My Borrowed Books'"); }
 </script>
 </body>
 </html>
