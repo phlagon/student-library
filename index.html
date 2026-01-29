@@ -9,59 +9,57 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
         :root { --blue: #3b82f6; --orange: #f97316; --green: #10b981; --purple: #a855f7; --bg: #f8fafc; --text: #1e293b; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); overflow-x: hidden; }
         .hidden { display: none !important; }
         
         /* Auth Screen */
         #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; }
         .auth-card { background: white; padding: 30px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 350px; }
-        .btn-google { background: white; border: 1px solid #ddd; padding: 12px; border-radius: 12px; width: 100%; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s; margin-top: 15px; }
+        .btn-google { background: white; border: 1px solid #ddd; padding: 12px; border-radius: 12px; width: 100%; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 15px; }
         
-        /* Form */
-        .form-group { margin-top: 15px; text-align: left; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; margin-top: 5px; box-sizing: border-box; }
-        
-        /* Dashboard Header */
+        /* Dashboard Styling */
         header { margin-bottom: 25px; }
         .savior-badge { color: var(--blue); font-weight: bold; font-size: 18px; display: block; margin-bottom: 5px; }
-        
-        /* Stats Cards */
         .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
         .stat-card { border-radius: 18px; padding: 20px; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .stat-card h3 { margin: 0; font-size: 14px; font-weight: 400; opacity: 0.9; }
         .stat-card .number { font-size: 28px; font-weight: bold; display: block; margin-top: 8px; }
-        .bg-blue { background: var(--blue); } .bg-purple { background: var(--purple); } .bg-orange { background: var(--orange); }
+        .bg-blue { background: var(--blue); } .bg-purple { background: var(--purple); }
         
-        /* Lists */
         .section-container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 20px; }
-        .section-title { font-size: 16px; color: #64748b; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+        .section-title { font-size: 14px; color: #64748b; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
         
         .book-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
         .book-item:last-child { border-bottom: none; }
         .book-info { flex-grow: 1; }
         .book-info b { display: block; font-size: 15px; }
-        .book-info small { color: #94a3b8; }
+        .book-info small { color: #94a3b8; font-size: 12px; }
         
-        .btn-action { background: #eff6ff; color: var(--blue); border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; margin-left: 5px; }
+        .btn-action { background: #eff6ff; color: var(--blue); border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; margin-left: 5px; }
         .btn-borrow { background: #f1f5f9; color: var(--text); }
-        .btn-download { background: var(--purple); color: white; }
+        .btn-read-full { background: var(--purple); color: white; }
+
+        /* Reader Overlay */
+        #reader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; display: flex; flex-direction: column; }
+        .reader-header { background: #1e293b; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        #pdf-frame { flex-grow: 1; border: none; }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
 <div id="auth-screen">
     <div class="auth-card">
-        <h2 id="auth-title">Student Library</h2>
+        <h2>Student Library</h2>
         <button id="login-btn" class="btn-google" onclick="signInWithGoogle()">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> Sign in with Google
         </button>
         <div id="registration-form" class="hidden">
-            <div class="form-group"><label>WhatsApp</label><input type="text" id="reg-whatsapp"></div>
-            <div class="form-group"><label>Institution</label><input type="text" id="reg-inst" required></div>
-            <div class="form-group">
-                <label>Position</label>
-                <select id="reg-position"><option value="student">Student</option><option value="faculty">Faculty</option></select>
-            </div>
+            <input type="text" id="reg-whatsapp" placeholder="WhatsApp Number" style="width:100%; padding:10px; margin-top:10px; border-radius:8px; border:1px solid #ddd;">
+            <input type="text" id="reg-inst" placeholder="Institution Name" style="width:100%; padding:10px; margin-top:10px; border-radius:8px; border:1px solid #ddd;">
+            <select id="reg-position" style="width:100%; padding:10px; margin-top:10px; border-radius:8px; border:1px solid #ddd;">
+                <option value="student">Student</option>
+                <option value="faculty">Faculty</option>
+            </select>
             <button class="btn-google" style="background: var(--blue); color: white; border: none;" onclick="saveRegistration()">Complete Setup</button>
         </div>
     </div>
@@ -70,12 +68,12 @@
 <div id="dashboard" class="hidden">
     <header>
         <span class="savior-badge">JESUS is the Saviour</span>
-        <h1 id="user-welcome" style="margin: 0;">Library Admin</h1>
+        <h1 id="user-welcome">Library Dashboard</h1>
         <button onclick="logout()" style="border: none; background: none; color: #94a3b8; cursor: pointer;">Sign Out</button>
     </header>
 
     <div class="stats-grid">
-        <div class="stat-card bg-blue"><h3>Total Books</h3><span class="number">20</span></div>
+        <div class="stat-card bg-blue"><h3>Total Books</h3><span class="number">2</span></div>
         <div class="stat-card bg-purple"><h3>Members</h3><span class="number" id="memberCount">120</span></div>
     </div>
 
@@ -83,9 +81,14 @@
         <div class="section-title">Available Resources</div>
         <div id="available-list">
             <div class="book-item">
-                <div class="book-info"><b>Science Textbook</b><small>Preview: 25 Pages Available</small></div>
-                <button onclick="readLimited('public/science_book.pdf')" class="btn-action">Read</button>
+                <div class="book-info"><b>Science Textbook</b><small>Preview (25 Pages) Available</small></div>
+                <button onclick="openReader('public/science_book_read_online.pdf', 'Preview: Science')" class="btn-action">Read Online</button>
                 <button onclick="borrowBook('Science Textbook', 'public/science_book.pdf')" class="btn-action btn-borrow">Borrow</button>
+            </div>
+            <div class="book-item">
+                <div class="book-info"><b>Math Lesson Plan</b><small>Preview (25 Pages) Available</small></div>
+                <button onclick="openReader('public/math_lesson_read_online.pdf', 'Preview: Math')" class="btn-action">Read Online</button>
+                <button onclick="borrowBook('Math Lesson Plan', 'public/math_lesson.pdf')" class="btn-action btn-borrow">Borrow</button>
             </div>
         </div>
     </div>
@@ -94,6 +97,14 @@
         <div class="section-title" style="color: var(--purple);">My Borrowed Books</div>
         <div id="borrowed-list"><small style="color: #94a3b8;">No books borrowed yet.</small></div>
     </div>
+</div>
+
+<div id="reader-overlay" class="hidden">
+    <div class="reader-header">
+        <span id="reader-book-name">Reading...</span>
+        <button onclick="closeReader()" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">Exit Reader</button>
+    </div>
+    <iframe id="pdf-frame" src=""></iframe>
 </div>
 
 <script>
@@ -110,6 +121,10 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    let sessionStartTime;
+    let readingStartTime;
+    let currentBookName = "";
+
     function signInWithGoogle() {
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider);
@@ -117,6 +132,7 @@
 
     auth.onAuthStateChanged(async (user) => {
         if (user) {
+            sessionStartTime = Date.now();
             const userDoc = await db.collection("users").doc(user.uid).get();
             if (userDoc.exists) { showDashboard(userDoc.data()); } 
             else { showRegistration(); }
@@ -147,21 +163,46 @@
         document.getElementById('dashboard').classList.add('hidden');
     }
 
-    function logout() { auth.signOut(); }
+    function logout() { 
+        saveActivity("App Usage", Math.floor((Date.now() - sessionStartTime) / 60000));
+        auth.signOut(); 
+    }
 
-    // Borrow & Fee Logic
-    function readLimited(fileUrl) {
-        alert("PREVIEW MODE: First 25 pages only. Borrow for full access.");
-        window.open(fileUrl + "#page=1", "_blank");
+    // Secure Reader Functions
+    function openReader(url, bookTitle) {
+        currentBookName = bookTitle;
+        readingStartTime = Date.now();
+        document.getElementById('reader-book-name').innerText = bookTitle;
+        // #toolbar=0 prevents download/print icons in modern browsers
+        document.getElementById('pdf-frame').src = url + "#toolbar=0&navpanes=0";
+        document.getElementById('reader-overlay').classList.remove('hidden');
+    }
+
+    async function closeReader() {
+        const minutes = Math.floor((Date.now() - readingStartTime) / 60000);
+        if (minutes >= 0) { await saveActivity("Reading: " + currentBookName, minutes); }
+        document.getElementById('reader-overlay').classList.add('hidden');
+        document.getElementById('pdf-frame').src = "";
+    }
+
+    async function saveActivity(type, minutes) {
+        const user = auth.currentUser;
+        await db.collection("activity_logs").add({
+            userId: user.uid,
+            userName: user.displayName,
+            activityType: type,
+            duration: minutes + " min",
+            timestamp: new Date().toISOString()
+        });
     }
 
     async function borrowBook(title, url) {
         const user = auth.currentUser;
-        const code = prompt("Enter Borrowing Code (e.g., BORROW2026):");
+        const code = prompt("Enter Borrowing Code (BORROW2026):");
         if(code === "BORROW2026") {
             const expiry = new Date(); expiry.setDate(expiry.getDate() + 5);
             await db.collection("borrows").add({ title, url, userId: user.uid, expiresOn: expiry.toISOString() });
-            alert("Borrowed! Check the purple section.");
+            alert("Borrowed successfully!");
             location.reload();
         } else { alert("Invalid Code."); }
     }
@@ -175,16 +216,16 @@
         snap.forEach(doc => {
             const d = doc.data();
             const now = new Date(); const expiry = new Date(d.expiresOn);
-            let fee = "Active";
+            let feeStatus = "Access Active";
             let diff = Math.ceil((now - expiry) / (1000*60*60*24));
             if(diff > 0) {
-                if(diff == 1) fee = "1 Day Extension (Free)";
-                else if(diff <= 4) fee = "Late Fee: ₹20";
-                else fee = "Late Fee: ₹50";
+                if(diff == 1) feeStatus = "Late: 1 Day Free Extension";
+                else if(diff <= 4) feeStatus = "Late Fee: ₹20";
+                else feeStatus = "Late Fee: ₹50";
             }
             list.innerHTML += `<div class="book-item">
-                <div class="book-info"><b>${d.title}</b><small style="color:#ef4444;">${fee}</small></div>
-                <a href="${d.url}" download class="btn-action btn-download">Download</a>
+                <div class="book-info"><b>${d.title} (Full Book)</b><small style="color:#ef4444;">${feeStatus}</small></div>
+                <button onclick="openReader('${d.url}', 'Borrowed: ${d.title}')" class="btn-action btn-read-full">Open Book</button>
             </div>`;
         });
     }
