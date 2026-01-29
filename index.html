@@ -26,17 +26,27 @@
 </head>
 <body>
 
-<div id="auth-screen" class="hidden">
+<div id="auth-screen">
     <div class="glass-card" style="max-width:400px; margin:auto; text-align:center; margin-top:100px;">
-        <h2>Jesus is the Saviour</h2>
-        <p>Login to access the library</p>
+        <h2 style="color:var(--blue)">Jesus is the Saviour</h2>
+        <p>Please login to access the library resources.</p>
         <button class="btn-blue" style="width:100%; padding:15px;" onclick="signInWithGoogle()">Sign in with Google</button>
+        
+        <div id="registration-form" class="hidden">
+            <h3 style="margin-top:20px;">Complete Your Profile</h3>
+            <input type="text" id="reg-inst" placeholder="Institution Name" style="width:100%; padding:10px; margin-bottom:10px;">
+            <select id="reg-position" style="width:100%; padding:10px; margin-bottom:10px;">
+                <option value="student">Student</option>
+                <option value="faculty">Faculty</option>
+            </select>
+            <button class="btn-blue" style="width:100%;" onclick="saveRegistration()">Enter Library</button>
+        </div>
     </div>
 </div>
 
 <div id="dashboard" class="hidden">
     <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <div><span style="color:var(--blue); font-weight:800; font-size:12px;">JESUS IS THE SAVIOUR</span><h1 style="margin:0;">Library</h1></div>
+        <div><span style="color:var(--blue); font-weight:800; font-size:12px;">JESUS IS THE SAVIOUR</span><h1 style="margin:0;">Theological Library</h1></div>
     </header>
 
     <div class="nav-tabs">
@@ -73,15 +83,17 @@
     <div id="prof-view" class="hidden">
         <div class="glass-card">
             <h3>Student Profile</h3>
-            <p id="p-name">Loading...</p>
-            <p id="p-email"></p>
-            <button class="btn-blue" style="background:red; margin-top:20px; width:100%;" onclick="logout()">Logout</button>
+            <div style="text-align: left; padding: 10px;">
+                <p id="p-name"><b>Name:</b> Loading...</p>
+                <p id="p-email"><b>Email:</b> </p>
+            </div>
+            <button class="btn-blue" style="background:#ef4444; margin-top:20px; width:100%;" onclick="logout()">Logout From Library</button>
         </div>
     </div>
 
     <div id="cat-view" class="hidden" style="margin-top: 20px;">
-        <button onclick="document.getElementById('cat-view').classList.add('hidden')">← Back</button>
-        <h3 id="cat-name">Category</h3>
+        <button onclick="document.getElementById('cat-view').classList.add('hidden')" class="btn-blue" style="background:#64748b;">← Back to Categories</button>
+        <h3 id="cat-name" style="margin-top:15px;">Category</h3>
         <div id="cat-list"></div>
     </div>
 </div>
@@ -107,25 +119,48 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
+    // FORCE ACCOUNT SELECTION
+    function signInWithGoogle() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        auth.signInWithPopup(provider).catch(err => alert(err.message));
+    }
+
+    // AUTH OBSERVER
+    auth.onAuthStateChanged(async user => {
+        if(user) {
+            const doc = await db.collection("users").doc(user.uid).get();
+            if(doc.exists) {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('p-name').innerHTML = "<b>Name:</b> " + user.displayName;
+                document.getElementById('p-email').innerHTML = "<b>Email:</b> " + user.email;
+                db.collection("users").doc(user.uid).update({ lastActive: new Date().toISOString() });
+                loadLibraryData();
+            } else {
+                document.getElementById('registration-form').classList.remove('hidden');
+                document.querySelector('#auth-screen button').classList.add('hidden');
+            }
+        } else {
+            // NO USER: Show only the Login screen
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('registration-form').classList.add('hidden');
+        }
+    });
+
+    function logout() {
+        auth.signOut().then(() => {
+            window.location.reload(); // Force refresh to reset the state
+        });
+    }
+
     function switchMainTab(t) {
         document.getElementById('lib-view').classList.toggle('hidden', t !== 'lib');
         document.getElementById('prof-view').classList.toggle('hidden', t !== 'prof');
         document.getElementById('t-lib').classList.toggle('active', t === 'lib');
         document.getElementById('t-prof').classList.toggle('active', t === 'prof');
     }
-
-    auth.onAuthStateChanged(async user => {
-        if(user) {
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('p-name').innerText = "Name: " + user.displayName;
-            document.getElementById('p-email').innerText = "Email: " + user.email;
-            db.collection("users").doc(user.uid).update({ lastActive: new Date().toISOString() });
-        } else {
-            document.getElementById('auth-screen').classList.remove('hidden');
-            document.getElementById('dashboard').classList.add('hidden');
-        }
-    });
 
     function renderBook(id, title) {
         return `<div class="book-item" data-title="${title.toLowerCase()}">
@@ -137,27 +172,29 @@
         </div>`;
     }
 
-    db.collection("library_settings").onSnapshot(snap => {
-        const rList = document.getElementById('recent-list');
-        rList.innerHTML = "";
-        snap.forEach(doc => { if(doc.data().recent) rList.innerHTML += renderBook(doc.id, doc.data().title || doc.id); });
-    });
-
-    db.collection("recommendations").onSnapshot(snap => {
-        const recList = document.getElementById('recommendation-list');
-        recList.innerHTML = "";
-        snap.forEach(doc => {
-            const r = doc.data();
-            recList.innerHTML += `<div class="book-item"><span><b>${r.facultyName}</b> recommends ${r.bookId.toUpperCase()}</span><button class="btn-blue" onclick="openPdf('${r.bookId}', '_read_online')">Open</button></div>`;
+    function loadLibraryData() {
+        db.collection("library_settings").onSnapshot(snap => {
+            const rList = document.getElementById('recent-list');
+            rList.innerHTML = "";
+            snap.forEach(doc => { if(doc.data().recent) rList.innerHTML += renderBook(doc.id, doc.data().title || doc.id); });
         });
-    });
+
+        db.collection("recommendations").onSnapshot(snap => {
+            const recList = document.getElementById('recommendation-list');
+            recList.innerHTML = "";
+            snap.forEach(doc => {
+                const r = doc.data();
+                recList.innerHTML += `<div class="book-item"><span><b>${r.facultyName}</b> recommends ${r.bookId.toUpperCase()}</span><button class="btn-blue" onclick="openPdf('${r.bookId}', '_read_online')">Open</button></div>`;
+            });
+        });
+    }
 
     async function loadCat(name) {
         document.getElementById('cat-name').innerText = name;
         document.getElementById('cat-view').classList.remove('hidden');
         const snap = await db.collection("library_settings").where("category", "==", name).get();
         const list = document.getElementById('cat-list');
-        list.innerHTML = snap.empty ? "<p>No books found.</p>" : "";
+        list.innerHTML = snap.empty ? "<p>No books in this category.</p>" : "";
         snap.forEach(doc => list.innerHTML += renderBook(doc.id, doc.data().title || doc.id));
     }
 
@@ -173,9 +210,7 @@
         document.getElementById('reader-overlay').classList.remove('hidden');
     }
 
-    function signInWithGoogle() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-    function logout() { auth.signOut().then(() => location.reload()); }
-    function borrowFull(id) { if(prompt("Enter Code:") === "BORROW2026") alert("Full Book Access Granted!"); }
+    function borrowFull(id) { if(prompt("Enter Borrow Code:") === "BORROW2026") alert("Access Granted!"); }
 </script>
 </body>
 </html>
