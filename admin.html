@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Admin Control</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
+        h1 { color: #1e293b; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f8fafc; color: #64748b; }
+        .badge { padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; }
+        .badge-student { background: #dcfce7; color: #166534; }
+        .badge-faculty { background: #fef9c3; color: #854d0e; }
+        .denied { text-align: center; margin-top: 100px; color: #ef4444; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="admin-content" class="container hidden">
+    <h1>Library Admin Center</h1>
+    
+    <div class="card">
+        <h3>Registered Members</h3>
+        <table id="user-table">
+            <thead>
+                <tr><th>Name</th><th>Email</th><th>Institution</th><th>Position</th><th>WhatsApp</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h3>Student Reading Logs (Timers)</h3>
+        <table id="log-table">
+            <thead>
+                <tr><th>User</th><th>Activity</th><th>Duration</th><th>Date</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="access-denied" class="denied hidden">
+    <h2>🚫 Access Denied</h2>
+    <p>Only phlagongkk@gmail.com can view this page.</p>
+    <button onclick="window.location.href='index.html'">Back to Library</button>
+</div>
+
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
+      authDomain: "student-library-4a4e7.firebaseapp.com",
+      projectId: "student-library-4a4e7",
+      storageBucket: "student-library-4a4e7.firebasestorage.app",
+      messagingSenderId: "827419448917",
+      appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // The security check
+    const ADMIN_EMAIL = "phlagongkk@gmail.com";
+
+    auth.onAuthStateChanged(async (user) => {
+        if (user && user.email === ADMIN_EMAIL) {
+            document.getElementById('admin-content').classList.remove('hidden');
+            loadAdminData();
+        } else {
+            document.getElementById('access-denied').classList.remove('hidden');
+        }
+    });
+
+    async function loadAdminData() {
+        // Load Users
+        const userSnap = await db.collection("users").get();
+        const userBody = document.querySelector("#user-table tbody");
+        userSnap.forEach(doc => {
+            const d = doc.data();
+            userBody.innerHTML += `<tr>
+                <td><b>${d.fullName}</b></td>
+                <td>${d.email}</td>
+                <td>${d.institution}</td>
+                <td><span class="badge badge-${d.position}">${d.position}</span></td>
+                <td>${d.whatsapp || 'N/A'}</td>
+            </tr>`;
+        });
+
+        // Load Logs
+        const logSnap = await db.collection("activity_logs").orderBy("timestamp", "desc").limit(50).get();
+        const logBody = document.querySelector("#log-table tbody");
+        logSnap.forEach(doc => {
+            const d = doc.data();
+            const date = new Date(d.timestamp).toLocaleDateString();
+            logBody.innerHTML += `<tr>
+                <td>${d.userName}</td>
+                <td>${d.activityType}</td>
+                <td><b>${d.duration}</b></td>
+                <td>${date}</td>
+            </tr>`;
+        });
+    }
+</script>
+</body>
+</html>
