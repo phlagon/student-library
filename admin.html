@@ -65,7 +65,7 @@
         <div class="card">
             <h3>⏳ Student Activity Logs</h3>
             <table id="logTable">
-                <thead><tr><th>Student</th><th>Activity</th><th>Duration</th><th>Time</th></tr></thead>
+                <thead><tr><th>Student</th><th>Activity</th><th>Time</th></tr></thead>
                 <tbody id="log-body"></tbody>
             </table>
         </div>
@@ -134,7 +134,7 @@
         tbody.innerHTML = "";
         snap.forEach(doc => {
             const l = doc.data();
-            tbody.innerHTML += `<tr><td>${l.userName}</td><td>${l.activityType}</td><td>${l.duration}</td><td>${new Date(l.timestamp).toLocaleString()}</td></tr>`;
+            tbody.innerHTML += `<tr><td>${l.userName}</td><td>${l.activityType}</td><td>${new Date(l.timestamp).toLocaleString()}</td></tr>`;
         });
     });
 
