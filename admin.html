@@ -105,8 +105,8 @@
         snap.forEach(doc => {
             const b = doc.data();
             list.innerHTML += `<tr>
-                <td><b>${b.title || doc.id}</b></td>
-                <td>${b.category}</td>
+                <td><b>${b.title || doc.id}</b><br><small>${doc.id}.pdf</small></td>
+                <td><span style="color:var(--blue)">${b.category || 'Uncategorized'}</span></td>
                 <td>
                     <button class="btn-sm" style="background:#dcfce7" onclick="updatePromo('${doc.id}', 'recent', 5)">+ Recent</button>
                     <button class="btn-sm" style="background:#fef9c3" onclick="updatePromo('${doc.id}', 'trending', 10)">+ Trend</button>
