@@ -37,8 +37,8 @@
     <h2>📂 Global Content Manager</h2>
     <div style="background: #f1f5f9; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
         <h4>Add New Book to Category</h4>
-        <input type="text" id="book-id" placeholder="Book ID (e.g., system_theology_1)">
-        <input type="text" id="book-title" placeholder="Full Title (e.g., Systematic Theology Vol 1)">
+        <input type="text" id="book-id" placeholder="Book ID (e.g., theology_01)">
+        <input type="text" id="book-title" placeholder="Full Title">
         <select id="book-cat">
             <option value="" disabled selected>Select Category</option>
             <option value="Systematic Theology">Systematic Theology</option>
@@ -107,6 +107,8 @@
                 <td>
                     <button class="btn btn-add" onclick="togglePromo('${doc.id}', 'recent', 5)">+ Recent</button>
                     <button class="btn btn-add" onclick="togglePromo('${doc.id}', 'trending', 10)">+ Trending</button>
+                    <button class="btn btn-rem" onclick="unmark('${doc.id}', 'recent')">Remove Recent</button>
+                    <button class="btn btn-rem" onclick="unmark('${doc.id}', 'trending')">Remove Trending</button>
                 </td>
             </tr>`;
         });
@@ -119,7 +121,7 @@
         tbody.innerHTML = "";
         snap.forEach(doc => {
             const u = doc.data();
-            const isOnline = (Date.now() - new Date(u.lastActive).getTime()) < 180000; //
+            const isOnline = (Date.now() - new Date(u.lastActive).getTime()) < 180000;
             tbody.innerHTML += `<tr>
                 <td><span class="badge ${isOnline?'online':''}">● ${isOnline?'Online':'Offline'}</span></td>
                 <td><b>${u.fullName}</b></td><td>${u.email}</td><td>${u.institution || 'N/A'}</td>
@@ -140,10 +142,17 @@
         const snap = await db.collection("library_settings").where(cat, "==", true).get();
         if(snap.size >= limit) {
             let oldestId; let oldestTime = Infinity;
-            snap.forEach(d => { if(new Date(d.data().updatedAt) < oldestTime) { oldestTime = d.data().updatedAt; oldestId = d.id; }});
+            snap.forEach(d => { 
+                const time = new Date(d.data().updatedAt).getTime();
+                if(time < oldestTime) { oldestTime = time; oldestId = d.id; }
+            });
             await db.collection("library_settings").doc(oldestId).update({ [cat]: false });
         }
         await db.collection("library_settings").doc(id).update({ [cat]: true, updatedAt: new Date().toISOString() });
+    }
+
+    async function unmark(id, cat) {
+        await db.collection("library_settings").doc(id).update({ [cat]: false });
     }
 </script>
 </body>
