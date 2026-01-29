@@ -30,15 +30,15 @@
 <div class="dashboard-grid">
     <div class="stat-box" style="background: var(--blue);">Recent: <span id="r-count">0/5</span></div>
     <div class="stat-box" style="background: #f59e0b;">Trending: <span id="t-count">0/10</span></div>
-    <div class="stat-box" style="background: #a855f7;">Faculty Recs: <span id="f-count">0</span></div>
+    <div class="stat-box" style="background: #a855f7;">Recommendations: <span id="f-count">0</span></div>
 </div>
 
 <div class="card">
     <h2>📂 Global Content Manager</h2>
     <div style="background: #f1f5f9; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
-        <h4>Add New Book to Category</h4>
+        <h4>Add/Update Book Category</h4>
         <input type="text" id="book-id" placeholder="Book ID (e.g., theology_01)">
-        <input type="text" id="book-title" placeholder="Full Title">
+        <input type="text" id="book-title" placeholder="Full Book Title">
         <select id="book-cat">
             <option value="" disabled selected>Select Category</option>
             <option value="Systematic Theology">Systematic Theology</option>
@@ -51,6 +51,7 @@
         <button class="btn" style="background:var(--blue); color:white; width:100%; padding:12px;" onclick="saveBook()">Save & Categorize</button>
     </div>
 
+    <input type="text" id="adminSearch" class="search-box" placeholder="Search uploaded PDFs..." onkeyup="filterAdminContent()">
     <table id="contentTable">
         <thead><tr><th>BOOK NAME</th><th>CATEGORY</th><th>PROMOTIONS</th></tr></thead>
         <tbody></tbody>
@@ -60,7 +61,7 @@
 <div class="card">
     <h3>👥 Member Management & Live Status</h3>
     <table id="memberTable">
-        <thead><tr><th>Status</th><th>Name</th><th>Email</th><th>Institution</th></tr></thead>
+        <thead><tr><th>Status</th><th>Name</th><th>Email</th><th>Institution</th><th>Position</th></tr></thead>
         <tbody></tbody>
     </table>
 </div>
@@ -68,7 +69,7 @@
 <div class="card">
     <h3>⏳ Student Activity Logs</h3>
     <table id="logTable">
-        <thead><tr><th>Student</th><th>Activity</th><th>Duration</th><th>Date</th></tr></thead>
+        <thead><tr><th>Student</th><th>Activity</th><th>Duration</th><th>Date & Time</th></tr></thead>
         <tbody></tbody>
     </table>
 </div>
@@ -102,8 +103,8 @@
             const b = doc.data();
             if(b.recent) r++; if(b.trending) t++;
             tbody.innerHTML += `<tr>
-                <td><b>${b.title}</b></td>
-                <td style="color:var(--blue)">${b.category}</td>
+                <td><b>${b.title || doc.id}</b></td>
+                <td style="color:var(--blue)">${b.category || 'Uncategorized'}</td>
                 <td>
                     <button class="btn btn-add" onclick="togglePromo('${doc.id}', 'recent', 5)">+ Recent</button>
                     <button class="btn btn-add" onclick="togglePromo('${doc.id}', 'trending', 10)">+ Trending</button>
@@ -113,7 +114,7 @@
             </tr>`;
         });
         document.getElementById('r-count').innerText = `${r}/5`;
-        document.getElementById('t-count').innerText = `${t}/10`;
+        document.getElementById('trending-count').innerText = `${t}/10`;
     });
 
     db.collection("users").onSnapshot(snap => {
@@ -124,7 +125,7 @@
             const isOnline = (Date.now() - new Date(u.lastActive).getTime()) < 180000;
             tbody.innerHTML += `<tr>
                 <td><span class="badge ${isOnline?'online':''}">● ${isOnline?'Online':'Offline'}</span></td>
-                <td><b>${u.fullName}</b></td><td>${u.email}</td><td>${u.institution || 'N/A'}</td>
+                <td><b>${u.fullName}</b></td><td>${u.email}</td><td>${u.institution || 'N/A'}</td><td>${u.position}</td>
             </tr>`;
         });
     });
@@ -151,9 +152,7 @@
         await db.collection("library_settings").doc(id).update({ [cat]: true, updatedAt: new Date().toISOString() });
     }
 
-    async function unmark(id, cat) {
-        await db.collection("library_settings").doc(id).update({ [cat]: false });
-    }
+    async function unmark(id, cat) { await db.collection("library_settings").doc(id).update({ [cat]: false }); }
 </script>
 </body>
 </html>
