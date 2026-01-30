@@ -20,7 +20,7 @@
         .btn-sm { padding: 6px 10px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; margin: 2px; }
         .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
         .show { display: block; }
-        .dropdown-item { padding: 8px; cursor: pointer; border-radius: 5px; font-size: 12px; color: #333; }
+        .dropdown-item { padding: 8px; cursor: pointer; border-radius: 5px; font-size: 12px; color: #333; display: flex; align-items: center; justify-content: space-between; }
         .dropdown-item:hover { background: #f0f7ff; color: var(--blue); }
         .user-folder { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.3s; }
         .user-folder:hover { background: #e2e8f0; }
@@ -60,7 +60,7 @@
             <thead>
                 <tr>
                     <th>PDF File</th>
-                    <th>Category</th>
+                    <th>Visibility</th>
                     <th>Assign / Recommend / Promo</th>
                     <th>Action</th>
                 </tr>
@@ -70,13 +70,13 @@
     </div>
 
     <div id="mem-section" class="hidden card">
-        <h3>👥 Faculty & Member Folders</h3>
+        <h3 id="mem-header">👥 Member Folders</h3>
         <div id="user-folders-list"></div>
     </div>
 
     <div id="stud-section" class="hidden card">
         <h3>📤 Bulk Student Upload</h3>
-        <p style="font-size:11px; color:#64748b; margin-bottom:10px;">Format: Full Name, College ID, Student ID, Password (One per line)</p>
+        <p style="font-size:11px; color:#64748b; margin-bottom:10px;">Format: Full Name, College ID, Student ID, Password</p>
         <textarea id="bulk-input" placeholder="Aslin Samuel, IMC26, aslin25-27, Aslin@25-27" style="width:100%; height:150px; padding:10px; border-radius:12px; border:1px solid #ddd;"></textarea>
         <button class="btn-sm" style="background:var(--blue); color:white; width:100%; margin-top:10px; padding:12px;" onclick="processBulk()">Upload Students</button>
     </div>
@@ -106,14 +106,17 @@
 
     const categories = ["Systematic Theology", "CHURCH History", "Mission", "Acts of Apostles", "Synoptic Gospel", "Introduction to BIBLE"];
     const adminAccounts = { "IMC26": "IMC26@theo", "ASLIN26": "ASL@theo", "PHLA26": "PB@theo" };
+    let currentAdminID = "";
     let facultyList = [];
 
     function handleAdminLogin() {
         const cid = document.getElementById('admin-coll-id').value;
         const pass = document.getElementById('admin-pass').value;
         if (adminAccounts[cid] === pass) {
+            currentAdminID = cid;
             document.getElementById('auth-overlay').classList.add('hidden');
             document.getElementById('master-panel').classList.remove('hidden');
+            document.getElementById('mem-header').innerText = `👥 Member Folders (${cid})`;
             initAdmin();
         } else {
             document.getElementById('admin-status').innerText = "Incorrect Admin Credentials";
@@ -121,34 +124,42 @@
     }
 
     function initAdmin() {
-        // Fetch Faculty list for recommendations
         db.collection("users").where("position", "==", "faculty").onSnapshot(snap => {
             facultyList = []; snap.forEach(doc => facultyList.push({ name: doc.data().fullName }));
         });
 
-        // Inventory Snapshot
         db.collection("library_settings").onSnapshot(snap => {
             const list = document.getElementById('inventory-list'); list.innerHTML = "";
             snap.forEach(doc => {
                 const b = doc.data(); const id = doc.id;
+                const allowed = b.allowedColleges || [];
                 list.innerHTML += `<tr>
-                    <td><b>${b.title || id}</b></td>
-                    <td>${b.category || '<span style="color:#94a3b8">Unassigned</span>'}</td>
+                    <td><b>${b.title || id}</b><br><small style="color:var(--blue)">${b.category || 'No Cat'}</small></td>
+                    <td><small>${allowed.length ? allowed.join(', ') : '🔒 Private'}</small></td>
                     <td style="position:relative;">
-                        <button class="btn-sm" style="background:#dcfce7" onclick="toggleM('c-${id}')">📁 Category</button>
+                        <button class="btn-sm" style="background:#e0f2fe" onclick="toggleM('a-${id}')">🔓 Access</button>
+                        <div id="a-${id}" class="dropdown-menu">
+                            ${Object.keys(adminAccounts).map(coll => `
+                                <div class="dropdown-item" onclick="toggleCollegeAccess('${id}', '${coll}', ${allowed.includes(coll)})">
+                                    ${coll} ${allowed.includes(coll) ? '✅' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <button class="btn-sm" style="background:#dcfce7" onclick="toggleM('c-${id}')">📁 Cat</button>
                         <div id="c-${id}" class="dropdown-menu">
                             ${categories.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}
                         </div>
                         
-                        <button class="btn-sm" style="background:#f3e8ff" onclick="toggleM('r-${id}')">⭐ Faculty Rec</button>
+                        <button class="btn-sm" style="background:#f3e8ff" onclick="toggleM('r-${id}')">⭐ Rec</button>
                         <div id="r-${id}" class="dropdown-menu">
-                            ${facultyList.length ? facultyList.map(f => `<div class="dropdown-item" onclick="addRec('${id}','${f.name}')">${f.name}</div>`).join('') : '<div class="dropdown-item">No Faculty Found</div>'}
+                            ${facultyList.map(f => `<div class="dropdown-item" onclick="addRec('${id}','${f.name}')">${f.name}</div>`).join('')}
                         </div>
 
                         <button class="btn-sm" style="background:#fef9c3" onclick="toggleM('p-${id}')">🔥 Promo</button>
                         <div id="p-${id}" class="dropdown-menu">
-                            <div class="dropdown-item" onclick="updatePromo('${id}','recent', 5)">Add to Recent (Limit 5)</div>
-                            <div class="dropdown-item" onclick="updatePromo('${id}','trending', 15)">Add to Trending (Limit 15)</div>
+                            <div class="dropdown-item" onclick="updatePromo('${id}','recent', 5)">+ Recent</div>
+                            <div class="dropdown-item" onclick="updatePromo('${id}','trending', 15)">+ Trend</div>
                         </div>
                     </td>
                     <td><button class="btn-sm" onclick="resetB('${id}')">Reset</button></td>
@@ -156,21 +167,32 @@
             });
         });
 
-        // Users Snapshot
-        db.collection("users").onSnapshot(snap => {
+        // ONLY show students of the current logged-in College ID
+        db.collection("users").where("collegeId", "==", currentAdminID).onSnapshot(snap => {
             const list = document.getElementById('user-folders-list'); list.innerHTML = "";
             snap.forEach(doc => {
                 const u = doc.data();
-                list.innerHTML += `<div class="user-folder" onclick="openFolder('${doc.id}', '${u.fullName}')">📂 <b>${u.fullName}</b><br><small>${u.collegeId} | ${u.studentId}</small></div>`;
+                list.innerHTML += `<div class="user-folder" onclick="openFolder('${doc.id}', '${u.fullName}')">📂 <b>${u.fullName}</b><br><small>Student ID: ${u.studentId}</small></div>`;
             });
         });
+    }
+
+    async function toggleCollegeAccess(bookId, collId, hasAccess) {
+        const ref = db.collection("library_settings").doc(bookId);
+        const doc = await ref.get();
+        let allowed = doc.data().allowedColleges || [];
+        if(hasAccess) {
+            allowed = allowed.filter(c => c !== collId);
+        } else {
+            allowed.push(collId);
+        }
+        await ref.update({ allowedColleges: allowed });
     }
 
     async function updatePromo(id, type, limit) {
         const snap = await db.collection("library_settings").where(type, "==", true).orderBy("updatedAt", "asc").get();
         if (snap.size >= limit) { await db.collection("library_settings").doc(snap.docs[0].id).update({ [type]: false }); }
         await db.collection("library_settings").doc(id).update({ [type]: true, updatedAt: new Date().toISOString() });
-        alert("Promotion Updated!");
     }
 
     async function processBulk() {
@@ -184,7 +206,7 @@
                 count++;
             }
         }
-        alert(count + " students added successfully!");
+        alert(count + " students added!");
         document.getElementById('bulk-input').value = "";
     }
 
@@ -205,12 +227,12 @@
             <div class="stat-box"><span class="stat-label">App Usage</span><div class="stat-value">${fmt(stats.app)}</div></div>
             <div class="stat-box"><span class="stat-label">Read Online</span><div class="stat-value">${fmt(stats.preview)}</div></div>
             <div class="stat-box" style="grid-column: span 2;"><span class="stat-label">Borrowed Reading</span><div class="stat-value">${fmt(stats.borrowRead)}</div></div>
-        </div><h4>📚 Current Borrows</h4>`;
+        </div><h4>📚 Borrows</h4>`;
         borrows.forEach(b => { 
             const d = b.data(); const left = 7 - Math.ceil(Math.abs(new Date() - new Date(d.borrowedAt))/(1000*60*60*24));
             html += `<p style="font-size:11px; border-bottom:1px solid #eee; padding:5px 0;"><b>${d.title}</b> (${left} days left)</p>`;
         });
-        document.getElementById('modal-body').innerHTML = html || "No data available.";
+        document.getElementById('modal-body').innerHTML = html;
     }
 
     function switchTab(t) {
@@ -223,9 +245,9 @@
     }
 
     function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
-    async function upd(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); alert("Category Set: " + v); }
-    async function addRec(id, f) { await db.collection("recommendations").add({ bookId: id, facultyName: f, timestamp: new Date().toISOString() }); alert("Faculty Recommendation Added!"); }
-    async function resetB(id) { if(confirm("Clear all settings for this PDF?")) await db.collection("library_settings").doc(id).update({ category: null, recent: false, trending: false }); }
+    async function upd(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
+    async function addRec(id, f) { await db.collection("recommendations").add({ bookId: id, facultyName: f, timestamp: new Date().toISOString() }); alert("Recommended!"); }
+    async function resetB(id) { if(confirm("Reset all settings?")) await db.collection("library_settings").doc(id).update({ category: null, recent: false, trending: false, allowedColleges: [] }); }
 </script>
 </body>
 </html>
