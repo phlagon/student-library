@@ -13,7 +13,7 @@
         body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
         .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: #e2e8f0; }
+        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: #e2e8f0; transition: 0.3s; }
         .tab-btn.active { background: var(--blue); color: white; }
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
@@ -23,12 +23,15 @@
         .dropdown-item { padding: 8px; cursor: pointer; border-radius: 5px; font-size: 12px; }
         .dropdown-item:hover { background: #f0f7ff; color: var(--blue); }
         .user-folder { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.3s; }
+        .user-folder:hover { background: #e2e8f0; }
         .hidden { display: none !important; }
+        
+        /* USER MODAL STYLES */
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 25px; max-height: 80vh; overflow-y: auto; }
+        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 25px; max-height: 80vh; overflow-y: auto; }
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        .stat-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 800; }
+        .stat-box { background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center; }
+        .stat-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 800; display: block; margin-bottom: 5px; }
         .stat-value { font-size: 16px; font-weight: 800; color: var(--blue); }
     </style>
 </head>
@@ -42,27 +45,35 @@
     <div id="inv-section" class="card">
         <h2>📂 Global PDF Inventory</h2>
         <table>
-            <thead><tr><th>PDF File</th><th>Category</th><th>Assign / Recommend / Promo</th><th>Action</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>PDF File</th>
+                    <th>Category</th>
+                    <th>Assign / Recommend / Promo</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
             <tbody id="inventory-list"></tbody>
         </table>
     </div>
 
     <div id="mem-section" class="hidden card">
-        <h3>👥 Faculty & Member Status</h3>
+        <h3>👥 Faculty & Member Folders</h3>
         <div id="user-folders-list"></div>
     </div>
 
     <div id="user-modal" class="hidden">
         <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 id="modal-title"></h3>
-                <button onclick="document.getElementById('user-modal').classList.add('hidden')" style="background:red; color:white; border:none; padding:5px 10px; border-radius:5px;">Close</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h3 id="modal-title" style="margin:0;">User History</h3>
+                <button onclick="document.getElementById('user-modal').classList.add('hidden')" style="background:#ef4444; color:white; border:none; padding:5px 12px; border-radius:8px; cursor:pointer;">Close</button>
             </div>
-            <div id="modal-body" style="margin-top:20px;"></div>
+            <div id="modal-body"></div>
         </div>
     </div>
 
 <script>
+    // Replace with your new Firebase Config when you move accounts
     const firebaseConfig = {
       apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
       authDomain: "student-library-4a4e7.firebaseapp.com",
@@ -84,15 +95,21 @@
         document.getElementById('t-mem').classList.toggle('active', t === 'mem');
     }
 
+    // FACULTY DATA FOR RECOMMENDATIONS
     db.collection("users").where("position", "==", "faculty").onSnapshot(snap => {
         facultyList = []; snap.forEach(doc => facultyList.push({ name: doc.data().fullName }));
     });
 
-    // PROMOTION MANAGER WITH LIMITS
+    // PROMOTION MANAGER WITH AUTO-REPLACEMENT
     async function updatePromo(id, type, limit) {
         const snap = await db.collection("library_settings").where(type, "==", true).orderBy("updatedAt", "asc").get();
-        if (snap.size >= limit) await db.collection("library_settings").doc(snap.docs[0].id).update({ [type]: false });
-        await db.collection("library_settings").doc(id).update({ [type]: true, updatedAt: new Date().toISOString() });
+        if (snap.size >= limit) {
+            await db.collection("library_settings").doc(snap.docs[0].id).update({ [type]: false });
+        }
+        await db.collection("library_settings").doc(id).update({ 
+            [type]: true, 
+            updatedAt: new Date().toISOString() 
+        });
     }
 
     db.collection("library_settings").onSnapshot(snap => {
@@ -104,15 +121,19 @@
                 <td>${b.category || 'Unassigned'}</td>
                 <td style="position:relative;">
                     <button class="btn-sm" style="background:#dcfce7" onclick="toggleM('c-${id}')">📁 Cat</button>
-                    <div id="c-${id}" class="dropdown-menu">${categories.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}</div>
+                    <div id="c-${id}" class="dropdown-menu">
+                        ${categories.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}
+                    </div>
                     
                     <button class="btn-sm" style="background:#f3e8ff" onclick="toggleM('r-${id}')">⭐ Rec</button>
-                    <div id="r-${id}" class="dropdown-menu">${facultyList.map(f => `<div class="dropdown-item" onclick="addRec('${id}','${f.name}')">${f.name}</div>`).join('')}</div>
+                    <div id="r-${id}" class="dropdown-menu">
+                        ${facultyList.length ? facultyList.map(f => `<div class="dropdown-item" onclick="addRec('${id}','${f.name}')">${f.name}</div>`).join('') : '<div class="dropdown-item">No Faculty Found</div>'}
+                    </div>
 
                     <button class="btn-sm" style="background:#fef9c3" onclick="toggleM('p-${id}')">🔥 Promo</button>
                     <div id="p-${id}" class="dropdown-menu">
-                        <div class="dropdown-item" onclick="updatePromo('${id}','recent', 5)">+ Recent (5)</div>
-                        <div class="dropdown-item" onclick="updatePromo('${id}','trending', 15)">+ Trend (15)</div>
+                        <div class="dropdown-item" onclick="updatePromo('${id}','recent', 5)">+ Recent (Limit 5)</div>
+                        <div class="dropdown-item" onclick="updatePromo('${id}','trending', 15)">+ Trend (Limit 15)</div>
                     </div>
                 </td>
                 <td><button class="btn-sm" onclick="resetB('${id}')">Reset</button></td>
@@ -128,9 +149,9 @@
         });
     });
 
-    // SUMMARIZED USER DATA
+    // SUMMARIZED USER STATS
     async function openFolder(uid, name) {
-        document.getElementById('modal-title').innerText = name + "'s History";
+        document.getElementById('modal-title').innerText = name + "'s Folder";
         document.getElementById('user-modal').classList.remove('hidden');
         const logs = await db.collection("activity_logs").where("userId", "==", uid).get();
         const borrows = await db.collection("borrows").where("userId", "==", uid).get();
@@ -143,26 +164,27 @@
             if (d.activityType === "Borrowed Reading") stats.borrowRead += s;
         });
 
-        const fmt = (s) => Math.floor(s/60) + "m " + (s%60) + "s";
+        const fmt = (s) => s < 60 ? s + "s" : Math.floor(s/60) + "m " + (s%60) + "s";
         let html = `
             <div class="stat-grid">
                 <div class="stat-box"><span class="stat-label">Total App Usage</span><div class="stat-value">${fmt(stats.app)}</div></div>
                 <div class="stat-box"><span class="stat-label">Read Online</span><div class="stat-value">${fmt(stats.preview)}</div></div>
-                <div class="stat-box" style="grid-column: span 2;"><span class="stat-label">Borrowed Reading</span><div class="stat-value">${fmt(stats.borrowRead)}</div></div>
+                <div class="stat-box" style="grid-column: span 2;"><span class="stat-label">Borrowed Reading Time</span><div class="stat-value">${fmt(stats.borrowRead)}</div></div>
             </div>
-            <h4>📚 Active Borrows</h4>`;
+            <h4>📚 Active Borrowed Books</h4>`;
         
         borrows.forEach(b => { 
             const d = b.data();
-            const daysLeft = 7 - Math.ceil(Math.abs(new Date() - new Date(d.borrowedAt))/(1000*60*60*24));
-            html += `<p style="font-size:12px; border-bottom:1px solid #eee; padding-bottom:5px;"><b>${d.title}</b><br><small style="color:${daysLeft < 2 ? 'red' : 'green'}">${daysLeft} days left to return</small></p>`;
+            const left = 7 - Math.ceil(Math.abs(new Date() - new Date(d.borrowedAt))/(1000*60*60*24));
+            html += `<p style="font-size:12px; border-bottom: 1px solid #eee; padding-bottom:5px;"><b>${d.title}</b><br>
+                <span style="color:${left < 2 ? 'red' : 'green'}">⏳ ${left} days left to return</span></p>`;
         });
-        document.getElementById('modal-body').innerHTML = html || "No data found.";
+        document.getElementById('modal-body').innerHTML = html || "No activity data recorded yet.";
     }
 
     function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
     async function upd(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
-    async function addRec(id, f) { await db.collection("recommendations").add({ bookId: id, facultyName: f, timestamp: new Date().toISOString() }); }
+    async function addRec(id, f) { await db.collection("recommendations").add({ bookId: id, facultyName: f, timestamp: new Date().toISOString() }); alert("Recommended!"); }
     async function resetB(id) { await db.collection("library_settings").doc(id).update({ category: null, recent: false, trending: false }); }
 </script>
 </body>
