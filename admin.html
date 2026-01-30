@@ -9,25 +9,23 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --blue: #3b82f6; --bg: #f8fafc; --card: #ffffff; }
+        :root { --blue: #3b82f6; --bg: #f8fafc; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
-        .card { background: var(--card); border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; position: relative; }
+        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: #e2e8f0; }
         .tab-btn.active { background: var(--blue); color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b; padding: 10px; border-bottom: 2px solid #f1f5f9; }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        .btn-sm { padding: 6px 10px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; margin: 2px; display: inline-flex; align-items: center; gap: 5px; }
-        .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .btn-sm { padding: 6px 12px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; margin: 2px; }
+        .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 100; min-width: 200px; padding: 10px; top: 40px; }
+        .show { display: block; }
         .dropdown-item { padding: 8px; cursor: pointer; border-radius: 5px; font-size: 12px; }
         .dropdown-item:hover { background: #f0f7ff; color: var(--blue); }
-        .show { display: block; }
-        .user-folder { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.3s; }
-        .user-folder:hover { background: #e2e8f0; }
+        .user-folder { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; }
+        #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 20px; max-height: 80vh; overflow-y: auto; }
         .hidden { display: none !important; }
-        #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: white; width: 100%; max-width: 600px; border-radius: 20px; padding: 25px; max-height: 80vh; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -38,16 +36,16 @@
     </div>
 
     <div id="inv-section" class="card">
-        <h2>📂 Global PDF Inventory</h2>
+        <h3>📂 Global PDF Inventory</h3>
         <table>
-            <thead><tr><th>PDF File</th><th>Category</th><th>Manage Placements</th><th>Action</th></tr></thead>
+            <thead><tr><th>PDF File</th><th>Category</th><th>Assign / Recommend</th><th>Action</th></tr></thead>
             <tbody id="inventory-list"></tbody>
         </table>
     </div>
 
     <div id="mem-section" class="hidden">
         <div class="card">
-            <h3>👥 Faculty & Member Folders</h3>
+            <h3>👥 Faculty & Member Status</h3>
             <div id="user-folders-list"></div>
         </div>
     </div>
@@ -58,7 +56,7 @@
                 <h3 id="modal-title"></h3>
                 <button onclick="document.getElementById('user-modal').classList.add('hidden')" style="background:red; color:white; border:none; padding:5px 10px; border-radius:5px;">Close</button>
             </div>
-            <div id="modal-data" style="margin-top:20px;"></div>
+            <div id="modal-body" style="margin-top:20px;"></div>
         </div>
     </div>
 
@@ -74,7 +72,8 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const cats = ["Systematic Theology", "CHURCH History", "Mission", "Acts of Apostles", "Synoptic Gospel", "Introduction to BIBLE"];
+    const categories = ["Systematic Theology", "CHURCH History", "Mission", "Acts of Apostles", "Synoptic Gospel", "Introduction to BIBLE"];
+    let facultyList = [];
 
     function switchTab(t) {
         document.getElementById('inv-section').classList.toggle('hidden', t !== 'inv');
@@ -83,7 +82,12 @@
         document.getElementById('t-mem').classList.toggle('active', t === 'mem');
     }
 
-    // PDF Inventory Loop
+    // Fetch Faculty for Recommendation
+    db.collection("users").where("position", "==", "faculty").onSnapshot(snap => {
+        facultyList = [];
+        snap.forEach(doc => facultyList.push({ id: doc.id, name: doc.data().fullName }));
+    });
+
     db.collection("library_settings").onSnapshot(snap => {
         const list = document.getElementById('inventory-list'); list.innerHTML = "";
         snap.forEach(doc => {
@@ -92,51 +96,50 @@
                 <td><b>${b.title || id}</b></td>
                 <td>${b.category || 'Unassigned'}</td>
                 <td style="position:relative;">
-                    <button class="btn-sm" style="background:#dcfce7" onclick="toggleM('c-${id}')">➕ Category</button>
+                    <button class="btn-sm" style="background:#dcfce7" onclick="toggleM('c-${id}')">➕ Cat</button>
                     <div id="c-${id}" class="dropdown-menu">
-                        ${cats.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}
+                        ${categories.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}
                     </div>
-                    <button class="btn-sm" style="background:#fef9c3" onclick="toggleM('p-${id}')">🔥 Promo</button>
-                    <div id="p-${id}" class="dropdown-menu">
-                        <div class="dropdown-item" onclick="upd('${id}','recent',${!b.recent})">${b.recent?'❌ Rem':'✅ Add'} Recent</div>
-                        <div class="dropdown-item" onclick="upd('${id}','trending',${!b.trending})">${b.trending?'❌ Rem':'✅ Add'} Trend</div>
+                    <button class="btn-sm" style="background:#f3e8ff" onclick="toggleM('r-${id}')">⭐ Rec</button>
+                    <div id="r-${id}" class="dropdown-menu">
+                        <input type="text" placeholder="Search Faculty..." style="width:100%; padding:5px; margin-bottom:5px;" onkeyup="searchFac(this, '${id}')">
+                        <div id="fac-list-${id}">
+                            ${facultyList.map(f => `<div class="dropdown-item" onclick="addRec('${id}', '${f.name}')">${f.name}</div>`).join('')}
+                        </div>
                     </div>
                 </td>
-                <td><button class="btn-sm" onclick="resetB('${id}')">Reset</button></td>
+                <td><button class="btn-sm" style="background:#fee2e2; color:red" onclick="delB('${id}')">Del</button></td>
             </tr>`;
         });
     });
 
-    // Member Folders
     db.collection("users").onSnapshot(snap => {
         const list = document.getElementById('user-folders-list'); list.innerHTML = "";
         snap.forEach(doc => {
             const u = doc.data();
-            list.innerHTML += `<div class="user-folder" onclick="showStats('${doc.id}', '${u.fullName}')">
-                <span>📂 <b>${u.fullName}</b></span><br><small>${u.email}</small>
-            </div>`;
+            list.innerHTML += `<div class="user-folder" onclick="openUserFolder('${doc.id}', '${u.fullName}')">📂 <b>${u.fullName}</b><br><small>${u.email}</small></div>`;
         });
     });
 
-    async function showStats(uid, name) {
+    async function openUserFolder(uid, name) {
         document.getElementById('modal-title').innerText = name + "'s Folder";
         document.getElementById('user-modal').classList.remove('hidden');
         const logs = await db.collection("activity_logs").where("userId", "==", uid).orderBy("timestamp","desc").limit(10).get();
         const borrows = await db.collection("borrows").where("userId", "==", uid).get();
         
-        let html = `<h4>⏱️ Usage Activity</h4>`;
-        logs.forEach(l => {
-            const d = l.data();
-            html += `<p style="font-size:12px;">• <b>${d.activityType}</b> (${d.duration}) - ${new Date(d.timestamp).toLocaleString()}</p>`;
+        let html = `<h4>Activity History</h4>`;
+        logs.forEach(l => { 
+            const d = l.data(); 
+            html += `<p style="font-size:11px;">• ${d.activityType} (${d.duration}) - ${new Date(d.timestamp).toLocaleString()}</p>`;
         });
         
-        html += `<h4 style="margin-top:20px;">📚 Borrowed Books</h4>`;
-        borrows.forEach(b => {
-            const d = b.data();
-            const days = Math.ceil(Math.abs(new Date() - new Date(d.borrowedAt)) / (1000 * 60 * 60 * 24));
-            html += `<p style="font-size:12px;">• <b>${d.title}</b> (7-Day Limit: ${7-days} days left)</p>`;
+        html += `<h4 style="margin-top:15px;">Active Borrows</h4>`;
+        borrows.forEach(b => { 
+            const d = b.data(); 
+            const rem = 7 - Math.ceil(Math.abs(new Date() - new Date(d.borrowedAt)) / (1000*60*60*24));
+            html += `<p style="font-size:11px;">• ${d.title} (${rem} days left)</p>`;
         });
-        document.getElementById('modal-data').innerHTML = html;
+        document.getElementById('modal-body').innerHTML = html;
     }
 
     function toggleM(id) {
@@ -144,7 +147,9 @@
         document.getElementById(id).classList.toggle('show');
     }
     async function upd(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
-    async function resetB(id) { await db.collection("library_settings").doc(id).update({ category: null, recent: false, trending: false }); }
+    async function addRec(id, f) { await db.collection("recommendations").add({ bookId: id, facultyName: f, timestamp: new Date().toISOString() }); alert("Recommended!"); }
+    async function delB(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
+    window.onclick = e => { if (!e.target.matches('.btn-sm')) document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); }
 </script>
 </body>
 </html>
