@@ -14,10 +14,9 @@
             --bg: #0b1120; --card-bg: #1e293b; --text-main: #f8fafc; --text-sub: #94a3b8;
             --border: #334155;
         }
-
         body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); }
         
-        /* Login Screen */
+        /* Auth Screen */
         #auth-screen { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; }
         .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; width: 100%; max-width: 350px; text-align: center; border: 1px solid var(--border); }
         .login-field { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; }
@@ -26,34 +25,35 @@
         .logo-section h1 { margin: 0; font-size: 20px; font-weight: 800; }
         .logo-section span { color: var(--blue); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 
-        /* Stats Grid from Image */
+        /* Stats Grid */
         .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { padding: 20px; border-radius: 12px; color: white; display: flex; flex-direction: column; position: relative; height: 110px; justify-content: center; }
+        .stat-card { padding: 20px; border-radius: 12px; color: white; display: flex; flex-direction: column; position: relative; height: 110px; justify-content: center; cursor: pointer; transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); }
         .stat-card.blue { background: #2563eb; }
         .stat-card.orange { background: #f97316; }
         .stat-card.green { background: #10b981; }
-        .stat-card.purple-profile { background: #a855f7; cursor: pointer; }
-        
+        .stat-card.purple-profile { background: #a855f7; }
         .stat-card h4 { margin: 0; font-size: 12px; font-weight: 600; opacity: 0.9; }
         .stat-card p { margin: 5px 0 0; font-size: 28px; font-weight: 800; }
 
+        /* Layout */
         .main-layout { display: grid; grid-template-columns: 2fr 1.2fr; gap: 20px; }
         .glass-card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
         .search-box { width: 100%; padding: 12px 15px; border-radius: 10px; background: #1e293b; border: 1px solid var(--border); color: white; margin-bottom: 25px; outline: none; }
 
-        /* Book Item Styling */
+        /* Items */
         .book-item { background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .book-info b { display: block; font-size: 14px; }
         .book-info small { color: var(--text-sub); font-size: 11px; }
         .btn-preview { background: var(--blue); color: white; border: none; padding: 6px 15px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; }
 
-        /* Category Grid Sidebar */
+        /* Overlays */
+        #full-lib-view, #reader-overlay, #profile-overlay { position: fixed; inset: 0; z-index: 6000; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
+        #reader-overlay { background: white; padding: 0; }
+        .reader-header, .view-header { padding: 15px; background: #1e293b; color: white; display: flex; justify-content: space-between; align-items: center; border-radius: 15px; margin-bottom: 20px; }
+        
         .category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .cat-item { background: #0f172a; padding: 12px; border-radius: 10px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 8px; }
-
-        #reader-overlay { position: fixed; inset: 0; background: white; z-index: 6000; display: flex; flex-direction: column; }
-        .reader-header { padding: 10px 20px; background: #1e293b; color: white; display: flex; justify-content: space-between; align-items: center; }
-        #profile-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 4000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -77,7 +77,9 @@
         </div>
 
         <div class="status-grid">
-            <div class="stat-card blue"><h4>Total Books</h4><p id="top-total">0</p></div>
+            <div class="stat-card blue" onclick="showFullLibrary()">
+                <h4>Total Books</h4><p id="top-total">0</p>
+            </div>
             <div class="stat-card orange"><h4>Issued</h4><p id="top-issued">0</p></div>
             <div class="stat-card green"><h4>Available</h4><p id="top-avail">0</p></div>
             <div class="stat-card purple-profile" onclick="toggleProfile()">
@@ -111,13 +113,21 @@
         </div>
     </div>
 
+    <div id="full-lib-view" class="hidden">
+        <div class="view-header">
+            <h3 style="margin:0;">📚 Authorized College Library</h3>
+            <button onclick="document.getElementById('full-lib-view').classList.add('hidden')" style="background:var(--blue); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">Back to Dashboard</button>
+        </div>
+        <div id="full-book-list"></div>
+    </div>
+
     <div id="reader-overlay" class="hidden">
         <div class="reader-header"><span id="reader-title">Reader</span><button onclick="closeReader()" style="background:red; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">Exit</button></div>
         <iframe id="pdf-frame" src="" style="flex-grow:1; border:none; width:100%;"></iframe>
     </div>
 
     <div id="profile-overlay" class="hidden" onclick="toggleProfile()">
-        <div class="glass-card" style="width: 300px; text-align: center;" onclick="event.stopPropagation()">
+        <div class="glass-card" style="width: 300px; text-align: center; margin: auto;" onclick="event.stopPropagation()">
             <div id="prof-initial" style="width:60px; height:60px; background:var(--purple); border-radius:50%; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; font-weight:800;">U</div>
             <h3 id="prof-name">Student</h3>
             <p id="prof-id" style="color:var(--text-sub); font-size:12px; margin-bottom:20px;">ID: ---</p>
@@ -137,6 +147,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         let currentUser = null; let sessionStart = null; let readStart = null;
+        let collegeBooks = []; // Local cache of authorized books
 
         setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
 
@@ -167,19 +178,29 @@
         function loadLib() {
             db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).onSnapshot(snap => {
                 document.getElementById('top-total').innerText = snap.size;
-                document.getElementById('top-avail').innerText = snap.size - parseInt(document.getElementById('top-issued').innerText);
                 const rList = document.getElementById('recent-list'); const tList = document.getElementById('trending-list');
-                rList.innerHTML = ""; tList.innerHTML = "";
+                const fullList = document.getElementById('full-book-list');
+                rList.innerHTML = ""; tList.innerHTML = ""; fullList.innerHTML = "";
+                collegeBooks = [];
+
                 snap.forEach(doc => {
                     const b = doc.data();
                     const html = `<div class="book-item"><div class="book-info"><b>${b.title}</b><small>${b.category}</small></div><button class="btn-preview" onclick="openPdf('${doc.id}','${b.title}')">Preview</button></div>`;
+                    
+                    collegeBooks.push({id: doc.id, ...b});
+                    fullList.innerHTML += html;
                     if(b.recent) rList.innerHTML += html;
                     if(b.trending) tList.innerHTML += html;
                 });
+                document.getElementById('top-avail').innerText = snap.size - parseInt(document.getElementById('top-issued').innerText || 0);
             });
             db.collection("borrows").where("userId","==",currentUser.uid).onSnapshot(snap => {
                 document.getElementById('top-issued').innerText = snap.size;
             });
+        }
+
+        function showFullLibrary() {
+            document.getElementById('full-lib-view').classList.remove('hidden');
         }
 
         function openPdf(id, title) {
@@ -199,8 +220,13 @@
         }
 
         async function loadCat(cat) {
-            const snap = await db.collection("library_settings").where("category","==",cat).where("allowedColleges","array-contains",currentUser.collegeId).get();
-            alert("Category: " + cat + "\nFound: " + snap.size + " books.");
+            const list = document.getElementById('full-book-list');
+            list.innerHTML = "";
+            const filtered = collegeBooks.filter(b => b.category === cat);
+            filtered.forEach(b => {
+                list.innerHTML += `<div class="book-item"><div class="book-info"><b>${b.title}</b><small>${b.category}</small></div><button class="btn-preview" onclick="openPdf('${b.id}','${b.title}')">Preview</button></div>`;
+            });
+            document.getElementById('full-lib-view').classList.remove('hidden');
         }
 
         function toggleProfile() { document.getElementById('profile-overlay').classList.toggle('hidden'); }
