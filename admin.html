@@ -7,7 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --blue: #3b82f6; --bg: #f8fafc; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
@@ -21,11 +21,14 @@
         .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
         .show { display: block; }
         .dropdown-item { padding: 8px; cursor: pointer; border-radius: 5px; font-size: 12px; }
-        .dropdown-item:hover { background: #f0f7ff; color: var(--blue); }
-        .user-folder { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; }
-        #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 20px; max-height: 80vh; overflow-y: auto; }
+        .user-folder { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.3s; }
         .hidden { display: none !important; }
+        #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 25px; max-height: 80vh; overflow-y: auto; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-box { background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .stat-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 800; }
+        .stat-value { font-size: 18px; font-weight: 800; color: var(--blue); }
     </style>
 </head>
 <body>
@@ -36,15 +39,15 @@
     </div>
 
     <div id="inv-section" class="card">
-        <h3>📂 Global PDF Inventory</h3>
+        <h2>📂 Global PDF Inventory</h2>
         <table>
-            <thead><tr><th>PDF File</th><th>Category</th><th>Placement Options</th><th>Action</th></tr></thead>
+            <thead><tr><th>PDF File</th><th>Category</th><th>Assign / Recommend / Promo</th><th>Action</th></tr></thead>
             <tbody id="inventory-list"></tbody>
         </table>
     </div>
 
     <div id="mem-section" class="hidden card">
-        <h3>👥 Faculty & Member Folders</h3>
+        <h3>👥 Faculty & Member Status</h3>
         <div id="user-folders-list"></div>
     </div>
 
@@ -94,14 +97,12 @@
                 <td style="position:relative;">
                     <button class="btn-sm" style="background:#dcfce7" onclick="toggleM('c-${id}')">➕ Cat</button>
                     <div id="c-${id}" class="dropdown-menu">${categories.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}</div>
-                    
                     <button class="btn-sm" style="background:#f3e8ff" onclick="toggleM('r-${id}')">⭐ Rec</button>
                     <div id="r-${id}" class="dropdown-menu">${facultyList.map(f => `<div class="dropdown-item" onclick="addRec('${id}','${f.name}')">${f.name}</div>`).join('')}</div>
-
                     <button class="btn-sm" style="background:#fef9c3" onclick="toggleM('p-${id}')">🔥 Promo</button>
                     <div id="p-${id}" class="dropdown-menu">
-                        <div class="dropdown-item" onclick="upd('${id}','recent',${!b.recent})">${b.recent?'❌ Rem':'✅ Add'} Recent</div>
-                        <div class="dropdown-item" onclick="upd('${id}','trending',${!b.trending})">${b.trending?'❌ Rem':'✅ Add'} Trend</div>
+                        <div class="dropdown-item" onclick="upd('${id}','recent',${!b.recent})">${b.recent?'❌':'✅'} Recent</div>
+                        <div class="dropdown-item" onclick="upd('${id}','trending',${!b.trending})">${b.trending?'❌':'✅'} Trend</div>
                     </div>
                 </td>
                 <td><button class="btn-sm" onclick="resetB('${id}')">Reset</button></td>
@@ -113,20 +114,48 @@
         const list = document.getElementById('user-folders-list'); list.innerHTML = "";
         snap.forEach(doc => {
             const u = doc.data();
-            list.innerHTML += `<div class="user-folder" onclick="openUserFolder('${doc.id}', '${u.fullName}')">📂 <b>${u.fullName}</b><br><small>${u.email}</small></div>`;
+            list.innerHTML += `<div class="user-folder" onclick="openFolder('${doc.id}', '${u.fullName}')">📂 <b>${u.fullName}</b><br><small>${u.email}</small></div>`;
         });
     });
 
-    async function openUserFolder(uid, name) {
-        document.getElementById('modal-title').innerText = name;
+    // SUMMARIZED USER DATA LOGIC
+    async function openFolder(uid, name) {
+        document.getElementById('modal-title').innerText = name + "'s Folder";
         document.getElementById('user-modal').classList.remove('hidden');
+        
         const logs = await db.collection("activity_logs").where("userId", "==", uid).get();
         const borrows = await db.collection("borrows").where("userId", "==", uid).get();
-        let h = `<h4>Stats</h4>`;
-        logs.forEach(l => h += `<p style="font-size:11px;">• ${l.data().activityType} (${l.data().duration})</p>`);
-        h += `<h4 style="margin-top:15px;">Borrows</h4>`;
-        borrows.forEach(b => h += `<p style="font-size:11px;">• ${b.data().title}</p>`);
-        document.getElementById('modal-body').innerHTML = h || "No data.";
+        
+        let totals = { app: 0, preview: 0, borrowRead: 0 };
+        
+        logs.forEach(l => {
+            const d = l.data();
+            const sec = parseInt(d.duration) || 0;
+            if (d.activityType === "App Closed") totals.app += sec;
+            if (d.activityType === "Read Online") totals.preview += sec;
+            if (d.activityType === "Borrowed Reading") totals.borrowRead += sec;
+        });
+
+        const formatTime = (s) => s < 60 ? s + "s" : Math.floor(s/60) + "m " + (s%60) + "s";
+
+        let html = `
+            <div class="stat-grid">
+                <div class="stat-box"><span class="stat-label">App Usage</span><div class="stat-value">${formatTime(totals.app)}</div></div>
+                <div class="stat-box"><span class="stat-label">Online Preview</span><div class="stat-value">${formatTime(totals.preview)}</div></div>
+                <div class="stat-box" style="grid-column: span 2;"><span class="stat-label">Borrowed Reading</span><div class="stat-value">${formatTime(totals.borrowRead)}</div></div>
+            </div>
+            <h4>📚 Active Borrowed Books</h4>`;
+        
+        borrows.forEach(b => { 
+            const d = b.data();
+            const daysLeft = 7 - Math.ceil(Math.abs(new Date() - new Date(d.borrowedAt))/(1000*60*60*24));
+            html += `<p style="font-size:12px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                <b>${d.title}</b><br>
+                <span style="color:${daysLeft < 2 ? 'red' : 'green'}">⏳ ${daysLeft} days left to return</span>
+            </p>`;
+        });
+        
+        document.getElementById('modal-body').innerHTML = html || "No data available.";
     }
 
     function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
