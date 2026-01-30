@@ -27,7 +27,7 @@
             margin: 0; 
             padding: 15px; 
             color: var(--text-main); 
-            padding-bottom: 80px; /* Space for bottom nav */
+            padding-bottom: 90px; /* Space for bottom nav */
         }
 
         /* --- Header Logic --- */
@@ -35,7 +35,7 @@
         .header h1 { margin: 0; font-size: 24px; font-weight: 800; font-style: italic; }
         .header p { margin: 0; color: var(--text-sub); font-size: 14px; }
 
-        /* --- Status Tiles (Match First Image) --- */
+        /* --- Status Tiles --- */
         .status-grid { 
             display: grid; 
             grid-template-columns: repeat(2, 1fr); 
@@ -64,12 +64,13 @@
             border-radius: 12px;
         }
 
-        /* --- List Section (Recent Issues) --- */
+        /* --- List Section --- */
         .list-container {
             background: var(--card-bg);
             border-radius: 24px;
             padding: 20px;
             border: 1px solid var(--border);
+            margin-bottom: 20px;
         }
         .list-header { 
             display: flex; 
@@ -98,7 +99,7 @@
         .book-info span { font-size: 12px; color: var(--text-sub); }
         .book-date { font-size: 12px; color: var(--text-sub); }
 
-        /* --- Bottom Navigation --- */
+        /* --- Updated Bottom Navigation --- */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -107,20 +108,33 @@
             background: var(--card-bg);
             display: flex;
             justify-content: space-around;
-            padding: 12px 0;
+            padding: 15px 0;
             border-top: 1px solid var(--border);
             z-index: 1000;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
         }
-        .nav-item { text-align: center; color: var(--text-sub); text-decoration: none; font-size: 11px; }
-        .nav-item.active { color: var(--blue); }
-        .nav-item i { display: block; font-size: 20px; margin-bottom: 4px; }
+        .nav-btn { 
+            background: none;
+            border: none;
+            text-align: center; 
+            color: var(--text-sub); 
+            text-decoration: none; 
+            font-size: 12px; 
+            font-family: 'Poppins';
+            cursor: pointer;
+            transition: 0.3s;
+            flex: 1;
+        }
+        .nav-btn.active { color: var(--blue); font-weight: 600; }
+        .nav-icon { display: block; font-size: 22px; margin-bottom: 4px; }
 
+        .view-section { transition: opacity 0.3s ease; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div id="dashboard">
+<div id="home-view" class="view-section">
     <div class="header">
         <div>
             <h1>Library Admin</h1>
@@ -178,15 +192,66 @@
     </div>
 </div>
 
+<div id="books-view" class="view-section hidden">
+    <div class="header"><h1>All Books</h1></div>
+    <div class="list-container">
+        <p style="color:var(--text-sub)">Explore the full theological collection here.</p>
+        </div>
+</div>
+
+<div id="returns-view" class="view-section hidden">
+    <div class="header"><h1>Returns</h1></div>
+    <div class="list-container">
+        <p style="color:var(--text-sub)">Manage book returns and check-ins.</p>
+    </div>
+</div>
+
 <nav class="bottom-nav">
-    <a href="#" class="nav-item active">🏠<br>Home</a>
-    <a href="#" class="nav-item">📚<br>Books</a>
-    <a href="#" class="nav-item">🔄<br>Returns</a>
+    <button class="nav-btn active" onclick="switchTab('home', this)">
+        <span class="nav-icon">🏠</span>
+        Home
+    </button>
+    <button class="nav-btn" onclick="switchTab('books', this)">
+        <span class="nav-icon">📚</span>
+        Books
+    </button>
+    <button class="nav-btn" onclick="switchTab('returns', this)">
+        <span class="nav-icon">🔄</span>
+        Returns
+    </button>
 </nav>
 
 <script>
-    // Include your original Firebase logic here to populate the 
-    // #stat-total, #stat-issued, etc., and the #recent-issues-list.
+    // TAB SWITCHING LOGIC
+    function switchTab(tabName, btnElement) {
+        // Hide all views
+        document.querySelectorAll('.view-section').forEach(view => {
+            view.classList.add('hidden');
+        });
+
+        // Show selected view
+        document.getElementById(tabName + '-view').classList.remove('hidden');
+
+        // Update Button Styles
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        btnElement.classList.add('active');
+    }
+
+    // --- YOUR FIREBASE CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
+      authDomain: "theolib.in",
+      projectId: "student-library-4a4e7",
+      storageBucket: "student-library-4a4e7.firebasestorage.app",
+      messagingSenderId: "827419448917",
+      appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // You can now use 'db' to populate #stat-total, #recent-issues-list, etc.
 </script>
 
 </body>
