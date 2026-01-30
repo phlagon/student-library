@@ -7,11 +7,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root { --blue: #3b82f6; --bg: #f8fafc; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
-        .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: #e2e8f0; }
         .tab-btn.active { background: var(--blue); color: white; }
@@ -21,7 +21,6 @@
         .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
         .show { display: block; }
         .dropdown-item { padding: 8px; cursor: pointer; border-radius: 5px; font-size: 12px; }
-        .dropdown-item:hover { background: #f0f7ff; color: var(--blue); }
         .user-folder { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; }
         .hidden { display: none !important; }
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; }
@@ -44,10 +43,7 @@
     </div>
 
     <div id="mem-section" class="hidden">
-        <div class="card">
-            <h3>👥 Faculty & Member Status</h3>
-            <div id="user-folders-list"></div>
-        </div>
+        <div class="card"><h3>👥 Student Activity Folders</h3><div id="user-folders-list"></div></div>
     </div>
 
     <div id="user-modal" class="hidden">
@@ -72,20 +68,14 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const categories = ["Systematic Theology", "CHURCH History", "Mission", "Acts of Apostles", "Synoptic Gospel", "Introduction to BIBLE"];
-    let facultyList = [];
-
+    const cats = ["Systematic Theology", "CHURCH History", "Mission", "Acts of Apostles", "Synoptic Gospel", "Introduction to BIBLE"];
+    
     function switchTab(t) {
         document.getElementById('inv-section').classList.toggle('hidden', t !== 'inv');
         document.getElementById('mem-section').classList.toggle('hidden', t !== 'mem');
         document.getElementById('t-inv').classList.toggle('active', t === 'inv');
         document.getElementById('t-mem').classList.toggle('active', t === 'mem');
     }
-
-    db.collection("users").where("position", "==", "faculty").onSnapshot(snap => {
-        facultyList = [];
-        snap.forEach(doc => facultyList.push({ id: doc.id, name: doc.data().fullName }));
-    });
 
     db.collection("library_settings").onSnapshot(snap => {
         const list = document.getElementById('inventory-list'); list.innerHTML = "";
@@ -96,9 +86,7 @@
                 <td>${b.category || 'Unassigned'}</td>
                 <td style="position:relative;">
                     <button class="btn-sm" style="background:#dcfce7" onclick="toggleM('c-${id}')">➕ Cat</button>
-                    <div id="c-${id}" class="dropdown-menu">${categories.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}</div>
-                    <button class="btn-sm" style="background:#f3e8ff" onclick="toggleM('r-${id}')">⭐ Rec</button>
-                    <div id="r-${id}" class="dropdown-menu"><div>${facultyList.map(f => `<div class="dropdown-item" onclick="addRec('${id}', '${f.name}')">${f.name}</div>`).join('')}</div></div>
+                    <div id="c-${id}" class="dropdown-menu">${cats.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}</div>
                     <button class="btn-sm" style="background:#fef9c3" onclick="toggleM('p-${id}')">🔥 Promo</button>
                     <div id="p-${id}" class="dropdown-menu">
                         <div class="dropdown-item" onclick="upd('${id}','recent',${!b.recent})">${b.recent?'❌ Rem':'✅ Add'} Recent</div>
@@ -114,43 +102,24 @@
         const list = document.getElementById('user-folders-list'); list.innerHTML = "";
         snap.forEach(doc => {
             const u = doc.data();
-            list.innerHTML += `<div class="user-folder" onclick="openUserFolder('${doc.id}', '${u.fullName}')">📂 <b>${u.fullName}</b><br><small>${u.email}</small></div>`;
+            list.innerHTML += `<div class="user-folder" onclick="openFolder('${doc.id}', '${u.fullName}')">📂 <b>${u.fullName}</b><br><small>${u.email}</small></div>`;
         });
     });
 
-    async function openUserFolder(uid, name) {
-        document.getElementById('modal-title').innerText = name + "'s Folder";
+    async function openFolder(uid, name) {
+        document.getElementById('modal-title').innerText = name + "'s History";
         document.getElementById('user-modal').classList.remove('hidden');
         const logs = await db.collection("activity_logs").where("userId", "==", uid).get();
         const borrows = await db.collection("borrows").where("userId", "==", uid).get();
-        
-        let html = `<h4>📊 Activity Stats</h4>`;
-        let stats = { app: 0, online: 0, borrowRead: 0 };
-        
-        logs.forEach(l => {
-            const d = l.data();
-            const sec = parseInt(d.duration) || 0;
-            if(d.activityType === "App Closed") stats.app += sec;
-            if(d.activityType === "Read Online") stats.online += sec;
-            if(d.activityType === "Borrowed Reading") stats.borrowRead += sec;
-        });
-
-        html += `<p>• Total App Usage: ${stats.app}s</p>`;
-        html += `<p>• Read Online Time: ${stats.online}s</p>`;
-        html += `<p>• Borrowed Reading Time: ${stats.borrowRead}s</p>`;
-        
-        html += `<h4 style="margin-top:15px;">📚 Active Borrows</h4>`;
-        borrows.forEach(b => {
-            const d = b.data();
-            const daysLeft = 7 - Math.ceil(Math.abs(new Date() - new Date(d.borrowedAt)) / (1000 * 60 * 60 * 24));
-            html += `<p>• ${d.title} (${daysLeft} days remaining)</p>`;
-        });
-        document.getElementById('modal-body').innerHTML = html;
+        let h = `<h4>Stats</h4>`;
+        logs.forEach(l => { const d = l.data(); h += `<p style="font-size:11px;">• ${d.activityType} (${d.duration})</p>`; });
+        h += `<h4 style="margin-top:15px;">Borrows</h4>`;
+        borrows.forEach(b => { h += `<p style="font-size:11px;">• ${b.data().title}</p>`; });
+        document.getElementById('modal-body').innerHTML = h || "No data.";
     }
 
     function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
     async function upd(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
-    async function addRec(id, f) { await db.collection("recommendations").add({ bookId: id, facultyName: f, timestamp: new Date().toISOString() }); }
     async function resetB(id) { await db.collection("library_settings").doc(id).update({ category: null, recent: false, trending: false }); }
 </script>
 </body>
