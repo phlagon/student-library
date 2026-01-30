@@ -35,8 +35,7 @@
 
         .main-layout { display: grid; grid-template-columns: 2fr 1.2fr; gap: 20px; }
         .glass-card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
-        .search-box { width: 100%; padding: 12px 15px; border-radius: 10px; background: #1e293b; border: 1px solid var(--border); color: white; margin-bottom: 25px; outline: none; }
-
+        
         .book-item { background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .book-info b { display: block; font-size: 14px; }
         .book-info small { color: var(--text-sub); font-size: 11px; }
@@ -81,8 +80,6 @@
             </div>
         </div>
 
-        <input type="text" class="search-box" placeholder="🔍 Search library resources...">
-
         <div class="main-layout">
             <div class="content-column">
                 <div class="glass-card"><h3>🕒 Recent Uploads</h3><div id="recent-list"></div></div>
@@ -105,32 +102,39 @@
     </div>
 
     <div id="full-lib-view" class="hidden">
-        <div class="view-header"><h3>📚 Full Library</h3><button onclick="closeView('full-lib-view')">Back</button></div>
+        <div class="view-header"><h3>📚 Full Library</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back to Dashboard</button></div>
         <div id="full-book-list"></div>
     </div>
 
     <div id="borrow-view" class="hidden">
-        <div class="view-header"><h3>📥 My Borrowed Collection</h3><button onclick="closeView('borrow-view')">Back</button></div>
+        <div class="view-header"><h3>📥 Borrowed Books</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back to Dashboard</button></div>
         <div id="borrow-book-list"></div>
     </div>
 
-    <div id="reader-overlay" class="hidden">
-        <div style="padding:15px; background:#1e293b; color:white; display:flex; justify-content:space-between; align-items:center;">
-            <span id="reader-title">Reader</span><button onclick="closeReader()" style="background:red; color:white; border:none; padding:8px 15px; border-radius:8px;">Exit</button>
+    <div id="profile-overlay" class="hidden">
+        <div class="view-header">
+            <h3>👤 My Profile</h3>
+            <button onclick="toggleProfile()" class="btn-preview">Back to Dashboard</button>
         </div>
-        <iframe id="pdf-frame" src="" style="flex-grow:1; border:none; width:100%;"></iframe>
+        <div class="glass-card" style="max-width: 400px; margin: 20px auto; text-align: center;">
+            <div id="prof-initial" style="width:80px; height:80px; background:var(--purple); border-radius:50%; margin:0 auto 15px; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:800;">U</div>
+            <h2 id="prof-name" style="margin-bottom:20px;">Student Name</h2>
+            
+            <div style="text-align:left; background:#0f172a; padding:20px; border-radius:15px; border:1px solid var(--border); margin-bottom:25px;">
+                <p style="margin:0 0 10px; font-size:13px; color:var(--text-sub);">College ID</p>
+                <p id="p-coll-id" style="margin:0 0 20px; font-weight:800; font-size:16px; color:var(--blue);">--</p>
+                
+                <p style="margin:0 0 10px; font-size:13px; color:var(--text-sub);">Student ID</p>
+                <p id="p-stud-id" style="margin:0; font-weight:800; font-size:16px; color:var(--blue);">--</p>
+            </div>
+            
+            <button onclick="logout()" style="background:#ef4444; color:white; border:none; width:100%; padding:15px; border-radius:12px; font-weight:600; cursor:pointer;">Logout Session</button>
+        </div>
     </div>
 
-    <div id="profile-overlay" class="hidden" onclick="toggleProfile()">
-        <div class="glass-card" style="width: 320px; text-align: center; margin: auto;" onclick="event.stopPropagation()">
-            <div id="prof-initial" style="width:60px; height:60px; background:var(--purple); border-radius:50%; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; font-weight:800;">U</div>
-            <h3 id="prof-name">Student</h3>
-            <div style="text-align:left; background:#0f172a; padding:15px; border-radius:12px; margin-bottom:20px; font-size:12px;">
-                <p><b>College ID:</b> <span id="p-coll-id">--</span></p>
-                <p><b>Student ID:</b> <span id="p-stud-id">--</span></p>
-            </div>
-            <button onclick="logout()" style="background:#ef4444; color:white; border:none; width:100%; padding:12px; border-radius:12px; font-weight:600;">Logout Session</button>
-        </div>
+    <div id="reader-overlay" class="hidden">
+        <div class="view-header"><span id="reader-title">Reader</span><button onclick="closeReader()" style="background:red;">Exit</button></div>
+        <iframe id="pdf-frame" src="" style="flex-grow:1; border:none; width:100%;"></iframe>
     </div>
 
     <script>
@@ -223,6 +227,7 @@
             document.getElementById('reader-overlay').classList.add('hidden');
             document.getElementById('pdf-frame').src = "";
         }
+        function toggleProfile() { document.getElementById('profile-overlay').classList.toggle('hidden'); }
         function showFullLibrary() { document.getElementById('full-lib-view').classList.remove('hidden'); }
         function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
         function closeView(id) { document.getElementById(id).classList.add('hidden'); }
@@ -233,7 +238,6 @@
             });
             showFullLibrary();
         }
-        function toggleProfile() { document.getElementById('profile-overlay').classList.toggle('hidden'); }
         async function logout() {
             if(sessionStart) {
                 const dur = Math.round((Date.now()-sessionStart)/1000) + "s";
