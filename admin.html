@@ -28,11 +28,17 @@
         .btn-sm { padding: 6px 12px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; }
         .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
         .show { display: block; }
-        .dropdown-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 12px; color: var(--text-main); transition: 0.2s; }
-        .dropdown-item:hover { background: var(--blue); }
+        .dropdown-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 12px; color: var(--text-main); }
         .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border); }
+        
+        /* Stats Styling */
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat-box { background: #0f172a; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
+        .stat-val { font-size: 16px; font-weight: 800; color: var(--blue); display: block; }
+        .stat-lbl { font-size: 9px; color: var(--text-sub); text-transform: uppercase; }
+
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 6000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        .modal-content { background: var(--card-bg); width: 100%; max-width: 650px; border-radius: 24px; padding: 30px; max-height: 90vh; border: 1px solid var(--border); }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 650px; border-radius: 24px; padding: 30px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -60,20 +66,12 @@
         <div id="super-admin-tools" class="hidden" style="margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px;">
             <h3 style="margin-top:0; color:var(--blue);">🔗 Register GitHub PDF</h3>
             <div style="display:flex; gap:10px; align-items:flex-end;">
-                <div style="flex:1;">
-                    <label style="font-size:10px; color:var(--text-sub);">FILE ID (Exact name from GitHub, e.g. John Vessele)</label>
-                    <input type="text" id="reg-file-id" class="login-field" placeholder="John Vessele" style="margin:5px 0 0;">
-                </div>
-                <div style="flex:1;">
-                    <label style="font-size:10px; color:var(--text-sub);">DISPLAY TITLE (What students see)</label>
-                    <input type="text" id="reg-file-title" class="login-field" placeholder="John Vessele" style="margin:5px 0 0;">
-                </div>
-                <button class="btn-sm" style="background:var(--blue); color:white; padding:12px 20px; border-radius:10px; margin-bottom:15px;" onclick="registerBook()">Register Book</button>
+                <div style="flex:1;"><input type="text" id="reg-file-id" class="login-field" placeholder="File ID (e.g. John Vessele)"></div>
+                <div style="flex:1;"><input type="text" id="reg-file-title" class="login-field" placeholder="Display Title"></div>
+                <button class="btn-sm" style="background:var(--blue); color:white; padding:12px 20px; border-radius:10px; margin-bottom:15px;" onclick="registerBook()">Register</button>
             </div>
         </div>
-
-        <h2 style="margin-top:0;">📂 Global Library Inventory</h2>
-        <table><thead><tr><th>PDF Resource</th><th>Visibility</th><th>Manage</th><th>Actions</th></tr></thead><tbody id="inventory-list"></tbody></table>
+        <table><thead><tr><th>Resource</th><th>Access</th><th>Manage</th><th>Actions</th></tr></thead><tbody id="inventory-list"></tbody></table>
     </div>
 
     <div id="mem-section" class="hidden glass-card">
@@ -98,13 +96,16 @@
 <div id="user-modal" class="hidden">
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h3 id="modal-title" style="margin:0;">Profile Report</h3>
-            <button onclick="document.getElementById('user-modal').classList.add('hidden')" class="btn-sm" style="background:#ef4444; color:white;">Close</button>
+            <h3 id="modal-title" style="margin:0;">Report</h3>
+            <div style="display:flex; gap:10px;">
+                <button onclick="downloadReport()" class="btn-sm" style="background:var(--blue); color:white;">Download CSV</button>
+                <button onclick="document.getElementById('user-modal').classList.add('hidden')" class="btn-sm" style="background:#ef4444; color:white;">Close</button>
+            </div>
         </div>
         <div id="modal-body"></div>
         <div id="expiry-box"></div>
-        <h4 style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">Activity</h4>
-        <table style="font-size:11px;"><thead><tr><th>Date</th><th>Action</th><th>Dur</th></tr></thead><tbody id="detailed-log-body"></tbody></table>
+        <h4 style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">Activity Logs</h4>
+        <table><thead><tr><th>Date</th><th>Action</th><th>Dur</th></tr></thead><tbody id="detailed-log-body"></tbody></table>
     </div>
 </div>
 
@@ -121,7 +122,7 @@
     const db = firebase.firestore();
 
     const adminAccounts = { "IMC26": "IMC26@theo", "ASLIN26": "ASL@theo", "aslin": "Phlagon@28" };
-    let currentAdminID = ""; let isSuperAdmin = false;
+    let currentAdminID = ""; let isSuperAdmin = false; let reportData = null;
 
     function handleAdminLogin() {
         const cid = document.getElementById('admin-coll-id').value;
@@ -132,7 +133,7 @@
             document.getElementById('master-panel').classList.remove('hidden');
             if(isSuperAdmin) document.getElementById('super-admin-tools').classList.remove('hidden');
             initAdmin();
-        } else { document.getElementById('admin-status').innerText = "Incorrect Password"; }
+        } else { document.getElementById('admin-status').innerText = "Access Denied"; }
     }
 
     function initAdmin() {
@@ -140,42 +141,18 @@
             const list = document.getElementById('inventory-list'); list.innerHTML = "";
             snap.forEach(doc => {
                 const b = doc.data(); const id = doc.id; const allowed = b.allowedColleges || [];
-                
                 const accessBtn = isSuperAdmin ? `<button class="btn-sm" style="background:var(--purple); color:white;" onclick="toggleM('a-${id}')">🔓 Access</button>` : '';
                 const promoBtn = isSuperAdmin ? `<button class="btn-sm" style="background:var(--orange); color:white;" onclick="toggleM('p-${id}')">🔥 Promo</button>` : '';
                 const deleteBtn = isSuperAdmin ? `<td><button class="btn-sm" style="background:#ef4444; color:white;" onclick="deletePDF('${id}')">🗑️ Delete</button></td>` : '<td>-</td>';
-
-                list.innerHTML += `<tr>
-                    <td><b>${b.title}</b><br><small style="color:var(--blue)">${b.category || 'No Category'}</small></td>
-                    <td><small>${allowed.join(', ') || '🔒 Private'}</small></td>
-                    <td style="position:relative;">
-                        ${accessBtn}<div id="a-${id}" class="dropdown-menu">${Object.keys(adminAccounts).filter(c=>c!=='aslin').map(c => `<div class="dropdown-item" onclick="toggleAccess('${id}','${c}',${allowed.includes(c)})">${c} ${allowed.includes(c)?'✅':''}</div>`).join('')}</div>
+                list.innerHTML += `<tr><td><b>${b.title}</b><br><small style="color:var(--blue)">${b.category}</small></td>
+                    <td><small>${allowed.join(', ') || '🔒'}</small></td>
+                    <td style="position:relative;">${accessBtn}<div id="a-${id}" class="dropdown-menu">${Object.keys(adminAccounts).filter(c=>c!=='aslin').map(c => `<div class="dropdown-item" onclick="toggleAccess('${id}','${c}',${allowed.includes(c)})">${c} ${allowed.includes(c)?'✅':''}</div>`).join('')}</div>
                         <button class="btn-sm" style="background:var(--green); color:white;" onclick="toggleM('c-${id}')">📁 Category</button>
                         <div id="c-${id}" class="dropdown-menu">${["Theology", "History", "Mission", "Acts", "Gospel", "Bible"].map(c => `<div class="dropdown-item" onclick="updateField('${id}','category','${c}')">${c}</div>`).join('')}</div>
-                        ${promoBtn}<div id="p-${id}" class="dropdown-menu">
-                            <div class="dropdown-item" onclick="updateField('${id}','recent',true)">Add to Recent</div>
-                            <div class="dropdown-item" onclick="updateField('${id}','trending',true)">Add to Trending</div>
-                        </div>
-                    </td>${deleteBtn}</tr>`;
+                        ${promoBtn}<div id="p-${id}" class="dropdown-menu"><div class="dropdown-item" onclick="updateField('${id}','recent',true)">Add Recent</div><div class="dropdown-item" onclick="updateField('${id}','trending',true)">Add Trending</div></div></td>${deleteBtn}</tr>`;
             });
         });
         if(!isSuperAdmin) loadCollegeStudents(currentAdminID);
-    }
-
-    async function registerBook() {
-        const id = document.getElementById('reg-file-id').value.trim();
-        const title = document.getElementById('reg-file-title').value.trim();
-        if(!id || !title) { alert("Enter ID and Title"); return; }
-        await db.collection("library_settings").doc(id).set({ title, category: "Theology", allowedColleges: [], recent: false, trending: false, updatedAt: new Date().toISOString() });
-        alert("Registered! Now set College Access below.");
-        document.getElementById('reg-file-id').value = ""; document.getElementById('reg-file-title').value = "";
-    }
-
-    async function toggleAccess(id, coll, has) {
-        const ref = db.collection("library_settings").doc(id); const doc = await ref.get();
-        let allowed = doc.data().allowedColleges || [];
-        allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll];
-        await ref.update({ allowedColleges: allowed });
     }
 
     function loadCollegeStudents(cid) {
@@ -189,13 +166,54 @@
     async function openReport(uid, user) {
         document.getElementById('user-modal').classList.remove('hidden');
         document.getElementById('modal-title').innerText = user.fullName;
-        const logs = await db.collection("activity_logs").where("userId", "==", uid).orderBy("timestamp", "desc").limit(10).get();
-        let html = ""; logs.forEach(l => {
-            const d = l.data(); html += `<tr><td>${new Date(d.timestamp).toLocaleDateString()}</td><td>${d.activityType}</td><td>${d.duration}</td></tr>`;
+        const logs = await db.collection("activity_logs").where("userId", "==", uid).orderBy("timestamp", "desc").get();
+        reportData = { user, logs: [] };
+        let stats = { app: 0, read: 0, borrow: 0 };
+        let html = "";
+        logs.forEach(l => {
+            const d = l.data(); const dur = parseInt(d.duration) || 0;
+            if(d.activityType.includes("App")) stats.app += dur;
+            if(d.activityType.includes("Read")) stats.read += dur;
+            if(d.activityType.includes("Borrow")) stats.borrow += dur;
+            html += `<tr><td>${new Date(d.timestamp).toLocaleDateString()}</td><td>${d.activityType}</td><td>${d.duration}</td></tr>`;
+            reportData.logs.push(d);
         });
-        document.getElementById('modal-body').innerHTML = `<div style="font-size:12px; background:#0f172a; padding:15px; border-radius:12px;">ID: ${user.studentId} | Pass: ${user.password} | Coll: ${user.collegeId}</div>`;
-        document.getElementById('detailed-log-body').innerHTML = html || "<tr><td colspan='3'>No logs</td></tr>";
-        document.getElementById('expiry-box').innerHTML = isSuperAdmin ? `<div style="margin-top:15px;"><label style="font-size:11px;">SET EXPIRY:</label><br><input type="date" id="exp-${uid}" value="${user.expiryDate||''}" class="login-field" style="max-width:200px;"><button class="btn-sm" style="background:var(--blue); color:white;" onclick="saveExp('${uid}')">Save</button></div>` : '';
+        const fmt = (s) => s < 60 ? s + "s" : Math.floor(s/60) + "m " + (s%60) + "s";
+        document.getElementById('modal-body').innerHTML = `<div class="stat-grid">
+            <div class="stat-box"><span class="stat-lbl">Usage</span><span class="stat-val">${fmt(stats.app)}</span></div>
+            <div class="stat-box"><span class="stat-lbl">Reading</span><span class="stat-val">${fmt(stats.read)}</span></div>
+            <div class="stat-box"><span class="stat-lbl">Borrowing</span><span class="stat-val">${fmt(stats.borrow)}</span></div>
+        </div><div style="background:#0f172a; padding:15px; border-radius:12px; font-size:12px;">ID: ${user.studentId} | Pass: ${user.password} | Coll: ${user.collegeId}</div>`;
+        document.getElementById('detailed-log-body').innerHTML = html;
+        document.getElementById('expiry-box').innerHTML = isSuperAdmin ? `<div style="margin-top:15px;"><label style="font-size:11px;">EXPIRY:</label><br><input type="date" id="exp-${uid}" value="${user.expiryDate||''}" class="login-field" style="max-width:180px;"><button class="btn-sm" style="background:var(--blue); color:white;" onclick="saveExp('${uid}')">Save</button></div>` : '';
+    }
+
+    function downloadReport() {
+        if(!reportData) return;
+        let p=0, b=0; let csv = "Date,Activity,Duration\n";
+        reportData.logs.forEach(l => {
+            const d=parseInt(l.duration)||0; if(l.activityType.includes("Read")) p+=d; if(l.activityType.includes("Borrow")) b+=d;
+            csv += `${new Date(l.timestamp).toLocaleString()},"${l.activityType}",${l.duration}\n`;
+        });
+        const f = (s) => `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m ${s%60}s`;
+        csv += `\nTotal Online Time,,"${f(p)}"\nTotal Borrow Time,,"${f(b)}"`;
+        const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+        link.download = `Report_${reportData.user.fullName}.csv`; link.click();
+    }
+
+    async function registerBook() {
+        const id = document.getElementById('reg-file-id').value.trim();
+        const title = document.getElementById('reg-file-title').value.trim();
+        if(!id || !title) return;
+        await db.collection("library_settings").doc(id).set({ title, category: "Theology", allowedColleges: [], recent: false, trending: false, updatedAt: new Date().toISOString() });
+        alert("Registered!");
+    }
+
+    async function toggleAccess(id, coll, has) {
+        const ref = db.collection("library_settings").doc(id); const doc = await ref.get();
+        let allowed = doc.data().allowedColleges || [];
+        allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll];
+        await ref.update({ allowedColleges: allowed });
     }
 
     async function saveExp(uid) { await db.collection("users").doc(uid).update({ expiryDate: document.getElementById(`exp-${uid}`).value }); alert("Saved"); }
@@ -205,7 +223,7 @@
         const lines = document.getElementById('bulk-input').value.split('\n');
         for(let l of lines) {
             const p = l.split(',').map(i=>i.trim());
-            if(p.length===4) await db.collection("users").add({ fullName:p[0], collegeId:p[1], studentId:p[2], password:p[3], position:"student" });
+            if(p.length===4) await db.collection("users").add({ fullName:p[0], collegeId:p[1], studentId:p[2], password:p[3], createdAt: new Date().toISOString() });
         }
         alert("Uploaded");
     }
