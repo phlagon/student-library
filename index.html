@@ -34,14 +34,13 @@
         .stat-card.purple-profile { background: #a855f7; }
         .stat-card p { margin: 5px 0 0; font-size: 28px; font-weight: 800; }
 
-        /* Layout */
         .main-layout { display: grid; grid-template-columns: 2fr 1.2fr; gap: 20px; }
         .glass-card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
         
         .book-item { background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .book-info b { display: block; font-size: 14px; }
         .book-info small { color: var(--text-sub); font-size: 11px; }
-        .btn-preview { background: var(--blue); color: white; border: none; padding: 6px 15px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; }
+        .btn-preview { background: var(--blue); color: white; border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; font-size: 11px; font-weight: 600; }
 
         /* Overlays */
         #full-lib-view, #borrow-view, #reader-overlay, #profile-overlay { position: fixed; inset: 0; z-index: 6000; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
@@ -49,6 +48,7 @@
         .view-header { padding: 15px; background: #1e293b; color: white; display: flex; justify-content: space-between; align-items: center; border-radius: 15px; margin-bottom: 20px; }
         .cat-item { cursor:pointer; background:#0f172a; padding:12px; border-radius:12px; margin-bottom:8px; border:1px solid var(--border); font-size:13px; font-weight:600; }
         .hidden { display: none !important; }
+        #sync-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 10px #10b981; }
     </style>
 </head>
 <body>
@@ -67,7 +67,7 @@
     <div id="dashboard" class="hidden">
         <div class="header-bar">
             <div class="logo-section"><span>Jesus is the Saviour</span><h1>Theological Library</h1></div>
-            <div id="clock" style="color: var(--text-sub); font-size: 14px;">00:00:00</div>
+            <div id="clock" style="color: var(--text-sub); font-size: 14px;"><div id="sync-dot"></div> 00:00:00</div>
         </div>
 
         <div class="status-grid">
@@ -104,7 +104,7 @@
     </div>
 
     <div id="full-lib-view" class="hidden"><div class="view-header"><h3>📚 Full Library</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list"></div></div>
-    <div id="borrow-view" class="hidden"><div class="view-header"><h3>📥 Borrowed Books</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-book-list"></div></div>
+    <div id="borrow-view" class="hidden"><div class="view-header"><h3>📥 My Borrowed Collection</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-book-list"></div></div>
     
     <div id="reader-overlay" class="hidden">
         <div class="view-header"><span id="reader-title">Reader</span><button onclick="closeReader()" style="background:red;">Exit</button></div>
@@ -133,9 +133,10 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        let currentUser = null; let sessionStart = null; let readStart = null; let collegeBooks = []; let hb = null;
+        let currentUser = null; let sessionStart = null; let readStart = null; let collegeBooks = []; 
+        let hb = null; let lastSync = Date.now();
 
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
+        setInterval(() => { document.getElementById('clock').innerHTML = `<div id="sync-dot"></div> ` + new Date().toLocaleTimeString(); }, 1000);
 
         async function handleCustomLogin() {
             const collId = document.getElementById('login-coll-id').value;
@@ -149,20 +150,29 @@
                 if(u.expiryDate && new Date() > new Date(u.expiryDate).setHours(23,59,59)) { alert("Expired"); return; }
                 currentUser = { uid: snap.docs[0].id, ...u };
                 sessionStart = Date.now();
+                lastSync = Date.now();
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
                 document.getElementById('mini-name').innerText = u.fullName; document.getElementById('prof-name').innerText = u.fullName;
                 document.getElementById('p-coll-id').innerText = u.collegeId; document.getElementById('p-stud-id').innerText = u.studentId;
                 document.getElementById('mini-initial').innerText = u.fullName[0]; document.getElementById('prof-initial').innerText = u.fullName[0];
-                loadLib(); listenBorrows(); startHb("App");
+                loadLib(); listenBorrows(); startHb("App Active");
             } else { alert("Invalid Login"); }
         }
 
         function startHb(type) {
             if(hb) clearInterval(hb);
             hb = setInterval(async () => {
-                if(currentUser) await db.collection("activity_logs").add({ userId: currentUser.uid, activityType: type + " (Sync)", duration: "60s", timestamp: new Date().toISOString() });
-            }, 60000);
+                if(currentUser) {
+                    const now = Date.now();
+                    const diff = Math.round((now - lastSync) / 1000);
+                    await db.collection("activity_logs").add({ userId: currentUser.uid, activityType: type + " (Live)", duration: diff + "s", timestamp: new Date().toISOString() });
+                    lastSync = now;
+                    // Visual feedback: blink the sync dot
+                    const dot = document.getElementById('sync-dot');
+                    dot.style.opacity = "0.2"; setTimeout(() => dot.style.opacity = "1", 500);
+                }
+            }, 30000); // 30s Pulse
         }
 
         function loadLib() {
@@ -196,12 +206,14 @@
             });
         }
 
-        async function borrowB(id, t) { if(prompt("Enter Code:") === "BORROW2026") await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, borrowedAt: new Date().toISOString() }); }
+        async function borrowB(id, t) { if(prompt("Enter Borrow Code:") === "BORROW2026") await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, borrowedAt: new Date().toISOString() }); }
         
         function openPdf(id, title, task) {
-            readStart = Date.now(); document.getElementById('reader-title').innerText = title;
+            readStart = Date.now(); lastSync = Date.now();
+            document.getElementById('reader-title').innerText = title;
             const fileName = task === 'Read Online' ? encodeURIComponent(`${id}_read_online`) : encodeURIComponent(id);
-            document.getElementById('pdf-frame').src = `public/${fileName}.pdf#toolbar=0`;
+            const cacheBuster = "?v=" + Date.now();
+            document.getElementById('pdf-frame').src = `public/${fileName}.pdf${cacheBuster}#toolbar=0`;
             document.getElementById('reader-overlay').classList.remove('hidden');
             startHb("Reading: " + title);
         }
@@ -209,18 +221,20 @@
         async function closeReader() {
             if(readStart && currentUser) {
                 const dur = Math.round((Date.now()-readStart)/1000) + "s";
-                await db.collection("activity_logs").add({ userId: currentUser.uid, activityType: "Read Finished", duration: dur, timestamp: new Date().toISOString() });
+                await db.collection("activity_logs").add({ userId: currentUser.uid, activityType: "Read Session Finished", duration: dur, timestamp: new Date().toISOString() });
                 readStart = null;
             }
-            startHb("App"); document.getElementById('reader-overlay').classList.add('hidden'); document.getElementById('pdf-frame').src = "";
+            lastSync = Date.now(); startHb("App Active");
+            document.getElementById('reader-overlay').classList.add('hidden'); document.getElementById('pdf-frame').src = "";
         }
         
         async function logout() {
+            if(hb) clearInterval(hb);
             if(sessionStart && currentUser) {
                 const dur = Math.round((Date.now()-sessionStart)/1000) + "s";
-                await db.collection("activity_logs").add({ userId: currentUser.uid, activityType: "Logout", duration: dur, timestamp: new Date().toISOString() });
+                await db.collection("activity_logs").add({ userId: currentUser.uid, activityType: "Manual Logout", duration: dur, timestamp: new Date().toISOString() });
             }
-            location.reload();
+            location.reload(true);
         }
         function showFullLibrary() { document.getElementById('full-lib-view').classList.remove('hidden'); }
         function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
