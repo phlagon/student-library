@@ -1,109 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Theological Library - Jesus is the Saviour</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theological Library</title>
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<!-- Firebase Compat -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-
-    <style>
-        :root { --blue:#2563eb; --bg:#f1f5f9; }
-        body { font-family:Poppins,sans-serif; background:var(--bg); margin:0; padding:15px; color:#0f172a; }
-        .glass-card{background:white;border-radius:18px;padding:18px;box-shadow:0 10px 25px rgba(0,0,0,.06);margin-bottom:18px}
-        .btn-blue{background:var(--blue);color:white;border:none;padding:12px 16px;border-radius:12px;font-weight:600;cursor:pointer}
-        .btn-blue:active{transform:scale(.98)}
-        .hidden{display:none!important}
-        .header-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-        .clock-box{background:white;padding:8px 14px;border-radius:12px;font-weight:600;color:var(--blue)}
-        .tab-btn{padding:10px 18px;border-radius:12px;border:none;font-weight:600;background:#e2e8f0;cursor:pointer}
-        .tab-btn.active{background:var(--blue);color:white}
-        .book-item{background:#fff;padding:12px;border-radius:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid #e5e7eb}
-        .sliding-container{overflow:hidden;white-space:nowrap;width:55%}
-        .sliding-text{display:inline-block;animation:scrollText 14s linear infinite;font-weight:600}
-        @keyframes scrollText{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
-        .search-box{width:100%;padding:12px;border-radius:12px;border:2px solid #e5e7eb}
-        .suggest-list{position:absolute;background:white;width:100%;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.1);display:none;z-index:1000}
-        .suggest-item{padding:12px;border-bottom:1px solid #f1f5f9;cursor:pointer}
-        #reader-overlay{position:fixed;inset:0;background:white;z-index:2000;display:flex;flex-direction:column}
-    </style>
+<style>
+body{font-family:Poppins,Arial;background:#f1f5f9;margin:0;padding:0}
+.center{min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#fff;padding:30px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.1);width:100%;max-width:360px;text-align:center}
+.btn{background:#2563eb;color:#fff;border:none;padding:14px;border-radius:12px;width:100%;font-weight:600;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.hidden{display:none}
+</style>
 </head>
 <body>
 
-<!-- AUTH -->
-<div id="auth-screen">
-    <div class="glass-card" style="max-width:360px;margin:90px auto;text-align:center">
-        <h2 style="color:var(--blue)">Jesus is the Saviour</h2>
-        <p style="font-size:12px;color:#64748b">Theological Student Library</p>
-        <button class="btn-blue" style="width:100%;margin-top:15px" onclick="handleLogin()">Continue with Google</button>
-        <div id="login-status" style="margin-top:12px;font-size:12px;color:#64748b"></div>
-    </div>
+<!-- LOGIN -->
+<div id="loginScreen" class="center">
+  <div class="card">
+    <h2>Jesus is the Saviour</h2>
+    <p>Theological Student Library</p>
+    <button class="btn" onclick="googleLogin()">Login with Google</button>
+    <p id="status" style="font-size:12px;color:#555;margin-top:10px"></p>
+  </div>
 </div>
 
 <!-- DASHBOARD -->
-<div id="dashboard" class="hidden">
-    <div class="header-bar">
-        <div>
-            <div style="color:var(--blue);font-weight:800;font-size:12px">Theological Library</div>
-            <h1 style="margin:0;font-size:18px">Library</h1>
-        </div>
-        <div id="clock" class="clock-box">00:00:00</div>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-bottom:15px">
-        <button id="t-lib" class="tab-btn active" onclick="switchMainTab('lib')">Library</button>
-        <button id="t-prof" class="tab-btn" onclick="switchMainTab('prof')">Profile</button>
-    </div>
-
-    <!-- LIB -->
-    <div id="lib-view">
-        <div style="position:relative;margin-bottom:15px">
-            <input class="search-box" placeholder="Search library..." onkeyup="handleSuggest(this.value)">
-            <div id="suggest-list" class="suggest-list"></div>
-        </div>
-
-        <div class="glass-card">
-            <h3>Recent Uploads</h3>
-            <div id="recent-list"></div>
-        </div>
-
-        <div class="glass-card">
-            <h3>Trending Now</h3>
-            <div id="trending-list"></div>
-        </div>
-    </div>
-
-    <!-- PROFILE -->
-    <div id="prof-view" class="hidden">
-        <div class="glass-card">
-            <h3>Profile</h3>
-            <p id="p-name"></p>
-            <button class="btn-blue" style="background:#ef4444" onclick="logout()">Logout</button>
-        </div>
-
-        <div class="glass-card">
-            <h3>Borrowed Books</h3>
-            <div id="borrowed-list"></div>
-        </div>
-    </div>
-</div>
-
-<!-- PDF -->
-<div id="reader-overlay" class="hidden">
-    <div style="padding:10px;background:#0f172a;color:white;display:flex;justify-content:space-between">
-        <span>Reader</span>
-        <button onclick="closeReader()" style="background:red;color:white;border:none;padding:6px 12px;border-radius:8px">Exit</button>
-    </div>
-    <iframe id="pdf-frame" style="flex:1;border:none;width:100%"></iframe>
+<div id="appScreen" class="hidden">
+  <div style="padding:20px">
+    <h3>Welcome</h3>
+    <p id="userName"></p>
+    <button class="btn" style="background:#ef4444" onclick="logout()">Logout</button>
+  </div>
 </div>
 
 <script>
-/* ================= FIREBASE ================= */
+/* ========== FIREBASE CONFIG ========== */
 const firebaseConfig = {
   apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
   authDomain: "student-library-4a4e7.firebaseapp.com",
@@ -114,147 +52,47 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 const auth = firebase.auth();
 
-/* ================= CLOCK ================= */
-setInterval(()=>{const c=document.getElementById('clock');if(c)c.innerText=new Date().toLocaleTimeString()},1000);
-
-/* ================= GOOGLE LOGIN (REDIRECT) ================= */
-async function handleLogin(){
+/* ========== GOOGLE LOGIN (POPUP) ========== */
+async function googleLogin(){
   const provider = new firebase.auth.GoogleAuthProvider();
-  document.getElementById('login-status').innerText="Redirecting to Google...";
+  document.getElementById("status").innerText = "Opening Google login...";
+
   try{
-    await auth.signInWithRedirect(provider);
-  }catch(e){
-    console.error(e);
-    document.getElementById('login-status').innerText=e.message;
+    const result = await auth.signInWithPopup(provider);
+    console.log("Logged in:", result.user.email);
+  }catch(err){
+    console.error(err);
+
+    if(err.code === "auth/popup-blocked"){
+      document.getElementById("status").innerText = "Popup blocked! Please allow popups and try again.";
+    }else if(err.code === "auth/unauthorized-domain"){
+      document.getElementById("status").innerText = "This domain is not authorized in Firebase.";
+    }else{
+      document.getElementById("status").innerText = err.message;
+    }
   }
 }
 
-/* HANDLE REDIRECT RESULT */
-auth.getRedirectResult()
-.then(res=>{
-  if(res.user){
-    console.log("Login success:", res.user.email);
-  }
-})
-.catch(err=>{
-  console.error("Redirect error:", err);
-  const s=document.getElementById('login-status');
-  if(s) s.innerText=err.message;
-});
-
-/* ================= AUTH STATE ================= */
-let currentUser=null, sessionStart=null, readStart=null, readTask="";
-let allBooks=[];
-
+/* ========== AUTH STATE ========== */
 auth.onAuthStateChanged(user=>{
   if(user){
-    currentUser=user;
-    sessionStart=Date.now();
-    document.getElementById('auth-screen').classList.add('hidden');
-    document.getElementById('dashboard').classList.remove('hidden');
-    document.getElementById('p-name').innerText=user.displayName||user.email;
-
-    loadLib();
-    listenBorrows();
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("appScreen").classList.remove("hidden");
+    document.getElementById("userName").innerText = 
+      "Logged in as: " + (user.displayName || user.email);
   }else{
-    document.getElementById('auth-screen').classList.remove('hidden');
-    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById("loginScreen").classList.remove("hidden");
+    document.getElementById("appScreen").classList.add("hidden");
   }
 });
 
-/* ================= LIBRARY ================= */
-function renderB(id,t){
-  return `<div class="book-item">
-    <div class="sliding-container"><span class="sliding-text">${t||id}</span></div>
-    <div style="display:flex;gap:6px">
-      <button class="btn-blue" onclick="openPdf('${id}','_read_online','Read Online')">Preview</button>
-      <button class="btn-blue" style="background:#e5e7eb;color:#111" onclick="borrowB('${id}','${t}')">Borrow</button>
-    </div>
-  </div>`;
-}
-
-function loadLib(){
-  db.collection("library_settings").onSnapshot(snap=>{
-    const r=document.getElementById('recent-list');
-    const t=document.getElementById('trending-list');
-    r.innerHTML=""; t.innerHTML=""; allBooks=[];
-    snap.forEach(doc=>{
-      const b=doc.data();
-      allBooks.push({id:doc.id,...b});
-      if(b.recent) r.innerHTML+=renderB(doc.id,b.title);
-      if(b.trending) t.innerHTML+=renderB(doc.id,b.title);
-    });
-  });
-}
-
-/* ================= SEARCH ================= */
-function handleSuggest(q){
-  const list=document.getElementById('suggest-list');
-  if(q.length<2){list.style.display="none";return;}
-  list.innerHTML="";
-  const f=allBooks.filter(b=>(b.title||"").toLowerCase().includes(q.toLowerCase()));
-  if(f.length){
-    list.style.display="block";
-    f.forEach(b=>{
-      const d=document.createElement('div');
-      d.className="suggest-item";
-      d.innerText=b.title;
-      d.onclick=()=>{openPdf(b.id,'_read_online','Search Read');list.style.display="none";}
-      list.appendChild(d);
-    });
-  }
-}
-
-/* ================= BORROW ================= */
-function listenBorrows(){
-  db.collection("borrows").where("userId","==",currentUser.uid).onSnapshot(snap=>{
-    const list=document.getElementById('borrowed-list');
-    list.innerHTML=snap.empty?"No borrowed books.":"";
-    snap.forEach(doc=>{
-      const b=doc.data();
-      const days=7-Math.ceil((Date.now()-new Date(b.borrowedAt))/(1000*60*60*24));
-      list.innerHTML+=`<div class="book-item">
-        <span><b>${b.title}</b> (${days} days left)</span>
-        <button class="btn-blue" style="background:#ef4444" onclick="db.collection('borrows').doc('${doc.id}').delete()">Return</button>
-      </div>`;
-    });
-  });
-}
-
-async function borrowB(id,t){
-  if(prompt("Enter borrow code")!=="BORROW2026"){alert("Invalid code");return;}
-  await db.collection("borrows").add({
-    userId:currentUser.uid,
-    bookId:id,
-    title:t,
-    borrowedAt:new Date().toISOString()
-  });
-}
-
-/* ================= PDF ================= */
-function openPdf(id,s,task){
-  readStart=Date.now(); readTask=task;
-  document.getElementById('pdf-frame').src=`public/${id}${s}.pdf#toolbar=0`;
-  document.getElementById('reader-overlay').classList.remove('hidden');
-}
-function closeReader(){
-  document.getElementById('reader-overlay').classList.add('hidden');
-  document.getElementById('pdf-frame').src="";
-}
-
-/* ================= UI ================= */
-function switchMainTab(t){
-  document.getElementById('lib-view').classList.toggle('hidden',t!=='lib');
-  document.getElementById('prof-view').classList.toggle('hidden',t!=='prof');
-  document.getElementById('t-lib').classList.toggle('active',t==='lib');
-  document.getElementById('t-prof').classList.toggle('active',t==='prof');
-}
+/* ========== LOGOUT ========== */
 function logout(){
-  auth.signOut().then(()=>location.reload());
+  auth.signOut();
 }
 </script>
+
 </body>
 </html>
