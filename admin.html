@@ -3,19 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Library Admin - Master Control</title>
+    <title>Library Admin - Advanced Control</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root { --blue: #3b82f6; --bg: #f8fafc; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
         .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b; padding: 10px; border-bottom: 2px solid #f1f5f9; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
         .btn-sm { padding: 6px 10px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; margin: 2px; }
         .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; padding: 10px; }
         .show { display: block; }
-        .dropdown-item { padding: 8px; cursor: pointer; font-size: 12px; border-radius: 5px; }
+        .dropdown-item { padding: 8px; cursor: pointer; border-radius: 5px; font-size: 12px; }
         .dropdown-item:hover { background: #f0f7ff; color: var(--blue); }
     </style>
 </head>
@@ -23,15 +26,8 @@
 
     <div class="card">
         <h2>📂 Global PDF Inventory</h2>
-        <table style="width:100%; border-collapse:collapse;">
-            <thead>
-                <tr style="text-align:left; border-bottom:2px solid #eee;">
-                    <th>PDF FILE</th>
-                    <th>STATUS</th>
-                    <th>MANAGE</th>
-                    <th>ACTION</th>
-                </tr>
-            </thead>
+        <table id="inventory-table">
+            <thead><tr><th>PDF File</th><th>Category</th><th>Promotions</th><th>Actions</th></tr></thead>
             <tbody id="inventory-list"></tbody>
         </table>
     </div>
@@ -48,50 +44,42 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    const categories = ["Systematic Theology", "CHURCH History", "Mission", "Acts of Apostles", "Synoptic Gospel", "Introduction to BIBLE"];
+
     db.collection("library_settings").onSnapshot(snap => {
-        const list = document.getElementById('inventory-list');
-        list.innerHTML = "";
+        const list = document.getElementById('inventory-list'); list.innerHTML = "";
         snap.forEach(doc => {
-            const b = doc.data();
-            const id = doc.id;
-            list.innerHTML += `
-                <tr style="border-bottom:1px solid #eee;">
-                    <td style="padding:15px;"><b>${b.title || id}</b></td>
-                    <td><small>${b.category || 'Unassigned'}</small></td>
-                    <td style="position:relative;">
-                        <button class="btn-sm" style="background:#fef9c3" onclick="toggleMenu('p-${id}')">🔥 Promo</button>
-                        <div id="p-${id}" class="dropdown-menu">
-                            <div class="dropdown-item" onclick="updateField('${id}', 'recent', ${!b.recent})">${b.recent ? '❌ Remove' : '✅ Add'} Recent</div>
-                            <div class="dropdown-item" onclick="updateField('${id}', 'trending', ${!b.trending})">${b.trending ? '❌ Remove' : '✅ Add'} Trend</div>
-                        </div>
-                    </td>
-                    <td>
-                        <button class="btn-sm" style="background:#f1f5f9" onclick="resetBook('${id}')">Reset All</button>
-                        <button class="btn-sm" style="background:#fee2e2; color:red" onclick="deleteBook('${id}')">Delete</button>
-                    </td>
-                </tr>`;
+            const b = doc.data(); const id = doc.id;
+            list.innerHTML += `<tr>
+                <td><b>${b.title || id}</b><br><small>${id}.pdf</small></td>
+                <td>${b.category || 'Unassigned'}</td>
+                <td style="position:relative;">
+                    <button class="btn-sm" style="background:#dcfce7" onclick="toggleMenu('c-${id}')">➕ Cat</button>
+                    <div id="c-${id}" class="dropdown-menu">
+                        ${categories.map(c => `<div class="dropdown-item" onclick="upd('${id}', 'category', '${c}')">${c}</div>`).join('')}
+                    </div>
+                    <button class="btn-sm" style="background:#fef9c3" onclick="toggleMenu('p-${id}')">🔥 Promo</button>
+                    <div id="p-${id}" class="dropdown-menu">
+                        <div class="dropdown-item" onclick="upd('${id}', 'recent', ${!b.recent})">${b.recent?'❌ Rem':'✅ Add'} Recent</div>
+                        <div class="dropdown-item" onclick="upd('${id}', 'trending', ${!b.trending})">${b.trending?'❌ Rem':'✅ Add'} Trend</div>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn-sm" onclick="resetBook('${id}')">Reset</button>
+                    <button class="btn-sm" style="background:#fee2e2; color:red;" onclick="db.collection('library_settings').doc('${id}').delete()">Del</button>
+                </td>
+            </tr>`;
         });
     });
 
     function toggleMenu(id) {
-        document.querySelectorAll('.dropdown-menu').forEach(m => { if(m.id !== id) m.classList.remove('show'); });
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null);
         document.getElementById(id).classList.toggle('show');
     }
 
-    async function updateField(id, field, val) {
-        await db.collection("library_settings").doc(id).update({ [field]: val });
-    }
-
-    async function resetBook(id) {
-        if(confirm("Clear all placements?")) {
-            await db.collection("library_settings").doc(id).update({ category: null, recent: false, trending: false });
-            alert("Book Reset!");
-        }
-    }
-
-    async function deleteBook(id) { if(confirm("Delete PDF?")) await db.collection("library_settings").doc(id).delete(); }
-
-    window.onclick = (e) => { if (!e.target.matches('.btn-sm')) document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); }
+    async function upd(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
+    async function resetBook(id) { await db.collection("library_settings").doc(id).update({ category: null, recent: false, trending: false }); }
+    window.onclick = e => { if (!e.target.matches('.btn-sm')) document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); }
 </script>
 </body>
 </html>
