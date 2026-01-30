@@ -1,59 +1,122 @@
-<div id="auth-screen">
-    <div class="glass-card" style="max-width:350px; margin: 50px auto; text-align:center;">
-        <h2 style="color:var(--blue); margin-bottom:5px;">Jesus is the Saviour</h2>
-        <p style="font-size:12px; color:#64748b; margin-bottom:20px;">Theological Student Library</p>
-        
-        <div style="text-align:left; margin-bottom:15px;">
-            <label style="font-size:11px; font-weight:600;">College ID</label>
-            <input type="text" id="login-coll-id" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; margin-top:4px;">
-        </div>
-        <div style="text-align:left; margin-bottom:15px;">
-            <label style="font-size:11px; font-weight:600;">Student ID</label>
-            <input type="text" id="login-stud-id" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; margin-top:4px;">
-        </div>
-        <div style="text-align:left; margin-bottom:20px;">
-            <label style="font-size:11px; font-weight:600;">Password</label>
-            <input type="password" id="login-pass" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; margin-top:4px;">
-        </div>
-
-        <button class="btn-blue" style="width:100%; padding:15px;" onclick="handleCustomLogin()">Enter Library</button>
-        <div id="login-status" style="margin-top:15px; font-size:11px; color:#ef4444;"></div>
-    </div>
-</div>
-
 <script>
-    // ... (Your Firebase Config remains same) ...
+/* ======================
+   FIREBASE INIT
+   ====================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
+  authDomain: "student-library-4a4e7.firebaseapp.com",
+  projectId: "student-library-4a4e7",
+  storageBucket: "student-library-4a4e7.firebasestorage.app",
+  messagingSenderId: "827419448917",
+  appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc"
+};
 
-    async function handleCustomLogin() {
-        const collId = document.getElementById('login-coll-id').value;
-        const studId = document.getElementById('login-stud-id').value;
-        const pass = document.getElementById('login-pass').value;
-        const status = document.getElementById('login-status');
+firebase.initializeApp(firebaseConfig);
 
-        if(!collId || !studId || !pass) { status.innerText = "Please fill all fields"; return; }
+const db = firebase.firestore();
+const auth = firebase.auth();
 
-        status.innerText = "Verifying...";
-        
-        // Check against Firestore 'users' collection
-        const snap = await db.collection("users")
-            .where("collegeId", "==", collId)
-            .where("studentId", "==", studId)
-            .where("password", "==", pass)
-            .get();
+/* ======================
+   GLOBAL STATE
+   ====================== */
+let allBooks = [];
+let currentUser = null;
+let sessionStart = null;
+let readStart = null;
+let readTask = "";
 
-        if(!snap.empty) {
-            const userData = snap.docs[0].data();
-            currentUser = { uid: snap.docs[0].id, displayName: userData.fullName };
-            sessionStart = Date.now();
-            
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('p-name').innerText = currentUser.displayName;
-            
-            loadLib(); listenBorrows(); logAct("App Opened");
-        } else {
-            status.innerText = "Invalid Credentials. Access Denied.";
-        }
+/* ======================
+   SAFE CLOCK
+   ====================== */
+setInterval(() => {
+    const c = document.getElementById('clock');
+    if (c) c.innerText = new Date().toLocaleTimeString();
+}, 1000);
+
+/* =========================
+   GOOGLE LOGIN (REDIRECT)
+   NO POPUP BLOCKER ISSUES
+   ========================= */
+async function handleLogin() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const s = document.getElementById('login-status');
+    if (s) s.innerText = "Redirecting to Google login...";
+    try {
+        await auth.signInWithRedirect(provider);
+    } catch (e) {
+        console.error("Login Redirect Error:", e);
+        if (s) s.innerText = "Unable to start login. Please try again.";
     }
-    // ... (Rest of your functions: logAct, renderB, loadLib, etc. remain the same) ...
-</script>
+}
+
+/* ======================
+   HANDLE REDIRECT RESULT
+   ====================== */
+auth.getRedirectResult()
+  .then(() => {
+      console.log("Redirect handled");
+  })
+  .catch(err => {
+      console.error("Redirect Error:", err);
+      const s = document.getElementById('login-status');
+      if (s) s.innerText = "Login failed. Please try again.";
+  });
+
+/* ======================
+   AUTH STATE
+   ====================== */
+auth.onAuthStateChanged(user => {
+    const authScreen = document.getElementById('auth-screen');
+    const dashboard = document.getElementById('dashboard');
+
+    if (user) {
+        currentUser = user;
+        sessionStart = Date.now();
+
+        if (authScreen) authScreen.classList.add('hidden');
+        if (dashboard) dashboard.classList.remove('hidden');
+
+        const pname = document.getElementById('p-name');
+        if (pname) pname.innerText = user.displayName || "User";
+
+        loadLib();
+        listenBorrows();
+        logAct("App Opened");
+
+    } else {
+        if (authScreen) authScreen.classList.remove('hidden');
+        if (dashboard) dashboard.classList.add('hidden');
+    }
+});
+
+/* ======================
+   ACTIVITY LOG
+   ====================== */
+function logAct(type, dur = "0s") {
+    if (!currentUser) return;
+
+    db.collection("activity_logs").add({ 
+        userId: currentUser.uid,
+        activityType: type,
+        duration: dur,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.error("Log error:", err));
+}
+
+/* ======================
+   PDF READER
+   ====================== */
+function openPdf(id, s, task) {
+    readStart = Date.now();
+    readTask = task || "Reading";
+
+    const frame = document.getElementById('pdf-frame');
+    const overlay = document.getElementById('reader-overlay');
+
+    if (frame) frame.src = `public/${id}${s}.pdf#toolbar=0`;
+    if (overlay) overlay.classList.remove('hidden');
+}
+
+function closeReader() {
+    if (readStart) {
+        const dur = Math.round((Date.now() - readStart) / 1000)
