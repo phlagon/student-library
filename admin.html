@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Library Admin - Master Control</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -24,8 +25,11 @@
         .user-folder { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.3s; }
         .hidden { display: none !important; }
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 20px; max-height: 80vh; overflow-y: auto; }
-        .stat-box { background: #f8fafc; padding: 10px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #eee; }
+        .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 25px; max-height: 80vh; overflow-y: auto; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-box { background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .stat-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 800; }
+        .stat-value { font-size: 16px; font-weight: 800; color: var(--blue); }
     </style>
 </head>
 <body>
@@ -38,13 +42,13 @@
     <div id="inv-section" class="card">
         <h2>📂 Global PDF Inventory</h2>
         <table>
-            <thead><tr><th>PDF File</th><th>Category</th><th>Assign / Promo</th><th>Action</th></tr></thead>
+            <thead><tr><th>PDF File</th><th>Category</th><th>Assign / Recommend / Promo</th><th>Action</th></tr></thead>
             <tbody id="inventory-list"></tbody>
         </table>
     </div>
 
     <div id="mem-section" class="hidden card">
-        <h3>👥 Student Activity Folders</h3>
+        <h3>👥 Faculty & Member Status</h3>
         <div id="user-folders-list"></div>
     </div>
 
@@ -59,11 +63,32 @@
     </div>
 
 <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
+      authDomain: "student-library-4a4e7.firebaseapp.com",
+      projectId: "student-library-4a4e7",
+      storageBucket: "student-library-4a4e7.firebasestorage.app",
+      messagingSenderId: "827419448917",
+      appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc"
+    };
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const cats = ["Systematic Theology", "CHURCH History", "Mission", "Acts of Apostles", "Synoptic Gospel", "Introduction to BIBLE"];
 
-    function switchTab(t) { document.getElementById('inv-section').classList.toggle('hidden', t !== 'inv'); document.getElementById('mem-section').classList.toggle('hidden', t !== 'mem'); }
+    const categories = ["Systematic Theology", "CHURCH History", "Mission", "Acts of Apostles", "Synoptic Gospel", "Introduction to BIBLE"];
+    let facultyList = [];
 
+    function switchTab(t) {
+        document.getElementById('inv-section').classList.toggle('hidden', t !== 'inv');
+        document.getElementById('mem-section').classList.toggle('hidden', t !== 'mem');
+        document.getElementById('t-inv').classList.toggle('active', t === 'inv');
+        document.getElementById('t-mem').classList.toggle('active', t === 'mem');
+    }
+
+    db.collection("users").where("position", "==", "faculty").onSnapshot(snap => {
+        facultyList = []; snap.forEach(doc => facultyList.push({ name: doc.data().fullName }));
+    });
+
+    // PROMOTION MANAGER WITH LIMITS
     async function updatePromo(id, type, limit) {
         const snap = await db.collection("library_settings").where(type, "==", true).orderBy("updatedAt", "asc").get();
         if (snap.size >= limit) await db.collection("library_settings").doc(snap.docs[0].id).update({ [type]: false });
@@ -78,45 +103,67 @@
                 <td><b>${b.title || id}</b></td>
                 <td>${b.category || 'Unassigned'}</td>
                 <td style="position:relative;">
-                    <button class="btn-sm" style="background:#dcfce7" onclick="toggleM('c-${id}')">➕ Cat</button>
-                    <div id="c-${id}" class="dropdown-menu">${cats.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}</div>
+                    <button class="btn-sm" style="background:#dcfce7" onclick="toggleM('c-${id}')">📁 Cat</button>
+                    <div id="c-${id}" class="dropdown-menu">${categories.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}</div>
+                    
+                    <button class="btn-sm" style="background:#f3e8ff" onclick="toggleM('r-${id}')">⭐ Rec</button>
+                    <div id="r-${id}" class="dropdown-menu">${facultyList.map(f => `<div class="dropdown-item" onclick="addRec('${id}','${f.name}')">${f.name}</div>`).join('')}</div>
+
                     <button class="btn-sm" style="background:#fef9c3" onclick="toggleM('p-${id}')">🔥 Promo</button>
                     <div id="p-${id}" class="dropdown-menu">
-                        <div class="dropdown-item" onclick="updatePromo('${id}','recent',5)">+ Recent</div>
-                        <div class="dropdown-item" onclick="updatePromo('${id}','trending',15)">+ Trend</div>
+                        <div class="dropdown-item" onclick="updatePromo('${id}','recent', 5)">+ Recent (5)</div>
+                        <div class="dropdown-item" onclick="updatePromo('${id}','trending', 15)">+ Trend (15)</div>
                     </div>
                 </td>
-                <td><button class="btn-sm" onclick="db.collection('library_settings').doc('${id}').update({category:null,recent:false,trending:false})">Reset</button></td>
+                <td><button class="btn-sm" onclick="resetB('${id}')">Reset</button></td>
             </tr>`;
         });
     });
 
     db.collection("users").onSnapshot(snap => {
         const list = document.getElementById('user-folders-list'); list.innerHTML = "";
-        snap.forEach(doc => { list.innerHTML += `<div class="user-folder" onclick="openFolder('${doc.id}', '${doc.data().fullName}')">📂 <b>${doc.data().fullName}</b></div>`; });
+        snap.forEach(doc => {
+            const u = doc.data();
+            list.innerHTML += `<div class="user-folder" onclick="openFolder('${doc.id}', '${u.fullName}')">📂 <b>${u.fullName}</b><br><small>${u.email}</small></div>`;
+        });
     });
 
+    // SUMMARIZED USER DATA
     async function openFolder(uid, name) {
         document.getElementById('modal-title').innerText = name + "'s History";
         document.getElementById('user-modal').classList.remove('hidden');
         const logs = await db.collection("activity_logs").where("userId", "==", uid).get();
         const borrows = await db.collection("borrows").where("userId", "==", uid).get();
         
-        let stats = { app: 0, read: 0 };
+        let stats = { app: 0, preview: 0, borrowRead: 0 };
         logs.forEach(l => {
             const d = l.data(); const s = parseInt(d.duration) || 0;
             if (d.activityType === "App Closed") stats.app += s;
-            else stats.read += s;
+            if (d.activityType === "Read Online") stats.preview += s;
+            if (d.activityType === "Borrowed Reading") stats.borrowRead += s;
         });
 
         const fmt = (s) => Math.floor(s/60) + "m " + (s%60) + "s";
-        let h = `<div class="stat-box"><b>Total App Usage:</b> ${fmt(stats.app)}</div><div class="stat-box"><b>Total Reading Time:</b> ${fmt(stats.read)}</div><h4>Active Borrows</h4>`;
-        borrows.forEach(b => h += `<p style="font-size:12px;">• <b>${b.data().title}</b></p>`);
-        document.getElementById('modal-body').innerHTML = h;
+        let html = `
+            <div class="stat-grid">
+                <div class="stat-box"><span class="stat-label">Total App Usage</span><div class="stat-value">${fmt(stats.app)}</div></div>
+                <div class="stat-box"><span class="stat-label">Read Online</span><div class="stat-value">${fmt(stats.preview)}</div></div>
+                <div class="stat-box" style="grid-column: span 2;"><span class="stat-label">Borrowed Reading</span><div class="stat-value">${fmt(stats.borrowRead)}</div></div>
+            </div>
+            <h4>📚 Active Borrows</h4>`;
+        
+        borrows.forEach(b => { 
+            const d = b.data();
+            const daysLeft = 7 - Math.ceil(Math.abs(new Date() - new Date(d.borrowedAt))/(1000*60*60*24));
+            html += `<p style="font-size:12px; border-bottom:1px solid #eee; padding-bottom:5px;"><b>${d.title}</b><br><small style="color:${daysLeft < 2 ? 'red' : 'green'}">${daysLeft} days left to return</small></p>`;
+        });
+        document.getElementById('modal-body').innerHTML = html || "No data found.";
     }
 
     function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
     async function upd(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
+    async function addRec(id, f) { await db.collection("recommendations").add({ bookId: id, facultyName: f, timestamp: new Date().toISOString() }); }
+    async function resetB(id) { await db.collection("library_settings").doc(id).update({ category: null, recent: false, trending: false }); }
 </script>
 </body>
 </html>
