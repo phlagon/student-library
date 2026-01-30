@@ -1,118 +1,88 @@
 <script>
-/* ======================
-   FIREBASE INIT
-   ====================== */
-const firebaseConfig = {
-  apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
-  authDomain: "student-library-4a4e7.firebaseapp.com",
-  projectId: "student-library-4a4e7",
-  storageBucket: "student-library-4a4e7.firebasestorage.app",
-  messagingSenderId: "827419448917",
-  appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc"
-};
-
-firebase.initializeApp(firebaseConfig);
+/* PREVENT DOUBLE INIT */
+if (!firebase.apps.length) {
+  firebase.initializeApp({
+    apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
+    authDomain: "student-library-4a4e7.firebaseapp.com",
+    projectId: "student-library-4a4e7",
+    storageBucket: "student-library-4a4e7.firebasestorage.app",
+    messagingSenderId: "827419448917",
+    appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc"
+  });
+}
 
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-/* ======================
-   GLOBAL STATE
-   ====================== */
 let allBooks = [];
 let currentUser = null;
 let sessionStart = null;
 let readStart = null;
 let readTask = "";
 
-/* ======================
-   SAFE CLOCK
-   ====================== */
+/* SAFE CLOCK */
 setInterval(() => {
     const c = document.getElementById('clock');
     if (c) c.innerText = new Date().toLocaleTimeString();
 }, 1000);
 
-/* =========================
-   GOOGLE LOGIN (REDIRECT)
-   NO POPUP BLOCKER ISSUES
-   ========================= */
+/* GOOGLE LOGIN (REDIRECT) */
 async function handleLogin() {
     const provider = new firebase.auth.GoogleAuthProvider();
     const s = document.getElementById('login-status');
     if (s) s.innerText = "Redirecting to Google login...";
-    try {
-        await auth.signInWithRedirect(provider);
-    } catch (e) {
-        console.error("Login Redirect Error:", e);
-        if (s) s.innerText = "Unable to start login. Please try again.";
-    }
+    await auth.signInWithRedirect(provider);
 }
 
-/* ======================
-   HANDLE REDIRECT RESULT
-   ====================== */
+/* HANDLE REDIRECT RESULT */
 auth.getRedirectResult()
-  .then(() => {
-      console.log("Redirect handled");
-  })
+  .then(() => {})
   .catch(err => {
-      console.error("Redirect Error:", err);
-      const s = document.getElementById('login-status');
-      if (s) s.innerText = "Login failed. Please try again.";
+    console.error("Redirect Error:", err);
+    const s = document.getElementById('login-status');
+    if (s) s.innerText = "Login failed. Please try again.";
   });
 
-/* ======================
-   AUTH STATE
-   ====================== */
+/* AUTH STATE */
 auth.onAuthStateChanged(user => {
     const authScreen = document.getElementById('auth-screen');
-    const dashboard = document.getElementById('dashboard');
+    const dash = document.getElementById('dashboard');
+    const pname = document.getElementById('p-name');
 
     if (user) {
         currentUser = user;
         sessionStart = Date.now();
 
         if (authScreen) authScreen.classList.add('hidden');
-        if (dashboard) dashboard.classList.remove('hidden');
-
-        const pname = document.getElementById('p-name');
+        if (dash) dash.classList.remove('hidden');
         if (pname) pname.innerText = user.displayName || "User";
 
         loadLib();
         listenBorrows();
         logAct("App Opened");
-
     } else {
         if (authScreen) authScreen.classList.remove('hidden');
-        if (dashboard) dashboard.classList.add('hidden');
+        if (dash) dash.classList.add('hidden');
     }
 });
 
-/* ======================
-   ACTIVITY LOG
-   ====================== */
+/* ACTIVITY LOG */
 function logAct(type, dur = "0s") {
     if (!currentUser) return;
-
     db.collection("activity_logs").add({ 
         userId: currentUser.uid,
         activityType: type,
         duration: dur,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).catch(err => console.error("Log error:", err));
+    });
 }
 
-/* ======================
-   PDF READER
-   ====================== */
+/* PDF READER */
 function openPdf(id, s, task) {
     readStart = Date.now();
-    readTask = task || "Reading";
-
+    readTask = task;
     const frame = document.getElementById('pdf-frame');
     const overlay = document.getElementById('reader-overlay');
-
     if (frame) frame.src = `public/${id}${s}.pdf#toolbar=0`;
     if (overlay) overlay.classList.remove('hidden');
 }
@@ -122,17 +92,13 @@ function closeReader() {
         const dur = Math.round((Date.now() - readStart) / 1000) + "s";
         logAct(readTask, dur);
     }
-
     const frame = document.getElementById('pdf-frame');
     const overlay = document.getElementById('reader-overlay');
-
     if (overlay) overlay.classList.add('hidden');
     if (frame) frame.src = "";
 }
 
-/* ======================
-   RENDER BOOK
-   ====================== */
+/* RENDER BOOK */
 function renderB(id, t) {
     return `
     <div class="book-item">
@@ -141,103 +107,80 @@ function renderB(id, t) {
         </div>
         <div style="display:flex; gap:5px;">
             <button class="btn-blue" onclick="openPdf('${id}', '_read_online', 'Read Online')">Preview</button>
-            <button class="btn-blue" style="background:#eee;color:#333;" onclick="borrowB('${id}', '${t || ''}')">Borrow</button>
+            <button class="btn-blue" style="background:#eee;color:#333;" onclick="borrowB('${id}', '${t}')">Borrow</button>
         </div>
     </div>`;
 }
 
-/* ======================
-   LOAD LIBRARY
-   ====================== */
+/* LOAD LIBRARY */
 function loadLib() {
     db.collection("library_settings").onSnapshot(snap => {
         const rL = document.getElementById('recent-list');
         const tL = document.getElementById('trending-list');
-
         if (rL) rL.innerHTML = "";
         if (tL) tL.innerHTML = "";
-
         allBooks = [];
 
         snap.forEach(doc => {
             const b = doc.data();
             allBooks.push({ id: doc.id, ...b });
-
             if (b.recent && rL) rL.innerHTML += renderB(doc.id, b.title);
             if (b.trending && tL) tL.innerHTML += renderB(doc.id, b.title);
         });
-    }, err => console.error("Library load error:", err));
+    });
 }
 
-/* ======================
-   SEARCH (FIXED)
-   ====================== */
+/* SEARCH */
 function handleSuggest(q) {
     const list = document.getElementById('suggest-list');
-    if (!list) return;
-
-    if (q.length < 2) { 
-        list.style.display = "none"; 
-        return; 
+    if (!list || q.length < 2) {
+        if (list) list.style.display = "none";
+        return;
     }
 
-    const filtered = allBooks.filter(b => 
+    const filtered = allBooks.filter(b =>
         (b.title || '').toLowerCase().includes(q.toLowerCase())
     );
 
     list.innerHTML = "";
-
-    if (filtered.length > 0) {
+    if (filtered.length) {
         list.style.display = "block";
-
         filtered.forEach(b => {
             const d = document.createElement('div');
             d.className = 'suggest-item';
-            d.innerText = b.title || b.id;
+            d.innerText = b.title;
             d.onclick = () => {
                 openPdf(b.id, '_read_online', 'Search Read');
                 list.style.display = "none";
             };
             list.appendChild(d);
         });
-    } else {
-        list.style.display = "none";
     }
 }
 
-/* ======================
-   CATEGORY
-   ====================== */
+/* CATEGORY */
 async function loadCat(n) {
     if (!n) return;
 
-    const catName = document.getElementById('cat-name');
-    const catView = document.getElementById('cat-view');
-    const l = document.getElementById('cat-list');
+    const cname = document.getElementById('cat-name');
+    const cview = document.getElementById('cat-view');
+    const list = document.getElementById('cat-list');
 
-    if (catName) catName.innerText = n;
-    if (catView) catView.classList.remove('hidden');
-    if (l) l.innerHTML = "";
+    if (cname) cname.innerText = n;
+    if (cview) cview.classList.remove('hidden');
+    if (list) list.innerHTML = "";
 
-    try {
-        const snap = await db.collection("library_settings")
-            .where("category", "==", n.trim())
-            .get();
+    const snap = await db.collection("library_settings")
+        .where("category", "==", n.trim())
+        .get();
 
-        snap.forEach(doc => {
-            if (l) l.innerHTML += renderB(doc.id, doc.data().title);
-        });
-    } catch (e) {
-        console.error("Category load error:", e);
-    }
+    snap.forEach(doc => {
+        if (list) list.innerHTML += renderB(doc.id, doc.data().title);
+    });
 }
 
-/* ======================
-   BORROWS LISTENER
-   ====================== */
+/* BORROWS */
 function listenBorrows() {
-    if (!currentUser) return;
-
     db.collection("borrows")
       .where("userId", "==", currentUser.uid)
       .onSnapshot(snap => {
@@ -248,25 +191,23 @@ function listenBorrows() {
 
         snap.forEach(doc => {
             const b = doc.data();
-            const borrowedDate = new Date(b.borrowedAt);
-            const diffDays = Math.ceil((Date.now() - borrowedDate.getTime()) / (1000*60*60*24));
-            const daysLeft = Math.max(0, 7 - diffDays);
+            const days = 7 - Math.ceil(
+                Math.abs(new Date() - new Date(b.borrowedAt)) / (1000*60*60*24)
+            );
 
             list.innerHTML += `
             <div class="book-item">
-                <span><b>${b.title}</b> (${daysLeft} days left)</span>
+                <span><b>${b.title}</b> (${days} days left)</span>
                 <div style="display:flex; gap:5px;">
                     <button class="btn-blue" onclick="openPdf('${b.bookId}', '', 'Borrowed Reading')">Open</button>
                     <button class="btn-blue" style="background:#ef4444" onclick="db.collection('borrows').doc('${doc.id}').delete()">Return</button>
                 </div>
             </div>`;
         });
-    }, err => console.error("Borrow listener error:", err));
+    });
 }
 
-/* ======================
-   BORROW
-   ====================== */
+/* BORROW */
 async function borrowB(id, t) {
     const code = prompt("Enter borrow code:");
     if (code !== "BORROW2026") {
@@ -274,45 +215,31 @@ async function borrowB(id, t) {
         return;
     }
 
-    try {
-        await db.collection("borrows").add({
-            userId: currentUser.uid,
-            bookId: id,
-            title: t || id,
-            borrowedAt: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error("Borrow error:", e);
-        alert("Failed to borrow book. Try again.");
-    }
+    await db.collection("borrows").add({
+        userId: currentUser.uid,
+        bookId: id,
+        title: t,
+        borrowedAt: new Date().toISOString()
+    });
 }
 
-/* ======================
-   TABS (ACTIVE FIX)
-   ====================== */
+/* TABS */
 function switchMainTab(t) {
     const lib = document.getElementById('lib-view');
     const prof = document.getElementById('prof-view');
-    const tLib = document.getElementById('t-lib');
-    const tProf = document.getElementById('t-prof');
+    const tlib = document.getElementById('t-lib');
+    const tprof = document.getElementById('t-prof');
 
     if (lib) lib.classList.toggle('hidden', t !== 'lib');
     if (prof) prof.classList.toggle('hidden', t !== 'prof');
-
-    if (tLib) tLib.classList.toggle('active', t === 'lib');
-    if (tProf) tProf.classList.toggle('active', t === 'prof');
+    if (tlib) tlib.classList.toggle('active', t === 'lib');
+    if (tprof) tprof.classList.toggle('active', t === 'prof');
 }
 
-/* ======================
-   LOGOUT
-   ====================== */
+/* LOGOUT */
 function logout() {
-    const dur = sessionStart 
-        ? Math.round((Date.now() - sessionStart) / 1000) + "s" 
-        : "0s";
-
+    const dur = Math.round((Date.now() - sessionStart) / 1000) + "s";
     logAct("App Closed", dur);
-
     auth.signOut().then(() => location.reload());
 }
 </script>
