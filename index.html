@@ -14,195 +14,159 @@
             --bg: #0f172a; --card-bg: #1e293b; --text-main: #f8fafc; --text-sub: #94a3b8;
             --border: #334155;
         }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); }
+
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); transition: all 0.3s ease; }
+        
         .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .logo-section h1 { margin: 0; font-size: 22px; font-weight: 800; }
         .logo-section span { color: var(--blue); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 
-        /* Login Screen */
-        #auth-screen { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; width: 100%; max-width: 350px; text-align: center; border: 1px solid var(--border); }
-        .login-field { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; }
-
-        /* Dashboard Stats */
+        /* Stats Grid */
         .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .stat-card { padding: 20px; border-radius: 20px; color: white; display: flex; flex-direction: column; position: relative; overflow: hidden; height: 100px; justify-content: center; }
         .stat-card.blue { background: #2563eb; }
         .stat-card.orange { background: #f97316; }
         .stat-card.green { background: #10b981; }
         .stat-card.purple-profile { background: #a855f7; cursor: pointer; transition: transform 0.2s; }
+        .stat-card.purple-profile:hover { transform: scale(1.02); }
         
         .profile-row { display: flex; align-items: center; gap: 12px; }
-        .mini-avatar { width: 45px; height: 45px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+        .mini-avatar { width: 45px; height: 45px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; }
 
+        .stat-card h4 { margin: 0; font-size: 13px; font-weight: 400; opacity: 0.9; }
+        .stat-card p { margin: 2px 0 0; font-size: 24px; font-weight: 800; }
+        .stat-icon { position: absolute; right: 15px; bottom: 10px; opacity: 0.2; font-size: 30px; }
+
+        /* Content Layout */
         .main-layout { display: grid; grid-template-columns: 2fr 1.2fr; gap: 20px; }
         .glass-card { background: var(--card-bg); border-radius: 24px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
-        
-        /* Book Items */
+        .search-box { width: 100%; padding: 15px; border-radius: 15px; background: var(--card-bg); border: 1px solid var(--border); color: white; margin-bottom: 20px; box-sizing: border-box; outline: none; }
+
+        /* Book Item Styling (Used for Recent and Trending) */
         .book-item { background: var(--bg); padding: 15px; border-radius: 16px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .book-info b { display: block; color: var(--text-main); }
         .book-info small { color: var(--text-sub); }
-        .btn-preview { background: var(--blue); color: white; border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+        .btn-preview { background: var(--blue); color: white; border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
+        .btn-preview:hover { opacity: 0.8; }
 
-        /* Reader */
-        #reader-overlay { position: fixed; inset: 0; background: white; z-index: 6000; display: flex; flex-direction: column; }
-        .reader-header { padding: 10px 20px; background: #1e293b; color: white; display: flex; justify-content: space-between; align-items: center; }
-        
-        #profile-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 4000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        /* Categories */
+        .category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .category-item { background: var(--bg); padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+        .category-item:hover { border-color: var(--blue); background: #1e293b; transform: translateY(-2px); }
+
+        /* Overlay */
+        #profile-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 3000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         .hidden { display: none !important; }
+
         @media (max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-    <div id="auth-screen">
-        <div class="login-card">
-            <h2 style="color:var(--blue); margin-bottom:5px;">Jesus is the Saviour</h2>
-            <p style="font-size:11px; color:var(--text-sub); margin-bottom:25px;">Theological Student Library</p>
-            <input type="text" id="login-coll-id" class="login-field" placeholder="College ID">
-            <input type="text" id="login-stud-id" class="login-field" placeholder="Student ID">
-            <input type="password" id="login-pass" class="login-field" placeholder="Password">
-            <button onclick="handleCustomLogin()" style="background:var(--blue); color:white; border:none; width:100%; padding:15px; border-radius:12px; font-weight:600; cursor:pointer;">Enter Library</button>
-            <div id="login-status" style="margin-top:15px; font-size:11px; color:#ef4444; font-weight:600;"></div>
+    <div class="header-bar">
+        <div class="logo-section">
+            <span>Jesus is the Saviour</span>
+            <h1>Theological Library</h1>
+        </div>
+        <div id="clock" style="color: var(--text-sub); font-weight: 600;">00:00:00</div>
+    </div>
+
+    <div class="status-grid">
+        <div class="stat-card blue">
+            <h4>Total Books</h4><p id="top-total">20</p>
+            <div class="stat-icon">📖</div>
+        </div>
+        <div class="stat-card orange">
+            <h4>Issued</h4><p id="top-issued">2</p>
+            <div class="stat-icon">🔄</div>
+        </div>
+        <div class="stat-card green">
+            <h4>Available</h4><p id="top-avail">18</p>
+            <div class="stat-icon">✅</div>
+        </div>
+        <div class="stat-card purple-profile" onclick="toggleProfile()">
+            <div class="profile-row">
+                <div class="mini-avatar" id="mini-initial">S</div>
+                <div>
+                    <h4 id="mini-name">Student Name</h4>
+                    <span style="font-size: 10px; opacity: 0.8;">View Profile →</span>
+                </div>
+            </div>
+            <div class="stat-icon">👤</div>
         </div>
     </div>
 
-    <div id="dashboard" class="hidden">
-        <div class="header-bar">
-            <div class="logo-section"><span>Jesus is the Saviour</span><h1>Theological Library</h1></div>
-            <div id="clock" style="color: var(--text-sub); font-weight: 600;">00:00:00</div>
-        </div>
+    <input type="text" class="search-box" placeholder="🔍 Search library resources...">
 
-        <div class="status-grid">
-            <div class="stat-card blue"><h4>Total Resources</h4><p id="top-total">0</p></div>
-            <div class="stat-card orange"><h4>Recently Read</h4><p id="top-recent-count">0</p></div>
-            <div class="stat-card purple-profile" onclick="toggleProfile()">
-                <div class="profile-row"><div class="mini-avatar" id="mini-initial">U</div>
-                <div><h4 id="mini-name">User</h4><span style="font-size: 10px; opacity: 0.8;">My Profile →</span></div></div>
-            </div>
-        </div>
-
-        <div class="main-layout">
-            <div class="content-column">
-                <div class="glass-card">
-                    <h3>🕒 Recent Uploads</h3>
-                    <div id="recent-list"></div>
-                </div>
-                <div class="glass-card">
-                    <h3>🔥 Trending Now</h3>
-                    <div id="trending-list"></div>
+    <div class="main-layout">
+        <div class="content-column">
+            <div class="glass-card">
+                <h3 style="margin-top:0;">🕒 Recent Uploads</h3>
+                <div id="recent-list">
+                    <div class="book-item">
+                        <div class="book-info"><b>Liturgy: Theology and Practice</b><small>Systematic Theology</small></div>
+                        <button class="btn-preview">Preview</button>
+                    </div>
                 </div>
             </div>
-            <div class="sidebar-column">
-                <div class="glass-card">
-                    <h3>📂 Categories</h3>
-                    <div id="cat-list-grid" style="display:grid; gap:10px;">
-                        <button class="btn-preview" style="background:var(--bg); border:1px solid var(--border);" onclick="loadCat('Theology')">📖 Theology</button>
-                        <button class="btn-preview" style="background:var(--bg); border:1px solid var(--border);" onclick="loadCat('History')">⛪ History</button>
-                        <button class="btn-preview" style="background:var(--bg); border:1px solid var(--border);" onclick="loadCat('Mission')">🌍 Mission</button>
-                        <button class="btn-preview" style="background:var(--bg); border:1px solid var(--border);" onclick="loadCat('Acts')">📜 Acts</button>
+
+            <div class="glass-card">
+                <h3 style="margin-top:0;">🔥 Trending Now</h3>
+                <div id="trending-list">
+                    <div class="book-item">
+                        <div class="book-info"><b>The Acts of the Apostles</b><small>Biblical Studies</small></div>
+                        <button class="btn-preview">Preview</button>
+                    </div>
+                    <div class="book-item">
+                        <div class="book-info"><b>Church History: Vol 1</b><small>History</small></div>
+                        <button class="btn-preview">Preview</button>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="reader-overlay" class="hidden">
-        <div class="reader-header"><span id="reader-title">Reader</span><button onclick="closeReader()" style="background:red; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">Exit Reader</button></div>
-        <iframe id="pdf-frame" src="" style="flex-grow:1; border:none; width:100%;"></iframe>
+        <div class="sidebar-column">
+            <div class="glass-card">
+                <h3 style="margin-top:0;">📂 Categories</h3>
+                <div class="category-grid">
+                    <div class="category-item">📖 Theology</div>
+                    <div class="category-item">⛪ History</div>
+                    <div class="category-item">🌍 Mission</div>
+                    <div class="category-item">📜 Acts</div>
+                    <div class="category-item">✝️ Gospel</div>
+                    <div class="category-item">📘 Bible</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="profile-overlay" class="hidden" onclick="toggleProfile()">
-        <div class="glass-card" style="width: 320px; text-align: center;" onclick="event.stopPropagation()">
-            <div id="prof-initial" style="width:70px; height:70px; background:var(--purple); border-radius:50%; margin:0 auto 15px; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800;">U</div>
-            <h2 id="prof-name">Student</h2>
-            <p id="prof-id" style="color:var(--text-sub); font-size:12px; margin-bottom:20px;">ID: ---</p>
+        <div class="glass-card" style="width: 350px; text-align: center; margin-bottom: 0;" onclick="event.stopPropagation()">
+            <div style="width:80px; height:80px; background:var(--purple); border-radius:50%; margin:0 auto 15px; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:800; color:white;" id="prof-initial">S</div>
+            <h2 id="prof-name" style="margin:0;">Student Name</h2>
+            <p id="prof-id" style="color:var(--text-sub); margin:5px 0 20px;">ID: LIB-2026-001</p>
+            
+            <div style="text-align:left; border-top:1px solid var(--border); padding-top:15px; font-size:13px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>College</span><b id="prof-college">Theology Dept</b></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><span>Status</span><b style="color:var(--green)">Active</b></div>
+            </div>
+            
             <button onclick="logout()" style="background:#ef4444; color:white; border:none; width:100%; padding:12px; border-radius:12px; font-weight:600; cursor:pointer;">Logout Session</button>
+            <button onclick="toggleProfile()" style="background:none; border:none; color:var(--text-sub); margin-top:15px; cursor:pointer;">Close</button>
         </div>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
-            authDomain: "theolib.in",
-            projectId: "student-library-4a4e7",
-            storageBucket: "student-library-4a4e7.firebasestorage.app",
-            messagingSenderId: "827419448917",
-            appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        let currentUser = null; let sessionStart = null; let readStart = null;
-
+        function toggleProfile() { document.getElementById('profile-overlay').classList.toggle('hidden'); }
         setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
 
-        async function handleCustomLogin() {
-            const collId = document.getElementById('login-coll-id').value;
-            const studId = document.getElementById('login-stud-id').value;
-            const pass = document.getElementById('login-pass').value;
-            const status = document.getElementById('login-status');
-            if(!collId || !studId || !pass) { status.innerText = "Fill all fields"; return; }
-
-            const snap = await db.collection("users").where("collegeId","==",collId).where("studentId","==",studId).where("password","==",pass).get();
-            if(!snap.empty) {
-                const u = snap.docs[0].data();
-                if(u.expiryDate && new Date() > new Date(u.expiryDate).setHours(23,59,59)) { status.innerText="Access Expired"; return; }
-                
-                currentUser = { uid: snap.docs[0].id, ...u };
-                sessionStart = Date.now();
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('mini-name').innerText = u.fullName;
-                document.getElementById('prof-name').innerText = u.fullName;
-                document.getElementById('prof-id').innerText = "ID: " + u.studentId;
-                document.getElementById('mini-initial').innerText = u.fullName[0];
-                document.getElementById('prof-initial').innerText = u.fullName[0];
-                loadLib();
-            } else { status.innerText="Invalid Credentials"; }
-        }
-
-        function loadLib() {
-            db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).onSnapshot(snap => {
-                document.getElementById('top-total').innerText = snap.size;
-                const rList = document.getElementById('recent-list'); const tList = document.getElementById('trending-list');
-                rList.innerHTML = ""; tList.innerHTML = "";
-                snap.forEach(doc => {
-                    const b = doc.data(); const id = doc.id;
-                    const html = `<div class="book-item"><div class="book-info"><b>${b.title}</b><small>${b.category}</small></div><button class="btn-preview" onclick="openPdf('${id}','${b.title}')">Preview</button></div>`;
-                    if(b.recent) rList.innerHTML += html;
-                    if(b.trending) tList.innerHTML += html;
-                });
-            });
-        }
-
-        async function loadCat(cat) {
-            const snap = await db.collection("library_settings").where("category","==",cat).where("allowedColleges","array-contains",currentUser.collegeId).get();
-            alert("Viewing " + cat + " Category: " + snap.size + " books found.");
-        }
-
-        function openPdf(id, title) {
-            readStart = Date.now();
-            document.getElementById('reader-title').innerText = title;
-            document.getElementById('pdf-frame').src = `public/${id}_read_online.pdf#toolbar=0`;
-            document.getElementById('reader-overlay').classList.remove('hidden');
-        }
-
-        async function closeReader() {
-            if(readStart) {
-                const dur = Math.round((Date.now()-readStart)/1000) + "s";
-                await db.collection("activity_logs").add({ userId: currentUser.uid, activityType: "Read Online", duration: dur, timestamp: new Date().toISOString() });
-            }
-            document.getElementById('reader-overlay').classList.add('hidden');
-            document.getElementById('pdf-frame').src = "";
-        }
-
-        function toggleProfile() { document.getElementById('profile-overlay').classList.toggle('hidden'); }
-        async function logout() {
-            if(sessionStart) {
-                const dur = Math.round((Date.now()-sessionStart)/1000) + "s";
-                await db.collection("activity_logs").add({ userId: currentUser.uid, activityType: "App Closed", duration: dur, timestamp: new Date().toISOString() });
-            }
-            location.reload();
+        function updateUI(user) {
+            document.getElementById('mini-name').innerText = user.displayName;
+            document.getElementById('prof-name').innerText = user.displayName;
+            document.getElementById('mini-initial').innerText = user.displayName.charAt(0);
+            document.getElementById('prof-initial').innerText = user.displayName.charAt(0);
+            document.getElementById('prof-id').innerText = "ID: " + (user.studentId || "N/A");
+            document.getElementById('prof-college').innerText = user.collegeId || "General";
         }
     </script>
 </body>
