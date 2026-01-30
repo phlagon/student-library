@@ -11,18 +11,37 @@
     <style>
         :root { --blue: #3b82f6; --bg: #f8fafc; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
-        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        .user-folder { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.3s; }
-        .user-folder:hover { background: #e2e8f0; }
-        .hidden { display: none !important; }
+        .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: #e2e8f0; }
+        .tab-btn.active { background: var(--blue); color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .btn-sm { padding: 6px 10px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; margin: 2px; }
+        .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
+        .show { display: block; }
+        .user-folder { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; }
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 20px; max-height: 80vh; overflow-y: auto; }
-        .btn-sm { padding: 6px 12px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div class="card">
+    <div class="nav-tabs">
+        <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">PDF Inventory</button>
+        <button id="t-mem" class="tab-btn" onclick="switchTab('mem')">Members & Activity</button>
+    </div>
+
+    <div id="inv-section" class="card">
+        <h2>📂 Global PDF Inventory</h2>
+        <table>
+            <thead><tr><th>PDF File</th><th>Category</th><th>Assign / Recommend / Promo</th><th>Action</th></tr></thead>
+            <tbody id="inventory-list"></tbody>
+        </table>
+    </div>
+
+    <div id="mem-section" class="hidden card">
         <h3>👥 Faculty & Member Status</h3>
         <div id="user-folders-list"></div>
     </div>
@@ -30,7 +49,7 @@
     <div id="user-modal" class="hidden">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 id="modal-title">User Folder</h3>
+                <h3 id="modal-title"></h3>
                 <button onclick="document.getElementById('user-modal').classList.add('hidden')" style="background:red; color:white; border:none; padding:5px 10px; border-radius:5px;">Close</button>
             </div>
             <div id="modal-body" style="margin-top:20px;"></div>
@@ -49,34 +68,60 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    const categories = ["Systematic Theology", "CHURCH History", "Mission", "Acts of Apostles"];
+    
+    function switchTab(t) {
+        document.getElementById('inv-section').classList.toggle('hidden', t !== 'inv');
+        document.getElementById('mem-section').classList.toggle('hidden', t !== 'mem');
+        document.getElementById('t-inv').classList.toggle('active', t === 'inv');
+        document.getElementById('t-mem').classList.toggle('active', t === 'mem');
+    }
+
+    db.collection("library_settings").onSnapshot(snap => {
+        const list = document.getElementById('inventory-list'); list.innerHTML = "";
+        snap.forEach(doc => {
+            const b = doc.data(); const id = doc.id;
+            list.innerHTML += `<tr>
+                <td><b>${b.title || id}</b></td>
+                <td>${b.category || 'Unassigned'}</td>
+                <td style="position:relative;">
+                    <button class="btn-sm" style="background:#dcfce7" onclick="toggleM('c-${id}')">➕ Cat</button>
+                    <div id="c-${id}" class="dropdown-menu">${categories.map(c => `<div class="dropdown-item" onclick="upd('${id}','category','${c}')">${c}</div>`).join('')}</div>
+                    <button class="btn-sm" style="background:#fef9c3" onclick="toggleM('p-${id}')">🔥 Promo</button>
+                    <div id="p-${id}" class="dropdown-menu">
+                        <div class="dropdown-item" onclick="upd('${id}','recent',${!b.recent})">${b.recent?'❌':'✅'} Recent</div>
+                        <div class="dropdown-item" onclick="upd('${id}','trending',${!b.trending})">${b.trending?'❌':'✅'} Trend</div>
+                    </div>
+                </td>
+                <td><button class="btn-sm" onclick="resetB('${id}')">Reset</button></td>
+            </tr>`;
+        });
+    });
+
     db.collection("users").onSnapshot(snap => {
         const list = document.getElementById('user-folders-list'); list.innerHTML = "";
         snap.forEach(doc => {
             const u = doc.data();
-            list.innerHTML += `<div class="user-folder" onclick="showUserStats('${doc.id}', '${u.fullName}')">📂 <b>${u.fullName}</b><br><small>${u.email}</small></div>`;
+            list.innerHTML += `<div class="user-folder" onclick="openFolder('${doc.id}', '${u.fullName}')">📂 <b>${u.fullName}</b><br><small>${u.email}</small></div>`;
         });
     });
 
-    async function showUserStats(uid, name) {
-        document.getElementById('modal-title').innerText = name + "'s Folder";
+    async function openFolder(uid, name) {
+        document.getElementById('modal-title').innerText = name;
         document.getElementById('user-modal').classList.remove('hidden');
         const borrows = await db.collection("borrows").where("userId", "==", uid).get();
-        const logs = await db.collection("activity_logs").where("userId", "==", uid).orderBy("timestamp","desc").limit(5).get();
-        
-        let html = `<h4>Active Borrows & Deadlines</h4>`;
-        borrows.forEach(b => {
+        let html = `<h4>Active Borrows</h4>`;
+        borrows.forEach(b => { 
             const d = b.data();
-            const daysLeft = 7 - Math.ceil(Math.abs(new Date() - new Date(d.borrowedAt)) / (1000 * 60 * 60 * 24));
-            html += `<p style="font-size:12px;">• <b>${d.title}</b> (${daysLeft} days until overdue)</p>`;
+            const daysLeft = 7 - Math.ceil(Math.abs(new Date() - new Date(d.borrowedAt))/(1000*60*60*24));
+            html += `<p style="font-size:12px;">• <b>${d.title}</b> (${daysLeft} days left)</p>`;
         });
-
-        html += `<h4 style="margin-top:20px;">Recent Usage</h4>`;
-        logs.forEach(l => {
-            const d = l.data();
-            html += `<p style="font-size:11px;">• ${d.activityType} (${d.duration}) - ${new Date(d.timestamp).toLocaleDateString()}</p>`;
-        });
-        document.getElementById('modal-body').innerHTML = html;
+        document.getElementById('modal-body').innerHTML = html || "No active data.";
     }
+
+    function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
+    async function upd(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
+    async function resetB(id) { await db.collection("library_settings").doc(id).update({ category: null, recent: false, trending: false }); }
 </script>
 </body>
 </html>
