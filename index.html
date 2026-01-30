@@ -38,7 +38,9 @@
 <div id="auth-screen">
     <div class="glass-card" style="max-width:350px; margin: 80px auto; text-align:center;">
         <h2 style="color:var(--blue)">Jesus is the Saviour</h2>
+        <p style="font-size:12px; color:#64748b; margin-bottom:20px;">Theological Student Library</p>
         <button class="btn-blue" style="width:100%; padding:15px;" onclick="handleLogin()">Login with Google</button>
+        <div id="login-status" style="margin-top:15px; font-size:11px; color:#64748b;"></div>
     </div>
 </div>
 
@@ -87,7 +89,7 @@
 <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
-      authDomain: "theolib.in",
+      authDomain: "student-library-4a4e7.firebaseapp.com", // Stable auth handler
       projectId: "student-library-4a4e7",
       storageBucket: "student-library-4a4e7.firebasestorage.app",
       messagingSenderId: "827419448917",
@@ -99,9 +101,16 @@
 
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
 
+    // FIX: Using Popup exclusively avoids the /__/auth/handler 404 error on Vercel
     async function handleLogin() {
         const p = new firebase.auth.GoogleAuthProvider();
-        try { await auth.signInWithPopup(p); } catch(e) { auth.signInWithRedirect(p); }
+        document.getElementById('login-status').innerText = "Opening Google Sign-in...";
+        try { 
+            await auth.signInWithPopup(p); 
+        } catch(e) { 
+            console.error("Login Error:", e);
+            document.getElementById('login-status').innerText = "Login failed. Please allow popups.";
+        }
     }
 
     auth.onAuthStateChanged(user => {
@@ -123,7 +132,6 @@
         });
     }
 
-    // PREVIEW & TRACKING
     function openPdf(id, s, task) {
         readStart = Date.now(); readTask = task;
         document.getElementById('pdf-frame').src = `public/${id}${s}.pdf#toolbar=0`;
