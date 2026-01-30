@@ -26,15 +26,17 @@ setInterval(() => {
 }, 1000);
 
 /* =========================
-   REDIRECT LOGIN (NO POPUP)
+   GOOGLE LOGIN (REDIRECT)
+   NO POPUP BLOCKER ISSUES
    ========================= */
 async function handleLogin() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    document.getElementById('login-status').innerText = "Redirecting to Google login...";
+    const s = document.getElementById('login-status');
+    if(s) s.innerText = "Redirecting to Google login...";
     await auth.signInWithRedirect(provider);
 }
 
-/* HANDLE REDIRECT RESULT */
+/* HANDLE REDIRECT ERRORS */
 auth.getRedirectResult().catch(err => {
     console.error("Redirect Error:", err);
     const s = document.getElementById('login-status');
@@ -75,7 +77,6 @@ function logAct(type, dur = "0s") {
 function openPdf(id, s, task) {
     readStart = Date.now();
     readTask = task;
-
     document.getElementById('pdf-frame').src = `public/${id}${s}.pdf#toolbar=0`;
     document.getElementById('reader-overlay').classList.remove('hidden');
 }
@@ -121,7 +122,7 @@ function loadLib() {
     });
 }
 
-/* SEARCH FIX */
+/* SEARCH FIX (OPEN BOOK DIRECTLY) */
 function handleSuggest(q) {
     const list = document.getElementById('suggest-list');
     if (q.length < 2) { list.style.display = "none"; return; }
@@ -159,7 +160,6 @@ async function loadCat(n) {
 
     const l = document.getElementById('cat-list'); 
     l.innerHTML = "";
-
     snap.forEach(doc => {
         l.innerHTML += renderB(doc.id, doc.data().title);
     });
@@ -207,7 +207,7 @@ async function borrowB(id, t) {
     });
 }
 
-/* TABS */
+/* TABS (ACTIVE FIX) */
 function switchMainTab(t) {
     document.getElementById('lib-view').classList.toggle('hidden', t !== 'lib');
     document.getElementById('prof-view').classList.toggle('hidden', t !== 'prof');
@@ -220,7 +220,6 @@ function switchMainTab(t) {
 function logout() {
     const dur = Math.round((Date.now() - sessionStart)/1000) + "s";
     logAct("App Closed", dur);
-
     auth.signOut().then(() => location.reload());
 }
 </script>
