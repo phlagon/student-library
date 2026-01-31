@@ -14,17 +14,24 @@
         #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; }
         .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; width: 100%; max-width: 350px; text-align: center; border: 1px solid var(--border); }
         .login-field, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; }
-        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); border: 1px solid var(--border); white-space: nowrap; }
-        .tab-btn.active { background: var(--blue); color: white; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 10px; }
+        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); border: 1px solid var(--border); transition: 0.3s; white-space: nowrap; }
+        .tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
         .glass-card { background: var(--card-bg); border-radius: 20px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 12px; color: var(--text-sub); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
         td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-        .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; min-width: 200px; padding: 10px; top: 40px; }
+        .btn-sm { padding: 8px 15px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; }
+        .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
         .show { display: block; }
         .dropdown-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 12px; }
         .dropdown-item:hover { background: var(--blue); }
+        .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat-box { background: #0f172a; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
+        .stat-val { font-size: 18px; font-weight: 800; color: var(--blue); display: block; }
+        #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 6000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 650px; border-radius: 24px; padding: 30px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -35,14 +42,14 @@
         <h2 style="color:var(--blue)">Admin Control</h2>
         <input type="text" id="admin-coll-id" class="login-field" placeholder="College ID">
         <input type="password" id="admin-pass" class="login-field" placeholder="Password">
-        <button class="btn-sm" style="background:var(--blue); color:white; width:100%; padding:15px; border-radius:12px; cursor:pointer;" onclick="handleAdminLogin()">Login</button>
+        <button class="btn-sm" style="background:var(--blue); color:white; width:100%; padding:15px; border-radius:12px;" onclick="handleAdminLogin()">Login</button>
     </div>
 </div>
 
 <div id="master-panel" class="hidden">
     <div class="nav-tabs">
         <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">Inventory</button>
-        <button id="t-nom" class="tab-btn" onclick="switchTab('nom')">Faculty Nominations</button>
+        <button id="t-nom" class="tab-btn" onclick="switchTab('nom')">Nominations</button>
         <button id="t-mem" class="tab-btn" onclick="switchTab('mem')">Monitoring</button>
         <button id="t-stud" class="tab-btn" onclick="switchTab('stud')">Members</button>
         <button class="tab-btn" style="background:#ef4444; color:white; margin-left:auto;" onclick="location.reload()">Logout</button>
@@ -50,20 +57,42 @@
 
     <div id="inv-section" class="glass-card">
         <div id="super-admin-reg" class="hidden" style="margin-bottom:20px;">
-            <input type="text" id="reg-file-id" class="login-field" style="width:200px;" placeholder="File ID">
-            <input type="text" id="reg-file-title" class="login-field" style="width:200px;" placeholder="Title">
-            <button onclick="registerBook()" class="tab-btn" style="background:var(--blue); color:white;">Register PDF</button>
+            <input type="text" id="reg-file-id" class="login-field" style="width:180px;" placeholder="File ID">
+            <input type="text" id="reg-file-title" class="login-field" style="width:180px;" placeholder="PDF Title">
+            <button onclick="registerBook()" class="btn-sm" style="background:var(--blue); color:white;">Register</button>
         </div>
-        <table>
-            <thead><tr><th>Resource</th><th>Access</th><th>Category</th><th>Action</th></tr></thead>
-            <tbody id="inventory-list"></tbody>
-        </table>
+        <table><thead><tr><th>Resource</th><th>Access</th><th>Category</th><th>Action</th></tr></thead><tbody id="inventory-list"></tbody></table>
     </div>
 
-    <div id="nom-section" class="hidden glass-card"><h2>📥 Faculty Nominations</h2><div id="nomination-list"></div></div>
+    <div id="nom-section" class="hidden glass-card">
+        <h2>📥 Faculty Nominations</h2>
+        <div id="nomination-list"></div>
+    </div>
+
     <div id="mem-section" class="hidden glass-card">
         <select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;"><option value="">Select College</option><option value="IMC26">IMC26</option></select>
         <div id="user-folders-list"></div>
+    </div>
+
+    <div id="stud-section" class="hidden glass-card">
+        <h2>📤 Bulk Upload</h2>
+        <textarea id="bulk-input" class="login-field" style="height:150px;" placeholder="Name, CollID, ID, Pass, Role"></textarea>
+        <button class="btn-sm" style="background:var(--blue); color:white; width:100%;" onclick="processBulk()">Register All</button>
+    </div>
+</div>
+
+<div id="user-modal" class="hidden">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 id="modal-title">Report</h3>
+            <div style="display:flex; gap:10px;"><button onclick="downloadReport()" class="btn-sm" style="background:var(--blue); color:white;">CSV</button><button onclick="document.getElementById('user-modal').classList.add('hidden')" class="btn-sm" style="background:#ef4444; color:white;">X</button></div>
+        </div>
+        <div id="modal-body"></div>
+        <div style="margin-top:20px; padding:15px; background:#0f172a; border-radius:12px;">
+            <select id="role-select" class="login-field" style="margin:0;"><option value="student">Student</option><option value="faculty">Faculty</option></select>
+            <button onclick="updateUserRole()" class="btn-sm" style="background:var(--green); color:white; width:100%; margin-top:10px;">Update Role</button>
+        </div>
+        <table style="margin-top:20px;"><thead><tr><th>Date</th><th>Activity</th><th>Duration</th></tr></thead><tbody id="log-body"></tbody></table>
     </div>
 </div>
 
@@ -72,7 +101,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const adminAccounts = { "aslin": "Phlagon@28", "IMC26": "IMC26@theo" };
-    let isSuperAdmin = false;
+    let isSuperAdmin = false; let activeUID = ""; let reportData = null;
 
     function handleAdminLogin() {
         const cid = document.getElementById('admin-coll-id').value.trim();
@@ -91,9 +120,8 @@
             const list = document.getElementById('inventory-list'); list.innerHTML = "";
             snap.forEach(doc => {
                 const b = doc.data(); const id = doc.id; const allowed = b.allowedColleges || [];
-                list.innerHTML += `<tr>
-                    <td><b>${b.title}</b><br><small>${b.category || 'None'}</small></td>
-                    <td><small>${allowed.join(', ') || '🔒'}</small></td>
+                list.innerHTML += `<tr><td><b>${b.title}</b><br><small>${b.category}</small></td>
+                    <td><small>${allowed.join(', ')}</small></td>
                     <td style="position:relative;">
                         <button class="btn-sm" style="background:var(--green); color:white;" onclick="toggleM('c-${id}')">📁 Category</button>
                         <div id="c-${id}" class="dropdown-menu">
@@ -104,17 +132,15 @@
                             <div class="dropdown-item" onclick="updateField('${id}','category','Acts')">Acts of Apostles</div>
                             <div class="dropdown-item" onclick="updateField('${id}','category','Other Books')">Other Books</div>
                         </div>
-                    </td>
-                    <td><button onclick="updateField('${id}','mission',${!b.mission})">${b.mission?'🌍 On':'🌍 Off'}</button></td>
-                </tr>`;
+                    </td><td><button onclick="updateField('${id}','mission',${!b.mission})">${b.mission?'🌍 On':'🌍 Off'}</button></td></tr>`;
             });
         });
-        
+
         db.collection("faculty_nominations").where("status","==","pending").onSnapshot(snap => {
             const list = document.getElementById('nomination-list'); list.innerHTML = "";
             snap.forEach(doc => {
                 const n = doc.data();
-                list.innerHTML += `<div class="glass-card"><b>${n.bookTitle}</b> (From: ${n.facultyName}) <button onclick="approveNom('${doc.id}','${n.bookId}','${n.collegeId}','${n.facultyName}')">Approve</button></div>`;
+                list.innerHTML += `<div class="user-folder"><span><b>${n.bookTitle}</b> (By ${n.facultyName})</span><button class="btn-sm" style="background:var(--green); color:white;" onclick="approveNom('${doc.id}','${n.bookId}','${n.collegeId}','${n.facultyName}')">Approve</button></div>`;
             });
         });
     }
@@ -125,15 +151,30 @@
         alert("Live!");
     }
 
-    async function updateField(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
-    function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
-    function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
-    async function registerBook() { 
-        const id = document.getElementById('reg-file-id').value.trim();
-        const title = document.getElementById('reg-file-title').value.trim();
-        await db.collection("library_settings").doc(id).set({ title, category: "Theology", allowedColleges: [], mission: false });
-        alert("Registered");
+    function loadCollegeStudents(cid) {
+        db.collection("users").where("collegeId", "==", cid).onSnapshot(snap => {
+            const list = document.getElementById('user-folders-list'); list.innerHTML = "";
+            snap.forEach(doc => { const u = doc.data(); list.innerHTML += `<div class="user-folder" onclick='openReport("${doc.id}", ${JSON.stringify(u)})'><span>📂 <b>${u.fullName}</b></span><small>${u.role}</small></div>`; });
+        });
     }
+
+    async function openReport(uid, user) {
+        activeUID = uid; document.getElementById('user-modal').classList.remove('hidden');
+        document.getElementById('modal-title').innerText = user.fullName;
+        document.getElementById('role-select').value = user.role;
+        const logs = await db.collection("activity_logs").where("userId", "==", uid).orderBy("timestamp", "desc").get();
+        reportData = { user, logs: [] }; let total = 0; let logHtml = "";
+        logs.forEach(l => { const d = l.data(); total += parseInt(d.duration) || 0; logHtml += `<tr><td>${new Date(d.timestamp).toLocaleDateString()}</td><td>${d.activityType}</td><td>${d.duration}</td></tr>`; reportData.logs.push(d); });
+        const fmt = (s) => `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m ${s%60}s`;
+        document.getElementById('modal-body').innerHTML = `<div class="stat-grid"><div class="stat-box"><span>TIME</span><br><b class="stat-val">${fmt(total)}</b></div><div class="stat-box"><span>ID</span><br><b class="stat-val">${user.studentId}</b></div></div>`;
+        document.getElementById('log-body').innerHTML = logHtml;
+    }
+
+    function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
+    function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
+    async function updateField(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
+    async function updateUserRole() { await db.collection("users").doc(activeUID).update({ role: document.getElementById('role-select').value }); alert("Saved"); }
+    function downloadReport() { /* CSV Download Logic */ }
 </script>
 </body>
 </html>
