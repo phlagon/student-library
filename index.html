@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Theological Library</title>
+    <title>TheoLib - Student & Faculty Portal</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -16,7 +16,7 @@
         .stat-card h4 { font-size: 10px; margin: 0; opacity: 0.8; text-transform: uppercase; }
         .stat-card p { font-size: 20px; margin: 5px 0 0; font-weight: 800; }
         .book-item { background: #0f172a; padding: 15px; border-radius: 15px; border: 1px solid var(--border); margin-bottom: 12px; }
-        .login-field { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; }
+        .login-field, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; font-family: inherit; }
         .btn-preview { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; margin-top: 10px; }
         #auth-screen, #profile-overlay, #reader-overlay, #full-lib-view, #borrow-view, #search-results-overlay { position: fixed; inset: 0; z-index: 9000; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
         .hidden { display: none !important; }
@@ -33,17 +33,21 @@
     <div id="auth-screen">
         <div style="background:var(--card-bg); padding:30px; border-radius:24px; text-align:center; max-width:350px; margin:auto; border:1px solid var(--border);">
             <h2 style="color:var(--blue)">TheoLib Login</h2>
+            <select id="login-role" class="login-field">
+                <option value="student">Student Login</option>
+                <option value="faculty">Faculty Login</option>
+            </select>
             <input type="text" id="login-coll-id" class="login-field" placeholder="College ID">
             <input type="text" id="login-user-id" class="login-field" placeholder="User ID">
             <input type="password" id="login-pass" class="login-field" placeholder="Password">
-            <button onclick="handleLogin()" style="background:var(--blue); color:white; border:none; width:100%; padding:15px; border-radius:12px; font-weight:600; cursor:pointer;">Enter</button>
+            <button onclick="handleLogin()" style="background:var(--blue); color:white; border:none; width:100%; padding:15px; border-radius:12px; font-weight:600; cursor:pointer;">Enter Library</button>
         </div>
     </div>
 
     <div id="dashboard" class="hidden">
         <div class="time-header">
-            <div id="session-box" class="time-box" style="border-color: var(--green);"><span id="session-clock" class="time-val" style="color: var(--green);"><span class="status-dot"></span>00:00:00</span></div>
-            <div class="time-box"><span id="real-time-clock" class="time-val" style="color: var(--blue);">00:00:00</span></div>
+            <div id="session-box" class="time-box" style="border-color: var(--green);"><span class="time-label"><span class="status-dot"></span>Session</span><br><span id="session-clock" class="time-val" style="color: var(--green);">00:00:00</span></div>
+            <div class="time-box"><span class="time-label">Current</span><br><span id="real-time-clock" class="time-val" style="color: var(--blue);">00:00:00</span></div>
         </div>
 
         <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:20px;">
@@ -53,7 +57,7 @@
         </div>
 
         <div class="search-container" style="position: relative; margin: 20px 0;">
-            <input type="text" id="lib-search" class="login-field" placeholder="🔍 Search library..." oninput="showSug(this.value)">
+            <input type="text" id="lib-search" class="login-field" placeholder="🔍 Search title or category..." oninput="showSug(this.value)">
             <div id="search-suggestions" class="hidden" style="position:absolute; top:48px; width:100%; background:var(--card-bg); border:1px solid var(--border); border-radius:10px; z-index:10000; max-height:200px; overflow-y:auto;"></div>
         </div>
 
@@ -66,6 +70,7 @@
                 <div class="cat-item" onclick="loadCat('Theology')">📖 Theology</div>
                 <div class="cat-item" onclick="loadCat('Church History')">⛪ History</div>
                 <div class="cat-item" onclick="loadCat('Mission')">🌍 Mission</div>
+                <div class="cat-item" onclick="loadCat('Bible Intro')">📘 Bible Intro</div>
             </div>
         </div>
     </div>
@@ -76,7 +81,7 @@
             <iframe id="pdf-frame" style="flex:3; height:100%; border:none;"></iframe>
             <div style="flex:1; background:var(--card-bg); border-left:1px solid var(--border); padding:15px; overflow-y:auto;">
                 <h4 style="margin-top:0;">📂 Navigation</h4>
-                <div class="cat-item" onclick="closeReader(); showFullLibrary()">All Books</div>
+                <div class="cat-item" onclick="closeReader(); showFullLibrary()">All Library</div>
                 <div class="cat-item" onclick="closeReader(); showBorrowView()">My Issued</div>
             </div>
         </div>
@@ -92,6 +97,7 @@
             <button onclick="toggleProfile()" class="btn-preview">Back</button><button onclick="location.reload()" style="background:red; width:100%; margin-top:10px;" class="btn-preview">Logout</button>
         </div>
     </div>
+
     <div id="full-lib-view" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📚 Library</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list"></div></div>
     <div id="borrow-view" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📥 Issued</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-list"></div></div>
     <div id="search-results-overlay" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><h3>🔎 Results</h3><button onclick="closeSearchView()" class="btn-preview">Back</button></div><div id="search-results-list"></div></div>
@@ -107,13 +113,18 @@
         });
 
         async function handleLogin() {
-            const cid = document.getElementById('login-coll-id').value.trim(); const uid = document.getElementById('login-user-id').value.trim(); const pass = document.getElementById('login-pass').value.trim();
+            const role = document.getElementById('login-role').value;
+            const cid = document.getElementById('login-coll-id').value.trim(); 
+            const uid = document.getElementById('login-user-id').value.trim(); 
+            const pass = document.getElementById('login-pass').value.trim();
             const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).get();
             if(!snap.empty) {
-                currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
+                const u = snap.docs[0].data();
+                if((u.role || 'student') !== role) { alert("Wrong Role Selected"); return; }
+                currentUser = { uid: snap.docs[0].id, ...u };
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
                 init();
-            } else { alert("Login Failed. Check IDs and Password."); }
+            } else { alert("Login Failed"); }
         }
 
         function init() {
