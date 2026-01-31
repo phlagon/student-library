@@ -81,7 +81,7 @@
             </div>
 
             <table style="margin-top:20px;">
-                <thead><tr><th>Date</th><th>Activity (Book Title)</th><th>Dur (HH:MM:SS)</th></tr></thead>
+                <thead><tr><th>Date</th><th>Activity</th><th>Dur (HH:MM:SS)</th></tr></thead>
                 <tbody id="log-body"></tbody>
             </table>
         </div>
@@ -92,7 +92,7 @@
     firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
     const adminAccounts = { "aslin": "Phlagon@28", "IMC26": "IMC26@theo" };
     let isSuperAdmin = false; let activeUID = ""; let activeUser = null; 
-    let logUnsubscribe = null; // LIVE LISTENER VARIABLE
+    let logUnsubscribe = null; 
 
     function handleAdminLogin() {
         const cid = document.getElementById('admin-coll-id').value.trim(); const pass = document.getElementById('admin-pass').value.trim();
@@ -134,34 +134,21 @@
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     }
 
-    // --- FIX: START LIVE LISTENER FOR ATTENDANCE ---
     async function openReport(uid, user) {
         activeUID = uid; activeUser = user;
         document.getElementById('user-modal').classList.remove('hidden'); 
         document.getElementById('modal-title').innerText = user.fullName; 
         document.getElementById('role-select').value = user.role || 'student';
-        document.getElementById('log-body').innerHTML = "<tr><td colspan='3'>Connecting to live attendance...</td></tr>";
+        document.getElementById('log-body').innerHTML = "<tr><td colspan='3'>Syncing...</td></tr>";
 
-        if(logUnsubscribe) logUnsubscribe(); // Clean up old listeners
-        fetchUsageData(); // Start the new one
-    }
-
-    async function fetchUsageData() {
-        if(!activeUID) return;
+        if(logUnsubscribe) logUnsubscribe(); 
         
-        // Use onSnapshot to fix the "frozen" issue
+        // This listener ensures the Webpage updates LIVE whenever a new log entry is added
         logUnsubscribe = db.collection("activity_logs")
             .where("userId", "==", activeUID)
             .orderBy("timestamp", "desc")
-            .limit(100)
             .onSnapshot(snap => {
                 let totalSec = 0; let borrowSec = 0; let logHtml = "";
-                
-                if (snap.empty) {
-                    document.getElementById('log-body').innerHTML = "<tr><td colspan='3'>No attendance logs found for today.</td></tr>";
-                    return;
-                }
-
                 snap.forEach(l => { 
                     const d = l.data(); 
                     const dur = parseInt(d.duration) || 0;
@@ -176,14 +163,12 @@
                         <div class="stat-box"><span>BORROWED TIME</span><br><b class="stat-val">${fmt(borrowSec)}</b></div>
                     </div>`; 
                 document.getElementById('log-body').innerHTML = logHtml;
-            }, error => {
-                console.error("Attendance Sync Error:", error);
             });
     }
 
     function closeModal() {
         document.getElementById('user-modal').classList.add('hidden');
-        if(logUnsubscribe) logUnsubscribe(); // Stop the live sync
+        if(logUnsubscribe) logUnsubscribe(); 
         activeUID = "";
     }
 
