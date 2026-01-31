@@ -3,44 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Theological Library - Jesus is the Saviour</title>
+    <title>Theological Library</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --blue: #3b82f6; --orange: #f97316; --green: #10b981; --purple: #a855f7; --bg: #0b1120; --card-bg: #1e293b; --text-main: #f8fafc; --text-sub: #94a3b8; --border: #334155; }
+        :root { --blue: #3b82f6; --orange: #f97316; --green: #10b981; --bg: #0b1120; --card-bg: #1e293b; --text-main: #f8fafc; --text-sub: #94a3b8; --border: #334155; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text-main); overflow-x: hidden; }
-        
-        /* LOGIN SCREEN */
         #auth-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9000; display: flex; align-items: center; justify-content: center; }
         .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; width: 90%; max-width: 350px; text-align: center; border: 1px solid var(--border); }
-        .login-field, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; font-family: inherit; }
-
-        /* DASHBOARD UI */
-        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .logo-section h1 { margin: 0; font-size: 18px; font-weight: 800; }
-        .logo-section span { color: var(--blue); font-size: 10px; font-weight: 800; text-transform: uppercase; }
-
-        .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .login-field, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; }
         .stat-card { padding: 15px; border-radius: 15px; color: white; text-align: center; cursor: pointer; }
-        .stat-card h4 { margin: 0; font-size: 10px; text-transform: uppercase; opacity: 0.8; }
-        .stat-card p { margin: 5px 0 0; font-size: 20px; font-weight: 800; }
-
-        .main-layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        @media(min-width: 900px) { .main-layout { grid-template-columns: 2fr 1.2fr; } }
-        
         .glass-card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid var(--border); margin-bottom: 15px; }
         .cat-item { cursor: pointer; background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 13px; }
-
         .book-item { background: #0f172a; padding: 15px; border-radius: 15px; border: 1px solid var(--border); margin-bottom: 12px; }
         .btn-preview { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; margin-top: 10px; }
-
-        /* OVERLAYS */
-        #reader-overlay, #profile-overlay, #full-lib-view { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
-        #reader-overlay { padding: 0; }
-        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        #pdf-frame { flex-grow: 1; width: 100%; height: 100%; border: none; }
+        #reader-overlay, #full-lib-view { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -49,10 +28,7 @@
     <div id="auth-screen">
         <div class="login-card">
             <h2 style="color:var(--blue); margin-bottom:20px;">TheoLib Login</h2>
-            <select id="login-role">
-                <option value="student">Student Login</option>
-                <option value="faculty">Faculty Login</option>
-            </select>
+            <select id="login-role"><option value="student">Student</option><option value="faculty">Faculty</option></select>
             <input type="text" id="login-coll-id" class="login-field" placeholder="College ID">
             <input type="text" id="login-user-id" class="login-field" placeholder="User ID">
             <input type="password" id="login-pass" class="login-field" placeholder="Password">
@@ -61,150 +37,96 @@
     </div>
 
     <div id="dashboard" class="hidden">
-        <div class="header-bar">
-            <div class="logo-section"><span>Jesus is the Saviour</span><h1>Theological Library</h1></div>
-            <div id="clock" style="font-size: 12px; color: var(--text-sub);">00:00:00</div>
-        </div>
-
-        <div class="status-grid">
+        <div class="status-grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:20px;">
             <div class="stat-card" style="background:var(--blue)" onclick="showFullLibrary()"><h4>Books</h4><p id="top-total">0</p></div>
             <div class="stat-card" style="background:var(--orange)"><h4>Borrowed</h4><p id="top-issued">0</p></div>
-            <div class="stat-card" style="background:var(--purple)" onclick="toggleProfile()"><h4>Profile</h4><p id="mini-initial">U</p></div>
+            <div class="stat-card" style="background:var(--green)" onclick="alert('Profile Loading...')"><h4>Profile</h4><p>👤</p></div>
         </div>
 
-        <div class="main-layout">
-            <div class="content-col">
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+            <div class="content">
                 <div class="glass-card"><h3 style="color:var(--green); margin-top:0;">🌍 Mission Focus</h3><div id="mission-list"></div></div>
-                <div class="glass-card"><h3 style="color:var(--orange); margin-top:0;">👨‍🏫 Faculty Recommendations</h3><div id="rec-list"></div></div>
                 <div class="glass-card"><h3>🕒 Recent Resources</h3><div id="recent-list"></div></div>
             </div>
-            <div class="sidebar-col">
+            <div class="sidebar">
                 <div class="glass-card">
                     <h3>📂 Categories</h3>
-                    <div id="cat-box">
-                        <div class="cat-item" onclick="loadCat('Theology')">📖 Theology</div>
-                        <div class="cat-item" onclick="loadCat('History')">⛪ History</div>
-                        <div class="cat-item" onclick="loadCat('Mission')">🌍 Mission Focus</div>
-                        <div class="cat-item" onclick="loadCat('Other Books')">📚 Other Books</div>
-                    </div>
+                    <div class="cat-item" onclick="loadCat('Theology')">📖 Systematic Theology</div>
+                    <div class="cat-item" onclick="loadCat('Church History')">⛪ CHURCH History</div>
+                    <div class="cat-item" onclick="loadCat('Mission')">🌍 Mission</div>
+                    <div class="cat-item" onclick="loadCat('Bible Intro')">📘 Intro to BIBLE</div>
+                    <div class="cat-item" onclick="loadCat('Acts')">📜 Acts of Apostles</div>
+                    <div class="cat-item" onclick="loadCat('Other Books')">📚 Other Books</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="profile-overlay" class="hidden">
-        <div class="view-header"><h2>👤 Profile</h2><button onclick="toggleProfile()" class="btn-preview">Back</button></div>
-        <div class="glass-card" style="text-align:center; max-width:400px; margin:auto;">
-            <h2 id="prof-name">Name</h2>
-            <p id="p-role" style="color:var(--blue); font-weight:bold;"></p>
-            <hr border="0" style="border-top:1px solid var(--border); margin:20px 0;">
-            <p style="text-align:left;"><b>College ID:</b> <span id="p-coll-id"></span></p>
-            <p style="text-align:left;"><b>User ID:</b> <span id="p-stud-id"></span></p>
-            <button onclick="location.reload()" style="background:#ef4444; width:100%; margin-top:20px;" class="btn-preview">Logout Session</button>
-        </div>
-    </div>
-
     <div id="reader-overlay" class="hidden">
-        <div class="reader-header" style="padding:15px; background:#1e293b; display:flex; justify-content:space-between; align-items:center;">
-            <span id="reader-title">Reading Mode</span>
-            <button onclick="closeReader()" style="background:#ef4444; border:none; color:white; padding:8px 15px; border-radius:8px; cursor:pointer;">Exit</button>
-        </div>
-        <iframe id="pdf-frame" src=""></iframe>
+        <button onclick="closeReader()" style="background:red; color:white; padding:10px;">Exit</button>
+        <iframe id="pdf-frame" style="width:100%; height:100%;"></iframe>
     </div>
 
-    <div id="full-lib-view" class="hidden"><div class="view-header"><h2>📚 Full Library</h2><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list"></div></div>
+    <div id="full-lib-view" class="hidden"><button onclick="closeView('full-lib-view')">Back</button><div id="full-book-list"></div></div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        let currentUser = null; let collegeBooks = []; let lastSync = Date.now();
-
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
+        let currentUser = null; let collegeBooks = [];
 
         async function handleLogin() {
             const role = document.getElementById('login-role').value;
             const collId = document.getElementById('login-coll-id').value.trim();
             const userId = document.getElementById('login-user-id').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
-
-            if(!collId || !userId || !pass) return alert("Fill all fields");
-
             const snap = await db.collection("users").where("collegeId","==",collId).where("studentId","==",userId).where("password","==",pass).get();
             if(!snap.empty) {
-                const u = snap.docs[0].data();
-                const dbRole = u.role || 'student';
-                if(dbRole !== role) return alert("Wrong Login Role Selected");
-                
-                currentUser = { uid: snap.docs[0].id, ...u, role: dbRole };
+                currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
-                
-                // Set Profile UI
-                document.getElementById('prof-name').innerText = u.fullName;
-                document.getElementById('p-role').innerText = dbRole.toUpperCase();
-                document.getElementById('p-coll-id').innerText = u.collegeId;
-                document.getElementById('p-stud-id').innerText = u.studentId;
-                document.getElementById('mini-initial').innerText = u.fullName[0];
-
-                loadLib(); loadRecs(); startHb();
-            } else { alert("Wrong Credentials"); }
+                loadLib();
+            } else { alert("Error"); }
         }
 
         function loadLib() {
             db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).onSnapshot(snap => {
-                const recent = document.getElementById('recent-list'); const full = document.getElementById('full-book-list');
-                const mission = document.getElementById('mission-list');
-                recent.innerHTML = ""; full.innerHTML = ""; mission.innerHTML = ""; collegeBooks = [];
-                
+                const list = document.getElementById('recent-list'); 
+                const mis = document.getElementById('mission-list');
+                list.innerHTML = ""; mis.innerHTML = ""; collegeBooks = [];
                 snap.forEach(doc => {
-                    const b = doc.data(); const id = doc.id;
-                    collegeBooks.push({id, ...b});
-                    const recBtn = (currentUser.role === 'faculty') ? `<button class="btn-preview" style="background:var(--orange); margin-left:10px;" onclick="facultyNominate('${id}','${b.title}')">Recommend</button>` : '';
-                    const html = `<div class="book-item"><b>${b.title}</b><br><small>${b.category}</small><br><button class="btn-preview" onclick="openPdf('${id}','${b.title}')">Preview</button><button class="btn-preview" style="background:#475569; margin-left:10px;" onclick="borrowB('${id}','${b.title}')">Borrow</button>${recBtn}</div>`;
-                    
-                    recent.innerHTML += html; full.innerHTML += html;
-                    if(b.mission) mission.innerHTML += html;
+                    const b = doc.data(); collegeBooks.push({id: doc.id, ...b});
+                    const recBtn = (currentUser.role === 'faculty') ? `<button onclick="facRec('${doc.id}','${b.title}')">Recommend</button>` : '';
+                    const html = `<div class="book-item"><b>${b.title}</b><br><button class="btn-preview" onclick="openPdf('${doc.id}')">Preview</button>${recBtn}</div>`;
+                    list.innerHTML += html;
+                    if(b.mission) mis.innerHTML += html;
                 });
                 document.getElementById('top-total').innerText = snap.size;
             });
         }
 
-        function loadRecs() {
-            db.collection("library_settings").where("recommendations." + currentUser.collegeId, "!=", null).onSnapshot(snap => {
-                const box = document.getElementById('rec-list'); box.innerHTML = "";
-                snap.forEach(doc => {
-                    const b = doc.data();
-                    box.innerHTML += `<div class="book-item" style="border-left:4px solid var(--orange);"><b>${b.title}</b><br><small>By: ${b.recommendations[currentUser.collegeId]}</small><br><button class="btn-preview" onclick="openPdf('${doc.id}','${b.title}')">Preview</button></div>`;
-                });
-            });
-        }
-
-        async function facultyNominate(bid, title) {
+        async function facRec(bid, title) {
             await db.collection("faculty_nominations").add({ bookId: bid, bookTitle: title, facultyName: currentUser.fullName, collegeId: currentUser.collegeId, status: "pending", timestamp: new Date().toISOString() });
-            alert("Sent to Admin!");
+            alert("Sent!");
         }
 
-        function openPdf(id, title) {
-            document.getElementById('reader-title').innerText = title;
-            const pdfUrl = `${window.location.origin}/public/${encodeURIComponent(id)}_read_online.pdf`;
-            document.getElementById('pdf-frame').src = `https://docs.google.com/viewer?url=${pdfUrl}&embedded=true`;
+        function openPdf(id) {
+            const url = `${window.location.origin}/public/${encodeURIComponent(id)}_read_online.pdf`;
+            document.getElementById('pdf-frame').src = `https://docs.google.com/viewer?url=${url}&embedded=true`;
             document.getElementById('reader-overlay').classList.remove('hidden');
         }
 
-        function closeReader() { document.getElementById('reader-overlay').classList.add('hidden'); document.getElementById('pdf-frame').src = ""; }
-        function toggleProfile() { document.getElementById('profile-overlay').classList.toggle('hidden'); }
-        function showFullLibrary() { document.getElementById('full-lib-view').classList.remove('hidden'); }
-        function closeView(id) { document.getElementById(id).classList.add('hidden'); }
-        function startHb() { setInterval(async () => { if(currentUser){ const diff = Math.round((Date.now()-lastSync)/1000); await db.collection("activity_logs").add({ userId: currentUser.uid, duration: diff+"s", timestamp: new Date().toISOString(), activityType: "Active Session" }); lastSync = Date.now(); } }, 30000); }
-        async function borrowB(id, t) { if(prompt("Enter Code:") === "BORROW2026") await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, borrowedAt: new Date().toISOString() }); }
-        function loadCat(cat) { 
+        function loadCat(cat) {
             const list = document.getElementById('full-book-list'); list.innerHTML = "";
             collegeBooks.filter(b => b.category === cat).forEach(b => {
-                list.innerHTML += `<div class="book-item"><b>${b.title}</b><br><button class="btn-preview" onclick="openPdf('${b.id}','${b.title}')">Preview</button></div>`;
+                list.innerHTML += `<div class="book-item"><b>${b.title}</b><br><button onclick="openPdf('${b.id}')">Preview</button></div>`;
             });
-            showFullLibrary();
+            document.getElementById('full-lib-view').classList.remove('hidden');
         }
+
+        function closeReader() { document.getElementById('reader-overlay').classList.add('hidden'); document.getElementById('pdf-frame').src = ""; }
+        function showFullLibrary() { document.getElementById('full-lib-view').classList.remove('hidden'); }
+        function closeView(id) { document.getElementById(id).classList.add('hidden'); }
     </script>
 </body>
 </html>
