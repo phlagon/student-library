@@ -114,7 +114,10 @@
     const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const adminAccounts = { "aslin": "Phlagon@28", "IMC26": "IMC26@theo" };
+    const adminAccounts = { 
+    "aslin": "Phlagon@28", 
+    "IMC26": "IMC26@theo" 
+};
     let isSuperAdmin = false; let activeUID = ""; let reportData = null;
 
     function handleAdminLogin() {
