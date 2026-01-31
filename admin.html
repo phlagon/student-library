@@ -13,7 +13,7 @@
         body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); }
         #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; }
         .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; width: 100%; max-width: 350px; text-align: center; border: 1px solid var(--border); }
-        .login-field, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; font-family: inherit; }
+        .login-field, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; }
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 10px; }
         .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); border: 1px solid var(--border); transition: 0.3s; white-space: nowrap; }
         .tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
@@ -22,7 +22,7 @@
         th { text-align: left; padding: 12px; color: var(--text-sub); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
         td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
         .btn-sm { padding: 8px 15px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; }
-        .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
+        .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
         .show { display: block; }
         .dropdown-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 12px; color: var(--text-main); }
         .dropdown-item:hover { background: var(--blue); }
@@ -31,9 +31,8 @@
         .stat-box { background: #0f172a; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
         .stat-val { font-size: 16px; font-weight: 800; color: var(--blue); display: block; }
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 6000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        .modal-content { background: var(--card-bg); width: 100%; max-width: 650px; border-radius: 24px; padding: 30px; max-height: 90vh; border: 1px solid var(--border); }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 650px; border-radius: 24px; padding: 30px; max-height: 90vh; border: 1px solid var(--border); overflow-y: auto; }
         .hidden { display: none !important; }
-        #sync-status { font-size: 10px; color: var(--orange); margin-bottom: 10px; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -42,53 +41,32 @@
     <div id="master-panel" class="hidden">
         <div class="nav-tabs">
             <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">Inventory</button>
-            <button id="t-nom" class="tab-btn" onclick="switchTab('nom')">Nominations</button>
             <button id="t-mem" class="tab-btn" onclick="switchTab('mem')">Monitoring</button>
-            <button id="t-stud" class="tab-btn" onclick="switchTab('stud')">Members</button>
             <button class="tab-btn" style="background:#ef4444; color:white; margin-left:auto;" onclick="location.reload()">Logout</button>
         </div>
 
         <div id="inv-section" class="glass-card">
-            <div id="super-admin-reg" class="hidden" style="margin-bottom:20px;"><input type="text" id="reg-file-id" class="login-field" style="width:180px;" placeholder="File ID"><input type="text" id="reg-file-title" class="login-field" style="width:180px;" placeholder="Title"><button onclick="registerBook()" class="btn-sm" style="background:var(--blue); color:white;">Register</button></div>
-            <table><thead><tr><th>Resource</th><th>Access</th><th>Management</th><th>Delete</th></tr></thead><tbody id="inventory-list"></tbody></table>
+            <table><thead><tr><th>Resource</th><th>Control</th><th>Promo</th><th>Action</th></tr></thead><tbody id="inventory-list"></tbody></table>
         </div>
-
-        <div id="nom-section" class="hidden glass-card"><h2>📥 Faculty Nominations</h2><div id="nomination-list"></div></div>
 
         <div id="mem-section" class="hidden glass-card">
             <select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;"><option value="">Select College</option><option value="IMC26">IMC26</option><option value="ASLIN26">ASLIN26</option></select>
             <div id="user-folders-list"></div>
         </div>
-
-        <div id="stud-section" class="hidden glass-card"><h2>📤 Bulk Member Registration</h2><textarea id="bulk-input" class="login-field" style="height:150px;" placeholder="Name, CollID, ID, Pass, Role"></textarea><button class="btn-sm" style="background:var(--blue); color:white; width:100%;" onclick="processBulk()">Bulk Upload</button></div>
     </div>
 
     <div id="user-modal" class="hidden">
         <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h3 id="modal-title">Member Report</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 id="modal-title">Attendance</h3>
                 <div style="display:flex; gap:10px;">
-                    <button onclick="fetchUsageData()" class="btn-sm" style="background:var(--orange); color:white;">🔄 Force Sync</button>
+                    <button onclick="fetchUsageData()" class="btn-sm" style="background:var(--orange); color:white;">🔄 Sync Server</button>
                     <button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue); color:white;">📥 CSV</button>
                     <button onclick="closeModal()" class="btn-sm" style="background:#ef4444; color:white;">X</button>
                 </div>
             </div>
-            
-            <div id="sync-status">Ready</div>
-            <div id="modal-stats"></div>
-
-            <div style="margin-top:10px; padding:15px; background:#0f172a; border-radius:12px;">
-                <label style="font-size: 11px; opacity: 0.7;">User Role:</label>
-                <select id="role-select" class="login-field" style="margin:5px 0;"><option value="student">Student</option><option value="faculty">Faculty</option></select>
-                <button onclick="updateUserRole()" class="btn-sm" style="background:var(--green); color:white; width:100%;">Save Changes</button>
-            </div>
-
-            <div style="max-height: 300px; overflow-y: auto; margin-top: 20px;">
-                <table>
-                    <thead><tr><th>Date</th><th>Activity</th><th>Dur</th></tr></thead>
-                    <tbody id="log-body"></tbody>
-                </table>
-            </div>
+            <div id="modal-stats" style="margin-top:20px;"></div>
+            <table style="margin-top:20px;"><thead><tr><th>Time</th><th>Activity</th><th>Dur</th></tr></thead><tbody id="log-body"></tbody></table>
         </div>
     </div>
 
@@ -96,29 +74,45 @@
     const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
     firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
     const adminAccounts = { "aslin": "Phlagon@28", "IMC26": "IMC26@theo" };
-    let isSuperAdmin = false; let activeUID = ""; let activeUser = null;
+    let activeUID = "";
 
     function handleAdminLogin() {
         const cid = document.getElementById('admin-coll-id').value.trim(); const pass = document.getElementById('admin-pass').value.trim();
-        if (adminAccounts[cid] === pass) { isSuperAdmin = (cid === "aslin"); document.getElementById('auth-overlay').classList.add('hidden'); document.getElementById('master-panel').classList.remove('hidden'); if(isSuperAdmin) document.getElementById('super-admin-reg').classList.remove('hidden'); initAdmin(); } else { alert("Access Denied"); }
+        if (adminAccounts[cid] === pass) { document.getElementById('auth-overlay').classList.add('hidden'); document.getElementById('master-panel').classList.remove('hidden'); initAdmin(); } else { alert("Denied"); }
     }
 
     function initAdmin() {
         db.collection("library_settings").onSnapshot(snap => {
             const list = document.getElementById('inventory-list'); list.innerHTML = "";
             snap.forEach(doc => {
-                const b = doc.data(); const id = doc.id; const allowed = b.allowedColleges || [];
-                list.innerHTML += `<tr><td><b>${b.title}</b></td><td><small>${allowed.join(', ')}</small></td><td style="position:relative;">
-                    <button class="btn-sm" style="background:var(--purple); color:white;" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">${Object.keys(adminAccounts).filter(c=>c!=='aslin').map(c => `<div class="dropdown-item" onclick="toggleAccess('${id}','${c}',${allowed.includes(c)})">${c} ${allowed.includes(c)?'✅':''}</div>`).join('')}</div>
-                    <button class="btn-sm" style="background:var(--green); color:white;" onclick="toggleM('c-${id}')">Category</button><div id="c-${id}" class="dropdown-menu"><div class="dropdown-item" onclick="updateField('${id}','category','Theology')">Theology</div><div class="dropdown-item" onclick="updateField('${id}','category','Church History')">History</div></div>
-                </td><td><button class="btn-sm" style="background:#ef4444; color:white;" onclick="deletePDF('${id}')">🗑️</button></td></tr>`;
+                const b = doc.data(); const id = doc.id;
+                list.innerHTML += `<tr>
+                    <td><b>${b.title}</b></td>
+                    <td style="position:relative;">
+                        <button class="btn-sm" style="background:var(--purple); color:white;" onclick="toggleM('c-${id}')">Category</button>
+                        <div id="c-${id}" class="dropdown-menu">
+                            <div class="dropdown-item" onclick="updF('${id}','category','Theology')">Theology</div>
+                            <div class="dropdown-item" onclick="updF('${id}','category','Church History')">History</div>
+                        </div>
+                    </td>
+                    <td style="position:relative;">
+                        <button class="btn-sm" style="background:var(--orange); color:white;" onclick="toggleM('p-${id}')">Promo</button>
+                        <div id="p-${id}" class="dropdown-menu">
+                            <div class="dropdown-item" onclick="updF('${id}','recent',${!b.recent})">Recent: ${b.recent?'✅':'OFF'}</div>
+                            <div class="dropdown-item" onclick="updF('${id}','trending',${!b.trending})">Trending: ${b.trending?'✅':'OFF'}</div>
+                            <div class="dropdown-item" onclick="updF('${id}','mission',${!b.mission})">Mission: ${b.mission?'✅':'OFF'}</div>
+                        </div>
+                    </td>
+                    <td><button class="btn-sm" style="background:#ef4444; color:white;" onclick="deletePDF('${id}')">🗑️</button></td>
+                </tr>`;
             });
         });
-        db.collection("faculty_nominations").where("status","==","pending").onSnapshot(snap => {
-            const list = document.getElementById('nomination-list'); list.innerHTML = "";
-            snap.forEach(doc => { const n = doc.data(); list.innerHTML += `<div class="user-folder"><span><b>${n.bookTitle}</b> (${n.facultyName})</span><button class="btn-sm" style="background:var(--green); color:white;" onclick="approveNom('${doc.id}','${n.bookId}','${n.collegeId}','${n.facultyName}')">Approve</button></div>`; });
-        });
     }
+
+    async function updF(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
+    function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
+    function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
+    function fmt(s) { const h = Math.floor(s/3600).toString().padStart(2,'0'); const m = Math.floor((s%3600)/60).toString().padStart(2,'0'); const sec = (s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`; }
 
     function loadCollegeStudents(cid) { 
         db.collection("users").where("collegeId", "==", cid).onSnapshot(snap => { 
@@ -127,76 +121,35 @@
         }); 
     }
 
-    function fmt(s) { const h = Math.floor(s/3600).toString().padStart(2,'0'); const m = Math.floor((s%3600)/60).toString().padStart(2,'0'); const sec = (s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`; }
-
     async function openReport(uid, user) {
-        activeUID = uid; activeUser = user;
-        document.getElementById('user-modal').classList.remove('hidden'); 
-        document.getElementById('modal-title').innerText = user.fullName; 
-        document.getElementById('role-select').value = user.role || 'student';
+        activeUID = uid; document.getElementById('user-modal').classList.remove('hidden'); 
+        document.getElementById('modal-title').innerText = user.fullName;
         fetchUsageData();
     }
 
-    // --- REBUILT DATA FETCH (FORCE SYNC) ---
     async function fetchUsageData() {
-        if(!activeUID) return;
-        const status = document.getElementById('sync-status');
-        status.innerText = "Connecting to Firebase Server...";
-        document.getElementById('log-body').innerHTML = "<tr><td colspan='3'>Loading fresh data...</td></tr>";
-
-        try {
-            // Force source 'server' to bypass local frozen cache
-            const logs = await db.collection("activity_logs")
-                .where("userId", "==", activeUID)
-                .orderBy("timestamp", "desc")
-                .limit(200)
-                .get({ source: 'server' });
-
-            let totalSec = 0; let borrowSec = 0; let logHtml = "";
-            
-            logs.forEach(l => { 
-                const d = l.data(); const dur = parseInt(d.duration) || 0;
-                totalSec += dur; 
-                if(d.activityType && d.activityType.includes("Full Reading")) borrowSec += dur;
-                logHtml += `<tr><td>${new Date(d.timestamp).toLocaleString()}</td><td>${d.activityType}</td><td>${fmt(dur)}</td></tr>`; 
-            });
-
-            document.getElementById('modal-stats').innerHTML = `
-                <div class="stat-grid">
-                    <div class="stat-box"><span>TOTAL USAGE</span><br><b class="stat-val" id="disp-total">${fmt(totalSec)}</b></div>
-                    <div class="stat-box"><span>BORROWED TIME</span><br><b class="stat-val" id="disp-borrow">${fmt(borrowSec)}</b></div>
-                </div>`; 
-            document.getElementById('log-body').innerHTML = logHtml;
-            status.innerText = "Last Sync: " + new Date().toLocaleTimeString() + " (Source: Server)";
-        } catch (e) {
-            status.innerText = "Error: " + e.message;
-            console.error("Fetch Error:", e);
-        }
+        document.getElementById('log-body').innerHTML = "<tr><td colspan='3'>Syncing...</td></tr>";
+        const logs = await db.collection("activity_logs").where("userId", "==", activeUID).orderBy("timestamp", "desc").limit(100).get({ source: 'server' });
+        let total = 0; let borrow = 0; let html = "";
+        logs.forEach(l => { 
+            const d = l.data(); total += (d.duration || 0); 
+            if(d.activityType.includes("Full Reading")) borrow += (d.duration || 0);
+            html += `<tr><td>${new Date(d.timestamp).toLocaleString()}</td><td>${d.activityType}</td><td>${fmt(d.duration || 0)}</td></tr>`;
+        });
+        document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box"><span>TOTAL</span><br><b class="stat-val">${fmt(total)}</b></div><div class="stat-box"><span>BORROWED</span><br><b class="stat-val">${fmt(borrow)}</b></div></div>`;
+        document.getElementById('log-body').innerHTML = html;
     }
 
     async function downloadCSV() {
         const snap = await db.collection("activity_logs").where("userId", "==", activeUID).orderBy("timestamp", "desc").get();
-        let totalSec = 0; let logRows = "";
-        snap.forEach(l => { 
-            const d = l.data(); const dur = parseInt(d.duration) || 0; totalSec += dur;
-            logRows += `${new Date(d.timestamp).toLocaleString()},"${d.activityType}",${fmt(dur)}\n`;
-        });
-        let csv = `Report: ${activeUser.fullName}\nTotal Usage,${fmt(totalSec)}\n\nDate,Activity,Duration\n${logRows}`;
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `${activeUser.fullName}.csv`; a.click();
+        let rows = "Date,Activity,Duration\n";
+        snap.forEach(l => { const d = l.data(); rows += `${new Date(d.timestamp).toLocaleString()},"${d.activityType}",${fmt(d.duration || 0)}\n`; });
+        const blob = new Blob([rows], { type: 'text/csv' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Report.csv`; a.click();
     }
 
     function closeModal() { document.getElementById('user-modal').classList.add('hidden'); activeUID = ""; }
-    function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
-    function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
-    async function updateField(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
-    async function toggleAccess(id, coll, has) { const ref = db.collection("library_settings").doc(id); const doc = await ref.get(); let allowed = doc.data().allowedColleges || []; allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll]; await ref.update({ allowedColleges: allowed }); }
-    async function registerBook() { const id = document.getElementById('reg-file-id').value.trim(); const title = document.getElementById('reg-file-title').value.trim(); if(id && title) await db.collection("library_settings").doc(id).set({ title, allowedColleges: [], mission: false }); alert("Added!"); }
-    async function processBulk() { const lines = document.getElementById('bulk-input').value.split('\n'); for(let l of lines) { const p = l.split(',').map(i=>i.trim()); if(p.length===5) await db.collection("users").add({ fullName:p[0], collegeId:p[1], studentId:p[2], password:p[3], role:p[4].toLowerCase(), createdAt: new Date().toISOString(), usageTime: 0 }); } alert("Success!"); }
     async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
-    async function approveNom(docId, bookId, collegeId, facName) { await db.collection("library_settings").doc(bookId).set({ recommendations: { [collegeId]: facName } }, { merge: true }); await db.collection("faculty_nominations").doc(docId).delete(); alert("Approved!"); }
-    async function updateUserRole() { const newRole = document.getElementById('role-select').value; await db.collection("users").doc(activeUID).update({ role: newRole }); alert("Updated!"); }
 </script>
 </body>
 </html>
