@@ -96,7 +96,7 @@
 
     function handleAdminLogin() {
         const cid = document.getElementById('admin-coll-id').value.trim(); const pass = document.getElementById('admin-pass').value.trim();
-        if (adminAccounts[cid] === pass) { isSuperAdmin = (cid === "aslin"); document.getElementById('auth-overlay').classList.add('hidden'); document.getElementById('master-panel').classList.remove('hidden'); if(isSuperAdmin) document.getElementById('super-admin-reg').classList.remove('hidden'); initAdmin(); } else { alert("Denied"); }
+        if (adminAccounts[cid] && adminAccounts[cid] === pass) { isSuperAdmin = (cid === "aslin"); document.getElementById('auth-overlay').classList.add('hidden'); document.getElementById('master-panel').classList.remove('hidden'); if(isSuperAdmin) document.getElementById('super-admin-reg').classList.remove('hidden'); initAdmin(); } else { alert("Denied"); }
     }
 
     function initAdmin() {
@@ -143,7 +143,7 @@
 
         if(logUnsubscribe) logUnsubscribe(); 
         
-        // This listener ensures the Webpage updates LIVE whenever a new log entry is added
+        // --- LIVE SYNC START ---
         logUnsubscribe = db.collection("activity_logs")
             .where("userId", "==", activeUID)
             .orderBy("timestamp", "desc")
