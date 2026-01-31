@@ -23,6 +23,7 @@
     </style>
 </head>
 <body>
+
     <div id="auth-screen">
         <div style="background:var(--card-bg); padding:30px; border-radius:24px; text-align:center; max-width:350px; margin:auto; border:1px solid var(--border);">
             <h2 style="color:var(--blue)">TheoLib Login</h2>
@@ -30,7 +31,7 @@
             <input type="text" id="login-coll-id" style="width:100%; padding:12px; margin-bottom:12px; background:var(--bg); color:white; border-radius:8px;" placeholder="College ID">
             <input type="text" id="login-user-id" style="width:100%; padding:12px; margin-bottom:12px; background:var(--bg); color:white; border-radius:8px;" placeholder="User ID">
             <input type="password" id="login-pass" style="width:100%; padding:12px; margin-bottom:12px; background:var(--bg); color:white; border-radius:8px;" placeholder="Password">
-            <button onclick="handleLogin()" style="background:var(--blue); color:white; width:100%; padding:15px; border-radius:12px; font-weight:600; cursor:pointer;">Enter Library</button>
+            <button onclick="handleLogin()" style="background:var(--blue); color:white; width:100%; padding:15px; border-radius:12px; font-weight:600; cursor:pointer;">Enter</button>
         </div>
     </div>
 
@@ -43,18 +44,17 @@
         <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap: 15px;">
             <div>
                 <div class="glass-card"><h3 style="color:var(--green); margin-top:0;">🌍 Mission Focus</h3><div id="mission-list"></div></div>
-                <div class="glass-card" id="fac-rec-box"><h3 style="color:var(--orange); margin-top:0;">👨‍🏫 Faculty Recommendations</h3><div id="rec-list"></div></div>
                 <div class="glass-card"><h3>🕒 Recent Resources</h3><div id="recent-list"></div></div>
             </div>
             <div>
-                <div class="glass-card"><h3>📂 Categories</h3><div id="cat-list">
+                <div class="glass-card"><h3>📂 Categories</h3>
                     <div class="cat-item" onclick="loadCat('Theology')">📖 Systematic Theology</div>
                     <div class="cat-item" onclick="loadCat('Church History')">⛪ CHURCH History</div>
-                    <div class="cat-item" onclick="loadCat('Mission')">🌍 Mission Focus</div>
+                    <div class="cat-item" onclick="loadCat('Mission')">🌍 Mission</div>
                     <div class="cat-item" onclick="loadCat('Bible Intro')">📘 Intro to BIBLE</div>
                     <div class="cat-item" onclick="loadCat('Acts')">📜 Acts of Apostles</div>
                     <div class="cat-item" onclick="loadCat('Other Books')">📚 Other Books</div>
-                </div></div>
+                </div>
             </div>
         </div>
     </div>
@@ -66,14 +66,14 @@
         </div>
     </div>
 
-    <div id="full-lib-view" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📚 Full Library</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list"></div></div>
-    <div id="borrow-view" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📥 My Borrowed</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-list"></div></div>
+    <div id="full-lib-view" class="hidden"><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button><div id="full-book-list"></div></div>
+    <div id="borrow-view" class="hidden"><button onclick="closeView('borrow-view')" class="btn-preview">Back</button><div id="borrow-list"></div></div>
     <div id="reader-overlay" class="hidden"><div style="background:#1e293b; padding:15px; display:flex; justify-content:space-between; align-items:center; color:white;"><span id="reader-title">Reader</span><button onclick="closeReader()" style="background:red; border:none; color:white; padding:8px 15px; border-radius:8px;">Exit</button></div><iframe id="pdf-frame" style="width:100%; height:100%; border:none;"></iframe></div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
-        let currentUser = null; let collegeBooks = []; let lastSync = Date.now();
+        let currentUser = null; let collegeBooks = [];
 
         async function handleLogin() {
             const role = document.getElementById('login-role').value; const cid = document.getElementById('login-coll-id').value.trim();
@@ -82,7 +82,7 @@
             if(!snap.empty) {
                 const u = snap.docs[0].data(); if((u.role || 'student') !== role) { alert("Wrong Role"); return; }
                 currentUser = { uid: snap.docs[0].id, ...u }; document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('mini-initial').innerText = u.fullName[0]; loadLib(); loadRecs(); listenBorrows(); startHb();
+                loadLib(); listenBorrows();
             } else { alert("Error"); }
         }
 
@@ -93,27 +93,20 @@
                 snap.forEach(doc => {
                     const b = doc.data(); const id = doc.id; collegeBooks.push({id, ...b});
                     const recBtn = (currentUser.role === 'faculty') ? `<button class="btn-preview" style="background:var(--orange)" onclick="facRec('${id}','${b.title}')">Recommend</button>` : '';
-                    const html = `<div class="book-item"><b>${b.title}</b><div style="display:flex; gap:5px;"><button class="btn-preview" onclick="openPdf('${id}','${b.title}')">Preview</button><button class="btn-preview" style="background:#475569" onclick="borrowB('${id}','${b.title}')">Borrow</button>${recBtn}</div></div>`;
+                    const html = `<div class="book-item"><b>${b.title}</b><div style="display:flex; gap:5px;"><button class="btn-preview" onclick="openPdf('${id}', '${b.title}')">Preview</button><button class="btn-preview" style="background:#475569" onclick="borrowB('${id}','${b.title}')">Borrow</button>${recBtn}</div></div>`;
                     recent.innerHTML += html; full.innerHTML += html; if(b.mission) mission.innerHTML += html;
                 });
                 document.getElementById('top-total').innerText = snap.size;
             });
         }
 
-        function loadRecs() {
-            db.collection("library_settings").where("recommendations." + currentUser.collegeId, "!=", null).onSnapshot(snap => {
-                const box = document.getElementById('rec-list'); box.innerHTML = "";
-                snap.forEach(doc => {
-                    const b = doc.data();
-                    box.innerHTML += `<div class="book-item" style="border-left:4px solid var(--orange);"><b>${b.title}</b><br><small>Suggested: ${b.recommendations[currentUser.collegeId]}</small><br><button class="btn-preview" onclick="openPdf('${doc.id}','${b.title}')">Preview</button></div>`;
-                });
-            });
-        }
-
         function listenBorrows() {
             db.collection("borrows").where("userId","==",currentUser.uid).onSnapshot(snap => {
                 const list = document.getElementById('borrow-list'); list.innerHTML = "";
-                snap.forEach(doc => { list.innerHTML += `<div class="book-item"><b>${doc.data().title}</b><button class="btn-preview" onclick="openPdf('${doc.data().bookId}','${doc.data().title}')">Open</button></div>`; });
+                snap.forEach(doc => { 
+                    const d = doc.data();
+                    list.innerHTML += `<div class="book-item"><b>${d.title}</b><button class="btn-preview" onclick="openBorrowedPdf('${d.bookId}','${d.title}')">Open Full Book</button></div>`; 
+                });
                 document.getElementById('top-issued').innerText = snap.size;
             });
         }
@@ -123,19 +116,19 @@
             document.getElementById('pdf-frame').src = `https://docs.google.com/viewer?url=${window.location.origin}/public/${id}_read_online.pdf&embedded=true`;
             document.getElementById('reader-overlay').classList.remove('hidden'); 
         }
+
+        function openBorrowedPdf(id, title) {
+            document.getElementById('reader-title').innerText = title;
+            document.getElementById('pdf-frame').src = `https://docs.google.com/viewer?url=${window.location.origin}/public/${id}.pdf&embedded=true`;
+            document.getElementById('reader-overlay').classList.remove('hidden');
+        }
+
         function toggleProfile() { 
             document.getElementById('prof-name').innerText = currentUser.fullName; document.getElementById('p-role').innerText = currentUser.role.toUpperCase();
             document.getElementById('p-coll-id').innerText = currentUser.collegeId; document.getElementById('p-stud-id').innerText = currentUser.studentId;
             document.getElementById('profile-overlay').classList.toggle('hidden'); 
         }
-        function loadCat(cat) {
-            const list = document.getElementById('full-book-list'); list.innerHTML = "";
-            collegeBooks.filter(b => b.category === cat).forEach(b => {
-                list.innerHTML += `<div class="book-item"><b>${b.title}</b><button class="btn-preview" onclick="openPdf('${b.id}','${b.title}')">Preview</button></div>`;
-            });
-            showFullLibrary();
-        }
-        function startHb() { setInterval(async () => { if(currentUser){ const diff = Math.round((Date.now()-lastSync)/1000); await db.collection("activity_logs").add({ userId: currentUser.uid, duration: diff+"s", timestamp: new Date().toISOString(), activityType: "Live Sync" }); lastSync = Date.now(); } }, 30000); }
+
         async function borrowB(id, t) { if(prompt("Code:") === "BORROW2026") await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, borrowedAt: new Date().toISOString() }); }
         async function facRec(bid, title) { await db.collection("faculty_nominations").add({ bookId: bid, bookTitle: title, facultyName: currentUser.fullName, collegeId: currentUser.collegeId, status: "pending", timestamp: new Date().toISOString() }); alert("Sent!"); }
         function showFullLibrary() { document.getElementById('full-lib-view').classList.remove('hidden'); }
