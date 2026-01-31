@@ -29,22 +29,15 @@
         .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
         .stat-box { background: #0f172a; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
-        .stat-val { font-size: 18px; font-weight: 800; color: var(--blue); display: block; }
+        .stat-val { font-size: 16px; font-weight: 800; color: var(--blue); display: block; }
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 6000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         .modal-content { background: var(--card-bg); width: 100%; max-width: 650px; border-radius: 24px; padding: 30px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div id="auth-overlay">
-        <div class="login-card">
-            <h2>Admin Login</h2>
-            <input type="text" id="admin-coll-id" class="login-field" placeholder="College ID">
-            <input type="password" id="admin-pass" class="login-field" placeholder="Password">
-            <button class="btn-sm" style="background:var(--blue); color:white; width:100%; padding:15px; border-radius:12px;" onclick="handleAdminLogin()">Login</button>
-        </div>
-    </div>
-
+    <div id="auth-overlay"><div class="login-card"><h2>Admin Login</h2><input type="text" id="admin-coll-id" class="login-field" placeholder="College ID"><input type="password" id="admin-pass" class="login-field" placeholder="Password"><button class="btn-sm" style="background:var(--blue); color:white; width:100%; padding:15px; border-radius:12px;" onclick="handleAdminLogin()">Login</button></div></div>
+    
     <div id="master-panel" class="hidden">
         <div class="nav-tabs">
             <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">Inventory</button>
@@ -55,62 +48,40 @@
         </div>
 
         <div id="inv-section" class="glass-card">
-            <div id="super-admin-reg" class="hidden" style="margin-bottom:20px;">
-                <input type="text" id="reg-file-id" class="login-field" style="width:180px;" placeholder="File ID">
-                <input type="text" id="reg-file-title" class="login-field" style="width:180px;" placeholder="Title">
-                <button onclick="registerBook()" class="btn-sm" style="background:var(--blue); color:white;">Register</button>
-            </div>
-            <table>
-                <thead><tr><th>Resource</th><th>Access</th><th>Management</th><th>Delete</th></tr></thead>
-                <tbody id="inventory-list"></tbody>
-            </table>
+            <div id="super-admin-reg" class="hidden" style="margin-bottom:20px;"><input type="text" id="reg-file-id" class="login-field" style="width:180px;" placeholder="File ID"><input type="text" id="reg-file-title" class="login-field" style="width:180px;" placeholder="Title"><button onclick="registerBook()" class="btn-sm" style="background:var(--blue); color:white;">Register</button></div>
+            <table><thead><tr><th>Resource</th><th>Access</th><th>Management</th><th>Delete</th></tr></thead><tbody id="inventory-list"></tbody></table>
         </div>
 
-        <div id="nom-section" class="hidden glass-card">
-            <h2>📥 Faculty Nominations</h2>
-            <div id="nomination-list"></div>
-        </div>
+        <div id="nom-section" class="hidden glass-card"><h2>📥 Faculty Nominations</h2><div id="nomination-list"></div></div>
 
         <div id="mem-section" class="hidden glass-card">
-            <select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;">
-                <option value="">Select College</option>
-                <option value="IMC26">IMC26</option>
-                <option value="ASLIN26">ASLIN26</option>
-            </select>
+            <select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;"><option value="">Select College</option><option value="IMC26">IMC26</option><option value="ASLIN26">ASLIN26</option></select>
             <div id="user-folders-list"></div>
         </div>
 
-        <div id="stud-section" class="hidden glass-card">
-            <h2>📤 Bulk Member Registration</h2>
-            <textarea id="bulk-input" class="login-field" style="height:150px;" placeholder="Name, CollID, ID, Pass, Role"></textarea>
-            <button class="btn-sm" style="background:var(--blue); color:white; width:100%;" onclick="processBulk()">Bulk Upload</button>
-        </div>
+        <div id="stud-section" class="hidden glass-card"><h2>📤 Bulk Member Registration</h2><textarea id="bulk-input" class="login-field" style="height:150px;" placeholder="Name, CollID, ID, Pass, Role"></textarea><button class="btn-sm" style="background:var(--blue); color:white; width:100%;" onclick="processBulk()">Bulk Upload</button></div>
     </div>
 
     <div id="user-modal" class="hidden">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 id="modal-title">Report</h3>
+                <h3 id="modal-title">Member Report</h3>
                 <div style="display:flex; gap:10px;">
-                    <button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue); color:white;">CSV</button>
+                    <button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue); color:white;">📥 CSV Report</button>
                     <button onclick="closeModal()" class="btn-sm" style="background:#ef4444; color:white;">X</button>
                 </div>
             </div>
-            <div id="modal-body"></div>
             
+            <div id="modal-stats"></div>
+
             <div style="margin-top:20px; padding:15px; background:#0f172a; border-radius:12px;">
-                <label style="font-size: 12px;">Expiry Date:</label>
-                <input type="date" id="expiry-date" class="login-field" onchange="updateUserField('expiryDate', this.value)">
-                
-                <select id="role-select" class="login-field" style="margin-top:10px;">
-                    <option value="student">Student</option>
-                    <option value="faculty">Faculty</option>
-                </select>
-                <button onclick="updateUserRole()" class="btn-sm" style="background:var(--green); color:white; width:100%; margin-top:10px;">Update Role</button>
+                <label style="font-size: 11px; opacity: 0.7;">Role & Permissions:</label>
+                <select id="role-select" class="login-field" style="margin:5px 0;"><option value="student">Student</option><option value="faculty">Faculty</option></select>
+                <button onclick="updateUserRole()" class="btn-sm" style="background:var(--green); color:white; width:100%; margin-top:5px;">Save Changes</button>
             </div>
-            
+
             <table style="margin-top:20px;">
-                <thead><tr><th>Date</th><th>Activity</th><th>Dur</th></tr></thead>
+                <thead><tr><th>Date</th><th>Activity (Book Title)</th><th>Dur (HH:MM:SS)</th></tr></thead>
                 <tbody id="log-body"></tbody>
             </table>
         </div>
@@ -118,25 +89,13 @@
 
 <script>
     const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
-    firebase.initializeApp(firebaseConfig); 
-    const db = firebase.firestore();
-    
+    firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
     const adminAccounts = { "aslin": "Phlagon@28", "IMC26": "IMC26@theo" };
-    let isSuperAdmin = false; 
-    let activeUID = ""; 
-    let activeUser = null; 
-    let refreshInterval = null;
+    let isSuperAdmin = false; let activeUID = ""; let activeUser = null; let refreshInterval = null;
 
     function handleAdminLogin() {
-        const cid = document.getElementById('admin-coll-id').value.trim(); 
-        const pass = document.getElementById('admin-pass').value.trim();
-        if (adminAccounts[cid] && adminAccounts[cid] === pass) { 
-            isSuperAdmin = (cid === "aslin"); 
-            document.getElementById('auth-overlay').classList.add('hidden'); 
-            document.getElementById('master-panel').classList.remove('hidden'); 
-            if(isSuperAdmin) document.getElementById('super-admin-reg').classList.remove('hidden'); 
-            initAdmin(); 
-        } else { alert("Denied: Check Credentials"); }
+        const cid = document.getElementById('admin-coll-id').value.trim(); const pass = document.getElementById('admin-pass').value.trim();
+        if (adminAccounts[cid] === pass) { isSuperAdmin = (cid === "aslin"); document.getElementById('auth-overlay').classList.add('hidden'); document.getElementById('master-panel').classList.remove('hidden'); if(isSuperAdmin) document.getElementById('super-admin-reg').classList.remove('hidden'); initAdmin(); } else { alert("Denied"); }
     }
 
     function initAdmin() {
@@ -162,9 +121,17 @@
             const list = document.getElementById('user-folders-list'); list.innerHTML = ""; 
             snap.forEach(doc => { 
                 const u = doc.data(); 
-                list.innerHTML += `<div class="user-folder" onclick='openReport("${doc.id}", ${JSON.stringify(u)})'><span>📂 <b>${u.fullName}</b></span><small>${u.role}</small></div>`; 
+                list.innerHTML += `<div class="user-folder" onclick='openReport("${doc.id}", ${JSON.stringify(u)})'><span>📂 <b>${u.fullName}</b></span><small>${u.studentId}</small></div>`; 
             }); 
         }); 
+    }
+
+    // --- TIME FORMATTING (HH:MM:SS) ---
+    function fmt(s) {
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     }
 
     async function openReport(uid, user) {
@@ -172,7 +139,6 @@
         document.getElementById('user-modal').classList.remove('hidden'); 
         document.getElementById('modal-title').innerText = user.fullName; 
         document.getElementById('role-select').value = user.role || 'student';
-        document.getElementById('expiry-date').value = user.expiryDate || '';
 
         if(refreshInterval) clearInterval(refreshInterval);
         fetchUsageData();
@@ -182,15 +148,40 @@
     async function fetchUsageData() {
         if(!activeUID) return;
         const logs = await db.collection("activity_logs").where("userId", "==", activeUID).orderBy("timestamp", "desc").get(); 
-        let total = 0; let logHtml = "";
+        let totalSec = 0; let borrowSec = 0; let logHtml = "";
+        
         logs.forEach(l => { 
             const d = l.data(); 
-            total += parseInt(d.duration) || 0; 
-            logHtml += `<tr><td>${new Date(d.timestamp).toLocaleDateString()}</td><td>${d.activityType}</td><td>${d.duration}s</td></tr>`; 
+            const dur = parseInt(d.duration) || 0;
+            totalSec += dur; 
+            if(d.activityType.includes("Full Reading")) borrowSec += dur;
+            logHtml += `<tr><td>${new Date(d.timestamp).toLocaleDateString()}</td><td>${d.activityType}</td><td>${fmt(dur)}</td></tr>`; 
         });
-        const fmt = (s) => `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m ${s%60}s`;
-        document.getElementById('modal-body').innerHTML = `<div class="stat-grid"><div class="stat-box"><span>TOTAL TIME</span><br><b class="stat-val">${fmt(total)}</b></div><div class="stat-box"><span>ID</span><br><b class="stat-val">${activeUser.studentId}</b></div></div>`; 
+
+        document.getElementById('modal-stats').innerHTML = `
+            <div class="stat-grid">
+                <div class="stat-box"><span>TOTAL USAGE</span><br><b class="stat-val">${fmt(totalSec)}</b></div>
+                <div class="stat-box"><span>BORROWED TIME</span><br><b class="stat-val">${fmt(borrowSec)}</b></div>
+            </div>`; 
         document.getElementById('log-body').innerHTML = logHtml;
+    }
+
+    async function downloadCSV() {
+        const logs = await db.collection("activity_logs").where("userId", "==", activeUID).orderBy("timestamp", "desc").get();
+        let totalSec = 0; let borrowSec = 0; let logRows = "";
+        
+        logs.forEach(l => { 
+            const d = l.data(); 
+            const dur = parseInt(d.duration) || 0;
+            totalSec += dur;
+            if(d.activityType.includes("Full Reading")) borrowSec += dur;
+            logRows += `${new Date(d.timestamp).toLocaleString()},"${d.activityType}",${fmt(dur)}\n`;
+        });
+
+        let csv = `Report: ${activeUser.fullName}\nTotal Usage,${fmt(totalSec)}\nBorrowed Reading,${fmt(borrowSec)}\n\nDate,Activity,Duration\n${logRows}`;
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `${activeUser.fullName}_Report.csv`; a.click();
     }
 
     function closeModal() {
@@ -199,32 +190,18 @@
         activeUID = "";
     }
 
-    async function downloadCSV() {
-        const logs = await db.collection("activity_logs").where("userId", "==", activeUID).orderBy("timestamp", "desc").get();
-        let csv = "Date,Activity,Duration(s)\n";
-        logs.forEach(l => { const d = l.data(); csv += `${new Date(d.timestamp).toLocaleDateString()},${d.activityType},${d.duration}\n`; });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `${activeUser.fullName}_Report.csv`; a.click();
-    }
-
     async function updateUserRole() {
         const newRole = document.getElementById('role-select').value;
         await db.collection("users").doc(activeUID).update({ role: newRole });
-        alert("Role Updated!");
-    }
-
-    async function updateUserField(field, val) {
-        await db.collection("users").doc(activeUID).update({ [field]: val });
-        alert(field + " updated!");
+        alert("Updated!");
     }
 
     function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
     function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
     async function updateField(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
     async function toggleAccess(id, coll, has) { const ref = db.collection("library_settings").doc(id); const doc = await ref.get(); let allowed = doc.data().allowedColleges || []; allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll]; await ref.update({ allowedColleges: allowed }); }
-    async function registerBook() { const id = document.getElementById('reg-file-id').value.trim(); const title = document.getElementById('reg-file-title').value.trim(); if(id && title) await db.collection("library_settings").doc(id).set({ title, category: "Theology", allowedColleges: [], mission: false }); alert("Book Added!"); }
-    async function processBulk() { const lines = document.getElementById('bulk-input').value.split('\n'); for(let l of lines) { const p = l.split(',').map(i=>i.trim()); if(p.length===5) await db.collection("users").add({ fullName:p[0], collegeId:p[1], studentId:p[2], password:p[3], role:p[4].toLowerCase(), createdAt: new Date().toISOString() }); } alert("Done!"); }
+    async function registerBook() { const id = document.getElementById('reg-file-id').value.trim(); const title = document.getElementById('reg-file-title').value.trim(); if(id && title) await db.collection("library_settings").doc(id).set({ title, category: "Theology", allowedColleges: [], mission: false }); alert("Added!"); }
+    async function processBulk() { const lines = document.getElementById('bulk-input').value.split('\n'); for(let l of lines) { const p = l.split(',').map(i=>i.trim()); if(p.length===5) await db.collection("users").add({ fullName:p[0], collegeId:p[1], studentId:p[2], password:p[3], role:p[4].toLowerCase(), createdAt: new Date().toISOString(), usageTime: 0 }); } alert("Done!"); }
     async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
     async function approveNom(docId, bookId, collegeId, facName) { await db.collection("library_settings").doc(bookId).set({ recommendations: { [collegeId]: facName } }, { merge: true }); await db.collection("faculty_nominations").doc(docId).delete(); alert("Live!"); }
 </script>
