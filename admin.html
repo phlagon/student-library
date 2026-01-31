@@ -62,7 +62,7 @@
 
     <div id="inv-section" class="glass-card">
         <div class="search-container">
-            <input type="text" id="inv-search" class="search-bar" placeholder="🔍 Type book name for suggestions... (Press Enter for full results)" 
+            <input type="text" id="inv-search" class="search-bar" placeholder="🔍 Search book title... (Press Enter for full results)" 
                 oninput="handleSearchInput(this.value)" 
                 onkeydown="if(event.key==='Enter') triggerSearchPopUp(this.value)">
             <div id="search-suggestions" class="hidden"></div>
@@ -129,12 +129,13 @@
         });
         
         db.collection("faculty_nominations").where("status","==","pending").onSnapshot(snap => {
-            const list = document.getElementById('nomination-list'); list.innerHTML = "";
+            const list = document.getElementById('nomination-list'); if(!list) return;
+            list.innerHTML = "";
             snap.forEach(doc => { const n = doc.data(); list.innerHTML += `<div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span><b>${n.bookTitle}</b> (${n.facultyName})</span><button class="btn-sm" style="background:var(--green); color:white;" onclick="approveNom('${doc.id}','${n.bookId}','${n.collegeId}','${n.facultyName}')">Approve</button></div>`; });
         });
     }
 
-    // SEARCH LOGIC
+    // --- UPDATED SEARCH LOGIC ---
     function handleSearchInput(val) {
         const suggestions = document.getElementById('search-suggestions');
         if (!val.trim()) { suggestions.classList.add('hidden'); return; }
@@ -142,7 +143,7 @@
         const matches = fullInventory.filter(b => b.title.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
         if (matches.length === 0) { suggestions.classList.add('hidden'); return; }
         
-        suggestions.innerHTML = matches.map(m => `<div class="dropdown-item" onclick="triggerSearchPopUp('${m.title}')" style="padding:12px; border-bottom:1px solid var(--border);">${m.title}</div>`).join('');
+        suggestions.innerHTML = matches.map(m => `<div class="dropdown-item" onclick="triggerSearchPopUp('${m.title}')" style="padding:12px; border-bottom:1px solid var(--border); background:var(--card-bg);">${m.title}</div>`).join('');
         suggestions.classList.remove('hidden');
     }
 
@@ -153,12 +154,11 @@
         
         list.innerHTML = results.length ? "" : "<tr><td colspan='3'>No results found</td></tr>";
         results.forEach(b => {
-            const promo = `
-                <div style="font-size:10px; margin-top:4px;">
-                    ${b.recent ? '<span style="color:var(--orange)">[Recent] </span>' : ''}
-                    ${b.trending ? '<span style="color:var(--purple)">[Trending] </span>' : ''}
-                    ${b.mission ? '<span style="color:var(--green)">[Mission Focus]</span>' : ''}
-                </div>`;
+            const promo = `<div style="font-size:10px; margin-top:4px;">
+                ${b.recent ? '<span style="color:var(--orange)">[Recent] </span>' : ''}
+                ${b.trending ? '<span style="color:var(--purple)">[Trending] </span>' : ''}
+                ${b.mission ? '<span style="color:var(--green)">[Mission]</span>' : ''}
+            </div>`;
             list.innerHTML += `<tr>
                 <td><b>${b.title}</b></td>
                 <td><small>${b.category || 'Uncategorized'}</small>${promo}</td>
@@ -170,11 +170,14 @@
 
     function focusInventoryItem(id) {
         closeSearchPopUp();
-        // The inventory is already rendered, this scrolls it into view if needed
-        const element = document.querySelector(`[onclick*="${id}"]`).closest('tr');
-        element.style.background = "#334155";
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => element.style.background = "transparent", 2000);
+        const rows = document.querySelectorAll('#inventory-list tr');
+        rows.forEach(row => {
+            if(row.innerHTML.includes(id)) {
+                row.style.background = "#334155";
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => row.style.background = "transparent", 2000);
+            }
+        });
     }
 
     function closeSearchPopUp() { document.getElementById('search-results-popup').classList.add('hidden'); }
@@ -194,6 +197,8 @@
                         <div class="dropdown-item" onclick="updateField('${id}','category','Theology')">Systematic Theology</div>
                         <div class="dropdown-item" onclick="updateField('${id}','category','Church History')">CHURCH History</div>
                         <div class="dropdown-item" onclick="updateField('${id}','category','Mission')">Mission</div>
+                        <div class="dropdown-item" onclick="updateField('${id}','category','Bible Intro')">Intro to BIBLE</div>
+                        <div class="dropdown-item" onclick="updateField('${id}','category','Acts')">Acts of Apostles</div>
                         <div class="dropdown-item" onclick="updateField('${id}','category','Other Books')">Other Books</div>
                     </div>
                     <button class="btn-sm" style="background:var(--orange); color:white;" onclick="toggleM('p-${id}')">Promo</button>
