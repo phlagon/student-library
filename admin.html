@@ -2,154 +2,184 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TheoLib Admin - Master Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Theological Library</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --blue: #3b82f6; --orange: #f97316; --green: #10b981; --purple: #a855f7; --bg: #0b1120; --card-bg: #1e293b; --text-main: #f8fafc; --text-sub: #94a3b8; --border: #334155; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); }
-        #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; width: 100%; max-width: 350px; text-align: center; border: 1px solid var(--border); }
-        .login-field, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 10px; }
-        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); border: 1px solid var(--border); transition: 0.3s; white-space: nowrap; }
-        .tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
-        .glass-card { background: var(--card-bg); border-radius: 20px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px; color: var(--text-sub); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
-        td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-        .btn-sm { padding: 8px 15px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; }
-        .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
-        .show { display: block; }
-        .dropdown-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 12px; color: var(--text-main); }
-        .dropdown-item:hover { background: var(--blue); }
-        .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: #0f172a; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
-        .stat-val { font-size: 16px; font-weight: 800; color: var(--blue); display: block; }
-        #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 6000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        .modal-content { background: var(--card-bg); width: 100%; max-width: 650px; border-radius: 24px; padding: 30px; max-height: 90vh; border: 1px solid var(--border); overflow-y: auto; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text-main); overflow-x: hidden; }
+        .glass-card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid var(--border); margin-bottom: 15px; }
+        .stat-card { padding: 15px; border-radius: 15px; color: white; text-align: center; cursor: pointer; }
+        .stat-card h4 { font-size: 10px; margin: 0; opacity: 0.8; text-transform: uppercase; }
+        .stat-card p { font-size: 20px; margin: 5px 0 0; font-weight: 800; }
+        .book-item { background: #0f172a; padding: 15px; border-radius: 15px; border: 1px solid var(--border); margin-bottom: 12px; }
+        .login-field { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; }
+        .btn-preview { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; margin-top: 10px; }
+        #auth-screen, #profile-overlay, #reader-overlay, #full-lib-view, #borrow-view, #search-results-overlay { position: fixed; inset: 0; z-index: 9000; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
         .hidden { display: none !important; }
+        .cat-item { cursor: pointer; background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 13px; }
+        .time-header { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .time-box { background: var(--card-bg); border: 1px solid var(--border); padding: 10px; border-radius: 15px; text-align: center; }
+        .time-val { font-family: monospace; font-weight: 800; font-size: 16px; }
+        .status-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .paused .status-dot { background: #ef4444; }
     </style>
 </head>
 <body>
-    <div id="auth-overlay"><div class="login-card"><h2>Admin Login</h2><input type="text" id="admin-coll-id" class="login-field" placeholder="College ID"><input type="password" id="admin-pass" class="login-field" placeholder="Password"><button class="btn-sm" style="background:var(--blue); color:white; width:100%; padding:15px; border-radius:12px;" onclick="handleAdminLogin()">Login</button></div></div>
-    
-    <div id="master-panel" class="hidden">
-        <div class="nav-tabs">
-            <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">Inventory</button>
-            <button id="t-mem" class="tab-btn" onclick="switchTab('mem')">Monitoring</button>
-            <button class="tab-btn" style="background:#ef4444; color:white; margin-left:auto;" onclick="location.reload()">Logout</button>
-        </div>
 
-        <div id="inv-section" class="glass-card">
-            <table><thead><tr><th>Resource</th><th>Control</th><th>Promo</th><th>Action</th></tr></thead><tbody id="inventory-list"></tbody></table>
-        </div>
-
-        <div id="mem-section" class="hidden glass-card">
-            <select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;"><option value="">Select College</option><option value="IMC26">IMC26</option><option value="ASLIN26">ASLIN26</option></select>
-            <div id="user-folders-list"></div>
+    <div id="auth-screen">
+        <div style="background:var(--card-bg); padding:30px; border-radius:24px; text-align:center; max-width:350px; margin:auto; border:1px solid var(--border);">
+            <h2 style="color:var(--blue)">TheoLib Login</h2>
+            <input type="text" id="login-coll-id" class="login-field" placeholder="College ID">
+            <input type="text" id="login-user-id" class="login-field" placeholder="User ID">
+            <input type="password" id="login-pass" class="login-field" placeholder="Password">
+            <button onclick="handleLogin()" style="background:var(--blue); color:white; border:none; width:100%; padding:15px; border-radius:12px; font-weight:600; cursor:pointer;">Enter</button>
         </div>
     </div>
 
-    <div id="user-modal" class="hidden">
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 id="modal-title">Attendance</h3>
-                <div style="display:flex; gap:10px;">
-                    <button onclick="fetchUsageData()" class="btn-sm" style="background:var(--orange); color:white;">🔄 Sync Server</button>
-                    <button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue); color:white;">📥 CSV</button>
-                    <button onclick="closeModal()" class="btn-sm" style="background:#ef4444; color:white;">X</button>
-                </div>
+    <div id="dashboard" class="hidden">
+        <div class="time-header">
+            <div id="session-box" class="time-box" style="border-color: var(--green);"><span id="session-clock" class="time-val" style="color: var(--green);"><span class="status-dot"></span>00:00:00</span></div>
+            <div class="time-box"><span id="real-time-clock" class="time-val" style="color: var(--blue);">00:00:00</span></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:20px;">
+            <div class="stat-card" style="background:var(--blue)" onclick="showFullLibrary()"><h4>Books</h4><p id="top-total">0</p></div>
+            <div class="stat-card" style="background:var(--orange)" onclick="showBorrowView()"><h4>Issued</h4><p id="top-issued">0</p></div>
+            <div class="stat-card" style="background:var(--purple)" onclick="toggleProfile()"><h4>Profile</h4><p>U</p></div>
+        </div>
+
+        <div class="search-container" style="position: relative; margin: 20px 0;">
+            <input type="text" id="lib-search" class="login-field" placeholder="🔍 Search library..." oninput="showSug(this.value)">
+            <div id="search-suggestions" class="hidden" style="position:absolute; top:48px; width:100%; background:var(--card-bg); border:1px solid var(--border); border-radius:10px; z-index:10000; max-height:200px; overflow-y:auto;"></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap: 15px;">
+            <div>
+                <div class="glass-card"><h3 style="color:var(--green); margin-top:0;">🌍 Mission Focus</h3><div id="mission-list"></div></div>
+                <div class="glass-card"><h3>🕒 Recent</h3><div id="recent-list"></div></div>
             </div>
-            <div id="modal-stats" style="margin-top:20px;"></div>
-            <table style="margin-top:20px;"><thead><tr><th>Time</th><th>Activity</th><th>Dur</th></tr></thead><tbody id="log-body"></tbody></table>
+            <div class="glass-card"><h3>📂 Categories</h3>
+                <div class="cat-item" onclick="loadCat('Theology')">📖 Theology</div>
+                <div class="cat-item" onclick="loadCat('Church History')">⛪ History</div>
+                <div class="cat-item" onclick="loadCat('Mission')">🌍 Mission</div>
+                <div class="cat-item" onclick="loadCat('Bible Intro')">📘 Bible</div>
+            </div>
         </div>
     </div>
 
-<script>
-    const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
-    firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
-    const adminAccounts = { "aslin": "Phlagon@28", "IMC26": "IMC26@theo" };
-    let activeUID = "";
+    <div id="reader-overlay" class="hidden">
+        <div style="background:#1e293b; padding:15px; display:flex; justify-content:space-between; align-items:center; color:white;"><span id="reader-title">Reader</span><button onclick="closeReader()" style="background:red; border:none; color:white; padding:8px 15px; border-radius:8px;">Exit</button></div>
+        <div style="display:flex; height:calc(100vh - 60px);">
+            <iframe id="pdf-frame" style="flex:3; height:100%; border:none;"></iframe>
+            <div style="flex:1; background:var(--card-bg); border-left:1px solid var(--border); padding:15px; overflow-y:auto;">
+                <h4 style="margin-top:0;">📂 Nav</h4>
+                <div class="cat-item" onclick="closeReader(); showFullLibrary()">Library</div>
+                <div class="cat-item" onclick="closeReader(); showBorrowView()">Issued</div>
+            </div>
+        </div>
+    </div>
 
-    function handleAdminLogin() {
-        const cid = document.getElementById('admin-coll-id').value.trim(); const pass = document.getElementById('admin-pass').value.trim();
-        if (adminAccounts[cid] === pass) { document.getElementById('auth-overlay').classList.add('hidden'); document.getElementById('master-panel').classList.remove('hidden'); initAdmin(); } else { alert("Denied"); }
-    }
+    <div id="search-results-overlay" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><h3>🔎 Results</h3><button onclick="closeSearchView()" class="btn-preview">Back</button></div>
+        <div id="search-results-list"></div>
+    </div>
 
-    function initAdmin() {
-        db.collection("library_settings").onSnapshot(snap => {
-            const list = document.getElementById('inventory-list'); list.innerHTML = "";
-            snap.forEach(doc => {
-                const b = doc.data(); const id = doc.id;
-                list.innerHTML += `<tr>
-                    <td><b>${b.title}</b></td>
-                    <td style="position:relative;">
-                        <button class="btn-sm" style="background:var(--purple); color:white;" onclick="toggleM('c-${id}')">Category</button>
-                        <div id="c-${id}" class="dropdown-menu">
-                            <div class="dropdown-item" onclick="updF('${id}','category','Theology')">Theology</div>
-                            <div class="dropdown-item" onclick="updF('${id}','category','Church History')">History</div>
-                        </div>
-                    </td>
-                    <td style="position:relative;">
-                        <button class="btn-sm" style="background:var(--orange); color:white;" onclick="toggleM('p-${id}')">Promo</button>
-                        <div id="p-${id}" class="dropdown-menu">
-                            <div class="dropdown-item" onclick="updF('${id}','recent',${!b.recent})">Recent: ${b.recent?'✅':'OFF'}</div>
-                            <div class="dropdown-item" onclick="updF('${id}','trending',${!b.trending})">Trending: ${b.trending?'✅':'OFF'}</div>
-                            <div class="dropdown-item" onclick="updF('${id}','mission',${!b.mission})">Mission: ${b.mission?'✅':'OFF'}</div>
-                        </div>
-                    </td>
-                    <td><button class="btn-sm" style="background:#ef4444; color:white;" onclick="deletePDF('${id}')">🗑️</button></td>
-                </tr>`;
+    <div id="profile-overlay" class="hidden">
+        <div class="glass-card" style="max-width:350px; margin:auto; text-align:center;">
+            <h2 id="prof-name">Name</h2>
+            <div style="text-align:left; font-size:12px; margin:15px 0;">
+                <p><b>Coll ID:</b> <span id="p-coll-id"></span></p>
+                <p><b>User ID:</b> <span id="p-stud-id"></span></p>
+            </div>
+            <button onclick="toggleProfile()" class="btn-preview">Back</button><button onclick="location.reload()" style="background:red; width:100%; margin-top:10px;" class="btn-preview">Logout</button>
+        </div>
+    </div>
+
+    <div id="full-lib-view" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📚 Library</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list"></div></div>
+    <div id="borrow-view" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📥 Issued</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-list"></div></div>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
+        firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
+        let currentUser = null; let collegeBooks = []; let sessionSeconds = 0; let isActive = true;
+        let curAct = "Active Session"; let curBook = "";
+
+        document.addEventListener("visibilitychange", () => {
+            isActive = !document.hidden; document.getElementById('session-box').classList.toggle('paused', !isActive);
+        });
+
+        async function handleLogin() {
+            const cid = document.getElementById('login-coll-id').value.trim(); const uid = document.getElementById('login-user-id').value.trim(); const pass = document.getElementById('login-pass').value.trim();
+            const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).get();
+            if(!snap.empty) {
+                currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
+                document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
+                init();
+            } else { alert("Failed"); }
+        }
+
+        function init() {
+            setInterval(() => { if(isActive) { sessionSeconds++; updCl('session-clock', sessionSeconds); } }, 1000);
+            setInterval(() => { document.getElementById('real-time-clock').innerText = new Date().toLocaleTimeString([], {hour12: false}); }, 1000);
+            setInterval(async () => {
+                if(currentUser && isActive) {
+                    await db.collection("activity_logs").add({ userId: currentUser.uid, activityType: curAct + (curBook ? ": " + curBook : ""), duration: 60, timestamp: Date.now() });
+                    await db.collection("users").doc(currentUser.uid).update({ usageTime: firebase.firestore.FieldValue.increment(60) });
+                }
+            }, 60000);
+            load(); listen();
+        }
+
+        function updCl(id, s) { const h = Math.floor(s/3600).toString().padStart(2,'0'); const m = Math.floor((s%3600)/60).toString().padStart(2,'0'); const sec = (s%60).toString().padStart(2,'0'); document.getElementById(id).innerHTML = `<span class="status-dot"></span>${h}:${m}:${sec}`; }
+
+        function load() {
+            db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).onSnapshot(snap => {
+                const rec = document.getElementById('recent-list'); const mis = document.getElementById('mission-list'); rec.innerHTML = ""; mis.innerHTML = ""; collegeBooks = [];
+                snap.forEach(doc => {
+                    const b = doc.data(); collegeBooks.push({id: doc.id, ...b});
+                    const html = `<div class="book-item"><b>${b.title}</b><div style="display:flex; gap:5px;"><button class="btn-preview" onclick="openPdf('${doc.id}', '${b.title}')">Preview</button><button class="btn-preview" style="background:#475569" onclick="borrow('${doc.id}','${b.title}')">Borrow</button></div></div>`;
+                    rec.innerHTML += html; if(b.mission) mis.innerHTML += html;
+                });
+                document.getElementById('top-total').innerText = snap.size;
             });
-        });
-    }
+        }
 
-    async function updF(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
-    function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
-    function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
-    function fmt(s) { const h = Math.floor(s/3600).toString().padStart(2,'0'); const m = Math.floor((s%3600)/60).toString().padStart(2,'0'); const sec = (s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`; }
+        function listen() {
+            db.collection("borrows").where("userId","==",currentUser.uid).onSnapshot(snap => {
+                const list = document.getElementById('borrow-list'); if(list) { list.innerHTML = ""; snap.forEach(doc => { const d = doc.data(); list.innerHTML += `<div class="book-item"><b>${d.title}</b><button class="btn-preview" onclick="openBorrowedPdf('${d.bookId}','${d.title}')">Open Full</button></div>`; }); }
+                document.getElementById('top-issued').innerText = snap.size;
+            });
+        }
 
-    function loadCollegeStudents(cid) { 
-        db.collection("users").where("collegeId", "==", cid).onSnapshot(snap => { 
-            const list = document.getElementById('user-folders-list'); list.innerHTML = ""; 
-            snap.forEach(doc => { const u = doc.data(); list.innerHTML += `<div class="user-folder" onclick='openReport("${doc.id}", ${JSON.stringify(u)})'><span>📂 <b>${u.fullName}</b></span><small>${u.studentId}</small></div>`; }); 
-        }); 
-    }
+        function showSug(v) {
+            const b = document.getElementById('search-suggestions'); if(!v.trim()){b.classList.add('hidden'); return;}
+            const f = collegeBooks.filter(x => x.title.toLowerCase().includes(v.toLowerCase()));
+            b.innerHTML = f.map(x => `<div style="padding:10px; border-bottom:1px solid var(--border); cursor:pointer;" onclick="triggerSearch('${x.title}')">${x.title}</div>`).join('');
+            b.classList.toggle('hidden', f.length === 0);
+        }
 
-    async function openReport(uid, user) {
-        activeUID = uid; document.getElementById('user-modal').classList.remove('hidden'); 
-        document.getElementById('modal-title').innerText = user.fullName;
-        fetchUsageData();
-    }
+        function triggerSearch(t) {
+            const q = (t || document.getElementById('lib-search').value).toLowerCase(); document.getElementById('search-suggestions').classList.add('hidden');
+            const r = collegeBooks.filter(x => x.title.toLowerCase().includes(q));
+            const l = document.getElementById('search-results-list'); l.innerHTML = "";
+            r.forEach(x => { l.innerHTML += `<div class="book-item"><b>${x.title}</b><br><button class="btn-preview" onclick="openPdf('${x.id}','${x.title}')">Read</button></div>`; });
+            document.getElementById('search-results-overlay').classList.remove('hidden');
+        }
 
-    async function fetchUsageData() {
-        document.getElementById('log-body').innerHTML = "<tr><td colspan='3'>Syncing...</td></tr>";
-        const logs = await db.collection("activity_logs").where("userId", "==", activeUID).orderBy("timestamp", "desc").limit(100).get({ source: 'server' });
-        let total = 0; let borrow = 0; let html = "";
-        logs.forEach(l => { 
-            const d = l.data(); total += (d.duration || 0); 
-            if(d.activityType.includes("Full Reading")) borrow += (d.duration || 0);
-            html += `<tr><td>${new Date(d.timestamp).toLocaleString()}</td><td>${d.activityType}</td><td>${fmt(d.duration || 0)}</td></tr>`;
-        });
-        document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box"><span>TOTAL</span><br><b class="stat-val">${fmt(total)}</b></div><div class="stat-box"><span>BORROWED</span><br><b class="stat-val">${fmt(borrow)}</b></div></div>`;
-        document.getElementById('log-body').innerHTML = html;
-    }
-
-    async function downloadCSV() {
-        const snap = await db.collection("activity_logs").where("userId", "==", activeUID).orderBy("timestamp", "desc").get();
-        let rows = "Date,Activity,Duration\n";
-        snap.forEach(l => { const d = l.data(); rows += `${new Date(d.timestamp).toLocaleString()},"${d.activityType}",${fmt(d.duration || 0)}\n`; });
-        const blob = new Blob([rows], { type: 'text/csv' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Report.csv`; a.click();
-    }
-
-    function closeModal() { document.getElementById('user-modal').classList.add('hidden'); activeUID = ""; }
-    async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
-</script>
+        function openPdf(id, title) { curAct = "Online Reading"; curBook = title; document.getElementById('reader-title').innerText = title; document.getElementById('pdf-frame').src = `https://docs.google.com/viewer?url=${window.location.origin}/public/${id}_read_online.pdf&embedded=true`; document.getElementById('reader-overlay').classList.remove('hidden'); }
+        function openBorrowedPdf(id, title) { curAct = "Full Reading"; curBook = title; document.getElementById('reader-title').innerText = title; document.getElementById('pdf-frame').src = `https://docs.google.com/viewer?url=${window.location.origin}/public/${id}.pdf&embedded=true`; document.getElementById('reader-overlay').classList.remove('hidden'); }
+        function closeReader() { document.getElementById('reader-overlay').classList.add('hidden'); document.getElementById('pdf-frame').src = ""; curAct = "Active Session"; curBook = ""; }
+        function loadCat(c) { const l = document.getElementById('full-book-list'); l.innerHTML = ""; collegeBooks.filter(x => x.category === c).forEach(x => { l.innerHTML += `<div class="book-item"><b>${x.title}</b><br><button class="btn-preview" onclick="openPdf('${x.id}','${x.title}')">Preview</button></div>`; }); showFullLibrary(); }
+        async function borrow(id, t) { if(prompt("Code:") === "BORROW2026") await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, borrowedAt: new Date().toISOString() }); }
+        function toggleProfile() { document.getElementById('prof-name').innerText = currentUser.fullName; document.getElementById('p-coll-id').innerText = currentUser.collegeId; document.getElementById('p-stud-id').innerText = currentUser.studentId; document.getElementById('profile-overlay').classList.toggle('hidden'); }
+        function showFullLibrary() { const l = document.getElementById('full-book-list'); if(l.innerHTML==="") collegeBooks.forEach(x => { l.innerHTML += `<div class="book-item"><b>${x.title}</b><button class="btn-preview" onclick="openPdf('${x.id}','${x.title}')">Preview</button></div>`; }); document.getElementById('full-lib-view').classList.remove('hidden'); }
+        function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
+        function closeView(id) { document.getElementById(id).classList.add('hidden'); if(id==='full-lib-view')document.getElementById('full-book-list').innerHTML=""; }
+        function closeSearchView() { document.getElementById('search-results-overlay').classList.add('hidden'); }
+    </script>
 </body>
 </html>
