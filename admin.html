@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TheoLib Admin - Master Control</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -18,18 +19,15 @@
         .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; background: var(--card-bg); color: var(--text-sub); font-weight: 600; white-space: nowrap; }
         .tab-btn.active { background: var(--blue); color: white; }
         .glass-card { background: var(--card-bg); border-radius: 20px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
-        
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 12px; color: var(--text-sub); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
         td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-        
         .btn-sm { padding: 8px 12px; border-radius: 8px; border: none; font-size: 10px; cursor: pointer; font-weight: 600; margin-right: 5px; }
-        .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; z-index: 100; min-width: 160px; padding: 8px; top: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; z-index: 100; min-width: 160px; padding: 8px; top: 40px; }
         .show { display: block; }
-        .drop-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 11px; transition: 0.2s; }
+        .drop-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 11px; }
         .drop-item:hover { background: var(--blue); }
-        
-        .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; }
+        .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -39,27 +37,33 @@
         <h2 style="color:var(--blue)">Admin Control</h2>
         <input type="text" id="a-id" class="login-field" placeholder="Admin ID">
         <input type="password" id="a-pass" class="login-field" placeholder="Password">
-        <button class="btn-sm" style="background:var(--blue); color:white; width:100%; padding:15px;" onclick="doLogin()">Enter Master Panel</button>
+        <button class="btn-sm" style="background:var(--blue); color:white; width:100%; padding:15px;" onclick="doLogin()">Login</button>
     </div>
 </div>
 
 <div id="master-panel" class="hidden">
     <div class="nav-tabs">
         <button id="t-inv" class="tab-btn active" onclick="tab('inv')">Resources</button>
-        <button id="t-mem" class="tab-btn" onclick="switchManagement()">Management</button>
+        <button id="t-nom" class="tab-btn" onclick="tab('nom')">Nominations</button>
+        <button id="t-mem" class="tab-btn" onclick="tab('mem')">Management</button>
+        <button id="t-add" class="tab-btn" onclick="tab('add')">Add Members</button>
         <button class="tab-btn" style="background:#ef4444; color:white; margin-left:auto;" onclick="location.reload()">Logout</button>
     </div>
 
     <div id="inv-sec" class="glass-card">
-        <h3>📚 PDF Inventory</h3>
         <table>
             <thead><tr><th>Title</th><th>Access</th><th>Category</th><th>Promo</th><th>Delete</th></tr></thead>
             <tbody id="resource-list"></tbody>
         </table>
     </div>
 
+    <div id="nom-sec" class="hidden glass-card">
+        <h3>📥 Pending Nominations</h3>
+        <div id="nom-list"></div>
+    </div>
+
     <div id="mem-sec" class="hidden glass-card">
-        <h3>👥 Member Monitoring</h3>
+        <h3>👥 Management</h3>
         <select id="m-coll" class="login-field" style="width:250px;" onchange="loadUsers(this.value)">
             <option value="">Select College</option>
             <option value="IMC26">IMC26</option>
@@ -68,17 +72,16 @@
         <div id="users-list" style="margin-top:20px;"></div>
         <div id="user-details" class="hidden glass-card" style="background:#0f172a; margin-top:20px;"></div>
     </div>
+
+    <div id="add-sec" class="hidden glass-card">
+        <h3>📤 Bulk Member Upload</h3>
+        <textarea id="bulk-data" class="login-field" style="height:150px;" placeholder="Name, CollegeID, StudentID, Password, Role"></textarea>
+        <button class="btn-sm" style="background:var(--blue); color:white; width:100%; height:45px;" onclick="uploadBulk()">Upload Data</button>
+    </div>
 </div>
 
 <script>
-    const firebaseConfig = { 
-        apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", 
-        authDomain: "theolib.in", 
-        projectId: "student-library-4a4e7", 
-        storageBucket: "student-library-4a4e7.firebasestorage.app", 
-        messagingSenderId: "827419448917", 
-        appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" 
-    };
+    const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
@@ -93,122 +96,58 @@
     }
 
     function startSync() {
+        // Resources Sync
         db.collection("library_settings").onSnapshot(snap => {
-            const list = document.getElementById('resource-list');
-            list.innerHTML = "";
+            const list = document.getElementById('resource-list'); list.innerHTML = "";
             snap.forEach(doc => {
-                const b = doc.data(); const id = doc.id;
-                const allowed = b.allowedColleges || [];
-                
+                const b = doc.data(); const id = doc.id; const allowed = b.allowedColleges || [];
                 list.innerHTML += `<tr>
                     <td><b>${b.title}</b></td>
-                    <td style="position:relative;">
-                        <button class="btn-sm" style="background:var(--purple); color:white;" onclick="toggleD('acc-${id}')">Access</button>
-                        <div id="acc-${id}" class="dropdown-menu">
-                            <div class="drop-item" onclick="toggleColl('${id}','IMC26',${allowed.includes('IMC26')})">IMC26 ${allowed.includes('IMC26')?'✅':''}</div>
-                            <div class="drop-item" onclick="toggleColl('${id}','ASLIN26',${allowed.includes('ASLIN26')})">ASLIN26 ${allowed.includes('ASLIN26')?'✅':''}</div>
-                        </div>
-                    </td>
-                    <td style="position:relative;">
-                        <button class="btn-sm" style="background:var(--green); color:white;" onclick="toggleD('cat-${id}')">${b.category || 'Category'}</button>
-                        <div id="cat-${id}" class="dropdown-menu">
-                            <div class="drop-item" onclick="upField('${id}','category','Theology')">Theology</div>
-                            <div class="drop-item" onclick="upField('${id}','category','Church History')">Church History</div>
-                            <div class="drop-item" onclick="upField('${id}','category','Mission')">Mission</div>
-                        </div>
-                    </td>
-                    <td style="position:relative;">
-                        <button class="btn-sm" style="background:var(--orange); color:white;" onclick="toggleD('prm-${id}')">Promo</button>
-                        <div id="prm-${id}" class="dropdown-menu">
-                            <div class="drop-item" onclick="upField('${id}','trending',${!b.trending})">Trending: ${b.trending?'ON':'OFF'}</div>
-                            <div class="drop-item" onclick="upField('${id}','recent',${!b.recent})">Recent: ${b.recent?'ON':'OFF'}</div>
-                        </div>
-                    </td>
+                    <td style="position:relative;"><button class="btn-sm" style="background:var(--purple); color:white;" onclick="toggleD('acc-${id}')">Access</button><div id="acc-${id}" class="dropdown-menu"><div class="drop-item" onclick="toggleColl('${id}','IMC26',${allowed.includes('IMC26')})">IMC26 ${allowed.includes('IMC26')?'✅':''}</div><div class="drop-item" onclick="toggleColl('${id}','ASLIN26',${allowed.includes('ASLIN26')})">ASLIN26 ${allowed.includes('ASLIN26')?'✅':''}</div></div></td>
+                    <td style="position:relative;"><button class="btn-sm" style="background:var(--green); color:white;" onclick="toggleD('cat-${id}')">${b.category || 'Category'}</button><div id="cat-${id}" class="dropdown-menu"><div class="drop-item" onclick="upField('${id}','category','Theology')">Theology</div><div class="drop-item" onclick="upField('${id}','category','Mission')">Mission</div></div></td>
+                    <td style="position:relative;"><button class="btn-sm" style="background:var(--orange); color:white;" onclick="toggleD('prm-${id}')">Promo</button><div id="prm-${id}" class="dropdown-menu"><div class="drop-item" onclick="upField('${id}','trending',${!b.trending})">Trend: ${b.trending?'ON':'OFF'}</div></div></td>
                     <td><button class="btn-sm" style="background:#ef4444; color:white;" onclick="delRes('${id}')">🗑️</button></td>
                 </tr>`;
             });
         });
+
+        // Nominations Sync
+        db.collection("faculty_nominations").onSnapshot(snap => {
+            const nl = document.getElementById('nom-list'); nl.innerHTML = snap.empty ? "No nominations" : "";
+            snap.forEach(doc => { const n = doc.data(); nl.innerHTML += `<div class="user-folder"><span><b>${n.bookTitle}</b> (${n.facultyName})</span><button class="btn-sm" style="background:var(--blue); color:white;" onclick="apprNom('${doc.id}','${n.bookId}','${n.collegeId}')">Live</button></div>`; });
+        });
     }
 
-    // --- MANAGEMENT FIX ---
     async function loadUsers(cid) {
         if(!cid) return;
-        const list = document.getElementById('users-list');
-        list.innerHTML = "Fetching members...";
-        
-        try {
-            const snap = await db.collection("users").where("collegeId", "==", cid).get();
-            list.innerHTML = snap.empty ? "No data found for this college." : "";
-            snap.forEach(doc => {
-                const u = doc.data();
-                const div = document.createElement('div');
-                div.className = "user-folder";
-                div.innerHTML = `<span><b>${u.fullName}</b></span> <small>ID: ${u.studentId || 'N/A'}</small>`;
-                div.onclick = () => showUserDetails(doc.id, u);
-                list.appendChild(div);
-            });
-        } catch (e) {
-            list.innerHTML = "Error loading data.";
-        }
+        const list = document.getElementById('users-list'); list.innerHTML = "Loading...";
+        const snap = await db.collection("users").where("collegeId", "==", cid).get();
+        list.innerHTML = snap.empty ? "No users." : "";
+        snap.forEach(doc => {
+            const u = doc.data(); const d = document.createElement('div'); d.className = "user-folder";
+            d.innerHTML = `<span><b>${u.fullName}</b></span> <small>ID: ${u.studentId}</small>`;
+            d.onclick = () => {
+                const det = document.getElementById('user-details'); det.classList.remove('hidden');
+                const h = Math.floor((u.usageTime || 0)/60); const m = (u.usageTime || 0)%60;
+                det.innerHTML = `<h4>User: ${u.fullName}</h4><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"><div><p>🕒 Time: ${h}h ${m}m</p><select class="login-field" onchange="upUserRole('${doc.id}',this.value)"><option value="student" ${u.role==='student'?'selected':''}>Student</option><option value="faculty" ${u.role==='faculty'?'selected':''}>Faculty</option></select></div><div><button class="btn-sm" style="background:var(--green); color:white; width:100%; height:45px;" onclick="alert('Exported')">Download Report</button></div></div>`;
+            };
+            list.appendChild(d);
+        });
     }
 
-    function showUserDetails(uid, u) {
-        const det = document.getElementById('user-details');
-        det.classList.remove('hidden');
-        const h = Math.floor((u.usageTime || 0)/60);
-        const m = (u.usageTime || 0)%60;
-
-        det.innerHTML = `
-            <h4>User: ${u.fullName}</h4>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                <div>
-                    <p>🕒 <b>Time Used:</b> ${h}h ${m}m</p>
-                    <label>Change Role:</label>
-                    <select class="login-field" onchange="updateRole('${uid}', this.value)">
-                        <option value="student" ${u.role==='student'?'selected':''}>Student</option>
-                        <option value="faculty" ${u.role==='faculty'?'selected':''}>Faculty</option>
-                    </select>
-                </div>
-                <div>
-                    <p><b>College:</b> ${u.collegeId}</p>
-                    <button class="btn-sm" style="background:var(--green); color:white; width:100%; height:45px;" onclick="alert('Report Downloaded')">Download Report</button>
-                </div>
-            </div>`;
+    async function uploadBulk() {
+        const lines = document.getElementById('bulk-data').value.split('\n');
+        for(let l of lines) { const p = l.split(',').map(i=>i.trim()); if(p.length === 5) await db.collection("users").add({ fullName:p[0], collegeId:p[1], studentId:p[2], password:p[3], role:p[4], usageTime:0 }); }
+        alert("Upload Complete");
     }
 
-    // --- LOGIC FUNCTIONS ---
-    async function updateRole(id, role) {
-        await db.collection("users").doc(id).update({ role: role });
-        alert("Success: Role updated to " + role);
-    }
-
-    async function toggleColl(id, coll, has) {
-        const ref = db.collection("library_settings").doc(id);
-        const method = has ? firebase.firestore.FieldValue.arrayRemove(coll) : firebase.firestore.FieldValue.arrayUnion(coll);
-        await ref.update({ allowedColleges: method });
-    }
-
+    async function upUserRole(id, role) { await db.collection("users").doc(id).update({ role: role }); alert("Role updated to " + role); }
+    async function toggleColl(id, coll, has) { const ref = db.collection("library_settings").doc(id); await ref.update({ allowedColleges: has ? firebase.firestore.FieldValue.arrayRemove(coll) : firebase.firestore.FieldValue.arrayUnion(coll) }); }
     async function upField(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
-    async function delRes(id) { if(confirm("Delete Resource?")) await db.collection("library_settings").doc(id).delete(); }
-    
-    function toggleD(id) {
-        document.querySelectorAll('.dropdown-menu').forEach(m => { if(m.id !== id) m.classList.remove('show'); });
-        document.getElementById(id).classList.toggle('show');
-    }
-
-    function tab(t) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('t-'+t).classList.add('active');
-        document.querySelectorAll('.glass-card').forEach(s => s.classList.add('hidden'));
-        document.getElementById(t+'-sec').classList.remove('hidden');
-    }
-
-    function switchManagement() {
-        tab('mem');
-        document.getElementById('users-list').innerHTML = "";
-        document.getElementById('user-details').classList.add('hidden');
-        document.getElementById('m-coll').value = "";
-    }
+    async function delRes(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
+    async function apprNom(id, bId, coll) { await db.collection("library_settings").doc(bId).update({ allowedColleges: firebase.firestore.FieldValue.arrayUnion(coll) }); await db.collection("faculty_nominations").doc(id).delete(); alert("Approved"); }
+    function toggleD(id) { document.querySelectorAll('.dropdown-menu').forEach(m => { if(m.id !== id) m.classList.remove('show'); }); document.getElementById(id).classList.toggle('show'); }
+    function tab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('t-'+t).classList.add('active'); document.querySelectorAll('.glass-card').forEach(s => s.classList.add('hidden')); document.getElementById(t+'-sec').classList.remove('hidden'); }
 </script>
 </body>
 </html>
