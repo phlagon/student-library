@@ -12,7 +12,7 @@
         :root { --blue: #3b82f6; --orange: #f97316; --green: #10b981; --purple: #a855f7; --bg: #0b1120; --card-bg: #1e293b; --text-main: #f8fafc; --text-sub: #94a3b8; --border: #334155; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); }
         #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; width: 100%; max-width: 350px; text-align: center; border: 1px solid var(--border); }
+        .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; width: 90%; max-width: 350px; text-align: center; border: 1px solid var(--border); }
         .login-field, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; font-family: inherit; }
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
         .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); transition: 0.3s; white-space: nowrap; }
@@ -25,12 +25,19 @@
         .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
         .show { display: block; }
         .dropdown-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 12px; }
-        .dropdown-item:hover { background: var(--blue); }
+        .dropdown-item:hover { background: var(--blue); color: white; }
         .hidden { display: none !important; }
         
-        /* Search Bar UI */
+        /* Search Components */
         .search-container { position: relative; margin-bottom: 20px; }
         .search-bar { width: 100%; padding: 14px 20px; border-radius: 15px; background: #0f172a; border: 1px solid var(--border); color: white; outline: none; font-family: inherit; }
+        #search-suggestions { position: absolute; top: 55px; width: 100%; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; z-index: 200; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        
+        /* Pop-up Overlay */
+        #search-results-popup { position: fixed; inset: 0; background: rgba(11, 17, 32, 0.95); z-index: 6000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(5px); }
+        .popup-content { background: var(--card-bg); width: 100%; max-width: 800px; border-radius: 24px; border: 1px solid var(--border); max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+        .popup-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .popup-body { padding: 20px; overflow-y: auto; flex: 1; }
     </style>
 </head>
 <body>
@@ -55,7 +62,10 @@
 
     <div id="inv-section" class="glass-card">
         <div class="search-container">
-            <input type="text" id="inv-search" class="search-bar" placeholder="🔍 Search books by title or category..." onkeyup="filterInventory()">
+            <input type="text" id="inv-search" class="search-bar" placeholder="🔍 Type book name for suggestions... (Press Enter for full results)" 
+                oninput="handleSearchInput(this.value)" 
+                onkeydown="if(event.key==='Enter') triggerSearchPopUp(this.value)">
+            <div id="search-suggestions" class="hidden"></div>
         </div>
 
         <div id="super-admin-reg" class="hidden" style="margin-bottom:20px; display:flex; gap:10px;">
@@ -78,6 +88,21 @@
     <div id="stud-section" class="hidden glass-card"><h2>📤 Bulk Registration</h2><textarea id="bulk-input" class="login-field" style="height:150px;" placeholder="Name, CollID, ID, Pass, Role"></textarea><button class="btn-sm" style="background:var(--blue); color:white; width:100%;" onclick="processBulk()">Bulk Upload</button></div>
 </div>
 
+<div id="search-results-popup" class="hidden">
+    <div class="popup-content">
+        <div class="popup-header">
+            <h3 style="margin:0;">🔎 Search Results</h3>
+            <button class="btn-sm" style="background:#ef4444; color:white;" onclick="closeSearchPopUp()">Close</button>
+        </div>
+        <div class="popup-body">
+            <table>
+                <thead><tr><th>Book Title</th><th>Category & Promo</th><th>Action</th></tr></thead>
+                <tbody id="popup-results-list"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <script>
     const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
     firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
@@ -87,7 +112,7 @@
     function handleAdminLogin() {
         const cid = document.getElementById('admin-coll-id').value.trim();
         const pass = document.getElementById('admin-pass').value.trim();
-        if (adminAccounts[cid] === pass) {
+        if (adminAccounts[cid] && adminAccounts[cid] === pass) {
             isSuperAdmin = (cid === "aslin");
             document.getElementById('auth-overlay').classList.add('hidden');
             document.getElementById('master-panel').classList.remove('hidden');
@@ -109,6 +134,51 @@
         });
     }
 
+    // SEARCH LOGIC
+    function handleSearchInput(val) {
+        const suggestions = document.getElementById('search-suggestions');
+        if (!val.trim()) { suggestions.classList.add('hidden'); return; }
+        
+        const matches = fullInventory.filter(b => b.title.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
+        if (matches.length === 0) { suggestions.classList.add('hidden'); return; }
+        
+        suggestions.innerHTML = matches.map(m => `<div class="dropdown-item" onclick="triggerSearchPopUp('${m.title}')" style="padding:12px; border-bottom:1px solid var(--border);">${m.title}</div>`).join('');
+        suggestions.classList.remove('hidden');
+    }
+
+    function triggerSearchPopUp(query) {
+        document.getElementById('search-suggestions').classList.add('hidden');
+        const list = document.getElementById('popup-results-list');
+        const results = fullInventory.filter(b => b.title.toLowerCase().includes(query.toLowerCase()));
+        
+        list.innerHTML = results.length ? "" : "<tr><td colspan='3'>No results found</td></tr>";
+        results.forEach(b => {
+            const promo = `
+                <div style="font-size:10px; margin-top:4px;">
+                    ${b.recent ? '<span style="color:var(--orange)">[Recent] </span>' : ''}
+                    ${b.trending ? '<span style="color:var(--purple)">[Trending] </span>' : ''}
+                    ${b.mission ? '<span style="color:var(--green)">[Mission Focus]</span>' : ''}
+                </div>`;
+            list.innerHTML += `<tr>
+                <td><b>${b.title}</b></td>
+                <td><small>${b.category || 'Uncategorized'}</small>${promo}</td>
+                <td><button class="btn-sm" style="background:var(--blue); color:white;" onclick="focusInventoryItem('${b.id}')">View in List</button></td>
+            </tr>`;
+        });
+        document.getElementById('search-results-popup').classList.remove('hidden');
+    }
+
+    function focusInventoryItem(id) {
+        closeSearchPopUp();
+        // The inventory is already rendered, this scrolls it into view if needed
+        const element = document.querySelector(`[onclick*="${id}"]`).closest('tr');
+        element.style.background = "#334155";
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => element.style.background = "transparent", 2000);
+    }
+
+    function closeSearchPopUp() { document.getElementById('search-results-popup').classList.add('hidden'); }
+
     function renderInventory(data) {
         const list = document.getElementById('inventory-list'); list.innerHTML = "";
         data.forEach(b => {
@@ -119,7 +189,6 @@
                 <td style="position:relative;">
                     <button class="btn-sm" style="background:var(--purple); color:white;" onclick="toggleM('a-${id}')">Access</button>
                     <div id="a-${id}" class="dropdown-menu">${Object.keys(adminAccounts).filter(c=>c!=='aslin').map(c => `<div class="dropdown-item" onclick="toggleAccess('${id}','${c}',${allowed.includes(c)})">${c} ${allowed.includes(c)?'✅':''}</div>`).join('')}</div>
-                    
                     <button class="btn-sm" style="background:var(--green); color:white;" onclick="toggleM('c-${id}')">Category</button>
                     <div id="c-${id}" class="dropdown-menu">
                         <div class="dropdown-item" onclick="updateField('${id}','category','Theology')">Systematic Theology</div>
@@ -127,7 +196,6 @@
                         <div class="dropdown-item" onclick="updateField('${id}','category','Mission')">Mission</div>
                         <div class="dropdown-item" onclick="updateField('${id}','category','Other Books')">Other Books</div>
                     </div>
-
                     <button class="btn-sm" style="background:var(--orange); color:white;" onclick="toggleM('p-${id}')">Promo</button>
                     <div id="p-${id}" class="dropdown-menu">
                         <div class="dropdown-item" onclick="updateField('${id}','recent',${!b.recent})">Recent: ${b.recent?'✅':'OFF'}</div>
@@ -140,37 +208,11 @@
         });
     }
 
-    function filterInventory() {
-        const query = document.getElementById('inv-search').value.toLowerCase();
-        const filtered = fullInventory.filter(b => 
-            b.title.toLowerCase().includes(query) || 
-            (b.category && b.category.toLowerCase().includes(query))
-        );
-        renderInventory(filtered);
-    }
-
-    function switchTab(t) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('t-'+t).classList.add('active');
-        document.querySelectorAll('.glass-card').forEach(s => s.classList.add('hidden'));
-        document.getElementById(t+'-section').classList.remove('hidden');
-    }
-
-    function toggleM(id) {
-        const menu = document.getElementById(id);
-        const isShowing = menu.classList.contains('show');
-        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
-        if(!isShowing) menu.classList.add('show');
-    }
-
+    function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('t-'+t).classList.add('active'); document.querySelectorAll('.glass-card').forEach(s => s.classList.add('hidden')); document.getElementById(t+'-section').classList.remove('hidden'); }
+    function toggleM(id) { const menu = document.getElementById(id); const isShowing = menu.classList.contains('show'); document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); if(!isShowing) menu.classList.add('show'); }
     async function approveNom(docId, bookId, collegeId, facName) { await db.collection("library_settings").doc(bookId).set({ recommendations: { [collegeId]: facName } }, { merge: true }); await db.collection("faculty_nominations").doc(docId).delete(); alert("Approved!"); }
     async function updateField(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
-    async function toggleAccess(id, coll, has) { 
-        const ref = db.collection("library_settings").doc(id); const doc = await ref.get(); 
-        let allowed = doc.data().allowedColleges || []; 
-        allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll]; 
-        await ref.update({ allowedColleges: allowed }); 
-    }
+    async function toggleAccess(id, coll, has) { const ref = db.collection("library_settings").doc(id); const doc = await ref.get(); let allowed = doc.data().allowedColleges || []; allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll]; await ref.update({ allowedColleges: allowed }); }
     async function registerBook() { const id = document.getElementById('reg-file-id').value.trim(); const title = document.getElementById('reg-file-title').value.trim(); if(id && title) await db.collection("library_settings").doc(id).set({ title, category: "Theology", allowedColleges: [], mission: false }); alert("Added!"); }
     async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
     async function processBulk() { const lines = document.getElementById('bulk-input').value.split('\n'); for(let l of lines) { const p = l.split(',').map(i=>i.trim()); if(p.length===5) await db.collection("users").add({ fullName:p[0], collegeId:p[1], studentId:p[2], password:p[3], role:p[4].toLowerCase(), createdAt: new Date().toISOString() }); } alert("Done!"); }
