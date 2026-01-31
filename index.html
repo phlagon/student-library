@@ -77,18 +77,29 @@
 
         <div class="main-layout">
             <div class="content-column">
+                <div class="glass-card" id="mission-box">
+                    <h3 style="margin-top:0; color:var(--green);">🌍 Mission Focus</h3>
+                    <div id="mission-list"></div>
+                </div>
+
                 <div class="glass-card" id="faculty-rec-box">
                     <h3 style="margin-top:0; color:var(--orange);">👨‍🏫 Faculty Recommendations</h3>
                     <div id="rec-list"></div>
                 </div>
-                <div class="glass-card"><h3>🕒 Recent Resources</h3><div id="recent-list"></div></div>
+
+                <div class="glass-card">
+                    <h3>🕒 Recent Resources</h3>
+                    <div id="recent-list"></div>
+                </div>
             </div>
+
             <div class="sidebar-column">
                 <div class="glass-card">
                     <h3>📂 Categories</h3>
                     <div style="display:grid; gap:8px;">
                         <div style="cursor:pointer; background:#0f172a; padding:12px; border-radius:12px; border:1px solid var(--border);" onclick="loadCat('Theology')">📖 Theology</div>
                         <div style="cursor:pointer; background:#0f172a; padding:12px; border-radius:12px; border:1px solid var(--border);" onclick="loadCat('History')">⛪ History</div>
+                        <div style="cursor:pointer; background:#0f172a; padding:12px; border-radius:12px; border:1px solid var(--border);" onclick="loadCat('Mission')">🌍 Mission</div>
                         <div style="cursor:pointer; background:#0f172a; padding:12px; border-radius:12px; border:1px solid var(--border);" onclick="loadCat('Bible')">📘 Bible</div>
                     </div>
                 </div>
@@ -134,10 +145,10 @@
             const snap = await db.collection("users").where("collegeId","==",collId).where("studentId","==",userId).where("password","==",pass).get();
             if(!snap.empty) {
                 const u = snap.docs[0].data();
-                const dbRole = u.role || 'student'; // Safety: Default to student if field missing
+                const dbRole = u.role || 'student'; // Safety check
                 
                 if(dbRole !== role) {
-                    alert(`Account found as ${dbRole}. Change login type.`); return;
+                    alert(`Account found as ${dbRole}. Switch login type.`); return;
                 }
                 
                 currentUser = { uid: snap.docs[0].id, ...u, role: dbRole };
@@ -169,14 +180,26 @@
 
         function loadLib() {
             db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).onSnapshot(snap => {
-                const list = document.getElementById('recent-list'); const full = document.getElementById('full-book-list');
-                list.innerHTML = ""; full.innerHTML = ""; collegeBooks = [];
+                const list = document.getElementById('recent-list'); 
+                const full = document.getElementById('full-book-list');
+                const misList = document.getElementById('mission-list');
+                list.innerHTML = ""; full.innerHTML = ""; misList.innerHTML = ""; collegeBooks = [];
+
                 snap.forEach(doc => {
                     const b = doc.data(); const id = doc.id;
                     const html = `<div class="book-item"><div class="book-info"><b>${b.title}</b><small>${b.category}</small></div>
                         <div class="btn-group"><button class="btn-preview" onclick="openPdf('${id}','${b.title}','Read Online')">Preview</button>
                         <button class="btn-preview" style="background:#475569" onclick="borrowB('${id}','${b.title}')">Borrow</button></div></div>`;
-                    collegeBooks.push({id, ...b}); full.innerHTML += html; list.innerHTML += html;
+                    
+                    collegeBooks.push({id, ...b});
+                    full.innerHTML += html;
+                    list.innerHTML += html;
+
+                    if(b.mission) {
+                        misList.innerHTML += `<div class="book-item" style="border-left:4px solid var(--green);">
+                            <div class="book-info"><b>${b.title}</b><small>Mission Resource</small></div>
+                            <div class="btn-group"><button class="btn-preview" onclick="openPdf('${id}','${b.title}','Read Online')">Preview</button></div></div>`;
+                    }
                 });
                 document.getElementById('top-total').innerText = snap.size;
             });
@@ -188,7 +211,7 @@
                 snap.forEach(doc => {
                     const b = doc.data();
                     box.innerHTML += `<div class="book-item" style="border-left:4px solid var(--orange);">
-                        <div class="book-info"><b>${b.title}</b><small>Recommended by: ${b.recommendations[currentUser.collegeId]}</small></div>
+                        <div class="book-info"><b>${b.title}</b><small>Suggested by: ${b.recommendations[currentUser.collegeId]}</small></div>
                         <div class="btn-group"><button class="btn-preview" onclick="openPdf('${doc.id}','${b.title}','Read Online')">Preview</button></div></div>`;
                 });
             });
