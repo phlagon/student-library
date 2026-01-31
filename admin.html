@@ -3,155 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theolib Admin | Secure Access</title>
+    <title>TheoLib Admin - Master Control</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0b1120; --card: #1e293b; --primary: #3b82f6; --text: #f8fafc; --danger: #ef4444; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        .card { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; }
-        .hidden { display: none; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
-        button { background: var(--primary); font-weight: bold; cursor: pointer; border: none; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .id-item { background: #334155; padding: 10px; margin: 5px 0; border-radius: 6px; cursor: pointer; text-align: center; border: 1px solid transparent; }
-        .id-item:hover { border-color: var(--primary); background: #1e293b; }
-        .details-box { padding: 15px; background: #0f172a; border-radius: 8px; border: 1px solid var(--primary); min-height: 150px; }
+        :root { --blue: #3b82f6; --orange: #f97316; --green: #10b981; --purple: #a855f7; --bg: #0b1120; --card-bg: #1e293b; --text-main: #f8fafc; --text-sub: #94a3b8; --border: #334155; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); }
+        #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; width: 90%; max-width: 350px; text-align: center; border: 1px solid var(--border); }
+        .login-field, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; font-family: inherit; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); transition: 0.3s; white-space: nowrap; }
+        .tab-btn.active { background: var(--blue); color: white; }
+        .glass-card { background: var(--card-bg); border-radius: 20px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; color: var(--text-sub); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .btn-sm { padding: 8px 15px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; }
+        .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; min-width: 180px; padding: 10px; top: 40px; }
+        .show { display: block; }
+        .dropdown-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 12px; }
+        .dropdown-item:hover { background: var(--blue); color: white; }
+        .hidden { display: none !important; }
+        .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Search Components */
+        .search-container { position: relative; margin-bottom: 20px; }
+        .search-bar { width: 100%; padding: 14px 20px; border-radius: 15px; background: #0f172a; border: 1px solid var(--border); color: white; outline: none; font-family: inherit; }
+        #search-suggestions { position: absolute; top: 55px; width: 100%; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; z-index: 200; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        
+        /* Pop-up Overlay */
+        #search-results-popup { position: fixed; inset: 0; background: rgba(11, 17, 32, 0.95); z-index: 6000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(5px); }
+        .popup-content { background: var(--card-bg); width: 100%; max-width: 800px; border-radius: 24px; border: 1px solid var(--border); max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+        .popup-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .popup-body { padding: 20px; overflow-y: auto; flex: 1; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="loginSection" class="card" style="max-width: 400px; margin: 100px auto;">
-        <h2 style="text-align: center;">Admin Login</h2>
-        <input type="password" id="adminPass" placeholder="Enter Admin Password">
-        <button onclick="checkLogin()">Access Panel</button>
-        <p id="loginError" style="color: var(--danger); text-align: center;"></p>
-    </div>
-
-    <div id="adminContent" class="hidden">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1 style="color: var(--primary);">Master Control</h1>
-            <button onclick="location.reload()" style="width: auto; padding: 5px 15px; background: #334155;">Logout</button>
-        </div>
-
-        <div class="grid">
-            <div class="card">
-                <h3>Member Directory</h3>
-                <label>Select Department:</label>
-                <select id="deptSelect" onchange="fetchIDs()">
-                    <option value="">-- Select --</option>
-                    <option value="Theology">Theology</option>
-                    <option value="Arts">Arts</option>
-                    <option value="Science">Science</option>
-                </select>
-                <div id="idList" style="margin-top: 15px; max-height: 300px; overflow-y: auto;">
-                    </div>
-            </div>
-
-            <div class="card">
-                <h3>Profile Information</h3>
-                <div id="detailsView" class="details-box">
-                    Select a College ID to view member data.
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>Book Inventory</h3>
-            <input type="text" id="bookSearch" placeholder="Search books..." onkeyup="searchBooks()">
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-                <thead>
-                    <tr style="text-align: left; color: var(--primary);">
-                        <th>Title</th><th>Author</th><th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="bookTable"></tbody>
-            </table>
-        </div>
+<div id="auth-overlay">
+    <div class="login-card">
+        <h2 style="color:var(--blue)">Admin Control</h2>
+        <input type="text" id="admin-coll-id" class="login-field" placeholder="College ID">
+        <input type="password" id="admin-pass" class="login-field" placeholder="Password">
+        <button class="btn-sm" style="background:var(--blue); color:white; width:100%; padding:15px; border-radius:12px;" onclick="handleAdminLogin()">Login to Master Panel</button>
     </div>
 </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<div id="master-panel" class="hidden">
+    <div class="nav-tabs">
+        <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">Inventory</button>
+        <button id="t-nom" class="tab-btn" onclick="switchTab('nom')">Nominations</button>
+        <button id="t-mem" class="tab-btn" onclick="switchTab('mem')">Management</button>
+        <button id="t-stud" class="tab-btn" onclick="switchTab('stud')">Members</button>
+        <button class="tab-btn" style="background:#ef4444; color:white; margin-left:auto;" onclick="location.reload()">Logout</button>
+    </div>
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg",
-        authDomain: "student-library-4a4e7.firebaseapp.com",
-        projectId: "student-library-4a4e7",
-        storageBucket: "student-library-4a4e7.firebasestorage.app",
-        messagingSenderId: "827419448917",
-        appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc"
+    <div id="inv-section" class="glass-card">
+        <div class="search-container">
+            <input type="text" id="inv-search" class="search-bar" placeholder="🔍 Search book title... (Press Enter for results)" 
+                oninput="handleSearchInput(this.value)" 
+                onkeydown="if(event.key==='Enter') triggerSearchPopUp(this.value)">
+            <div id="search-suggestions" class="hidden"></div>
+        </div>
+
+        <table>
+            <thead><tr><th>Resource</th><th>Access</th><th>Management</th><th>Delete</th></tr></thead>
+            <tbody id="inventory-list"></tbody>
+        </table>
+    </div>
+
+    <div id="nom-section" class="hidden glass-card"><h2>📥 Nominations</h2><div id="nomination-list"></div></div>
+
+    <div id="mem-section" class="hidden glass-card">
+        <h3 style="margin-top:0;">👥 College Members</h3>
+        <select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;">
+            <option value="">Select College</option>
+            <option value="IMC26">IMC26</option>
+            <option value="ASLIN26">ASLIN26</option>
+        </select>
+        <div id="user-folders-list"></div>
+    </div>
+
+    <div id="stud-section" class="hidden glass-card">
+        <h2>📤 Bulk Upload</h2>
+        <textarea id="bulk-input" class="login-field" style="height:150px;" placeholder="Name, CollID, ID, Pass, Role"></textarea>
+        <button class="btn-sm" style="background:var(--blue); color:white; width:100%;" onclick="processBulk()">Bulk Upload</button>
+    </div>
+</div>
+
+<div id="search-results-popup" class="hidden">
+    <div class="popup-content">
+        <div class="popup-header"><h3>🔎 Search Results</h3><button class="btn-sm" style="background:#ef4444; color:white;" onclick="closeSearchPopUp()">Close</button></div>
+        <div class="popup-body"><table><thead><tr><th>Title</th><th>Category</th><th>Action</th></tr></thead><tbody id="popup-results-list"></tbody></table></div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", 
+        authDomain: "theolib.in", 
+        projectId: "student-library-4a4e7", 
+        storageBucket: "student-library-4a4e7.firebasestorage.app", 
+        messagingSenderId: "827419448917", 
+        appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" 
     };
+    firebase.initializeApp(firebaseConfig); 
+    const db = firebase.firestore();
+    const adminAccounts = { "aslin": "Phlagon@28", "IMC26": "IMC26@theo", "ASLIN26": "ASL@theo" };
+    let fullInventory = [];
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    // --- LOGIN LOGIC ---
+    function handleAdminLogin() {
+        const cid = document.getElementById('admin-coll-id').value.trim();
+        const pass = document.getElementById('admin-pass').value.trim();
+        if (adminAccounts[cid] && adminAccounts[cid] === pass) {
+            document.getElementById('auth-overlay').classList.add('hidden');
+            document.getElementById('master-panel').classList.remove('hidden');
+            initAdmin();
+        } else { alert("Access Denied"); }
+    }
 
-    // LOGIN LOGIC
-    window.checkLogin = function() {
-        const pass = document.getElementById('adminPass').value;
-        if(pass === "admin123") { // SET YOUR PASSWORD HERE
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('adminContent').classList.remove('hidden');
-            loadBooks();
-        } else {
-            document.getElementById('loginError').innerText = "Incorrect Password";
-        }
-    };
-
-    // FETCH COLLEGE IDs BASED ON DEPT
-    window.fetchIDs = async function() {
-        const dept = document.getElementById('deptSelect').value;
-        const list = document.getElementById('idList');
-        list.innerHTML = "Loading IDs...";
-        
-        const q = query(collection(db, "members"), where("department", "==", dept));
-        const snap = await getDocs(q);
-        list.innerHTML = "";
-
-        snap.forEach(d => {
-            const m = d.data();
-            const item = document.createElement('div');
-            item.className = 'id-item';
-            item.innerText = m.collegeId; // Shows the ID as requested
-            item.onclick = () => showMember(m);
-            list.appendChild(item);
-        });
-    };
-
-    // SHOW MEMBER DETAILS
-    window.showMember = function(m) {
-        document.getElementById('detailsView').innerHTML = `
-            <h3 style="color: var(--primary); margin-top:0;">${m.name}</h3>
-            <p><strong>ID:</strong> ${m.collegeId}</p>
-            <p><strong>Dept:</strong> ${m.department}</p>
-            <p><strong>Status:</strong> ${m.isApproved ? "Approved" : "Pending"}</p>
-            <button class="btn-danger" style="width: auto; padding: 5px 10px;">Remove Member</button>
-        `;
-    };
-
-    // INVENTORY LOGIC
-    async function loadBooks() {
-        const snap = await getDocs(collection(db, "books"));
-        const body = document.getElementById('bookTable');
-        body.innerHTML = "";
-        snap.forEach(d => {
-            const b = d.data();
-            body.innerHTML += `<tr><td>${b.title}</td><td>${b.author}</td>
-            <td><button style="background:var(--danger); padding:2px 8px;" onclick="deleteBook('${d.id}')">Delete</button></td></tr>`;
+    // --- INITIALIZE DATA ---
+    function initAdmin() {
+        db.collection("library_settings").onSnapshot(snap => {
+            fullInventory = [];
+            const list = document.getElementById('inventory-list'); 
+            list.innerHTML = "";
+            snap.forEach(doc => {
+                const b = doc.data(); const id = doc.id;
+                fullInventory.push({ id, ...b });
+                const allowed = b.allowedColleges || [];
+                list.innerHTML += `<tr><td><b>${b.title}</b></td><td><small>${allowed.join(', ')}</small></td><td><button class="btn-sm" style="background:var(--purple); color:white;" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">${Object.keys(adminAccounts).filter(c=>c!=='aslin').map(c => `<div class="dropdown-item" onclick="toggleAccess('${id}','${c}',${allowed.includes(c)})">${c} ${allowed.includes(c)?'✅':''}</div>`).join('')}</div></td><td><button class="btn-sm" style="background:#ef4444; color:white;" onclick="deletePDF('${id}')">🗑️</button></td></tr>`;
+            });
         });
     }
 
-    window.searchBooks = function() {
-        const val = document.getElementById('bookSearch').value.toLowerCase();
-        const rows = document.querySelectorAll('#bookTable tr');
-        rows.forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? "" : "none");
-    };
+    // --- SEARCH LOGIC ---
+    function handleSearchInput(val) {
+        const suggestions = document.getElementById('search-suggestions');
+        if (!val.trim()) { suggestions.classList.add('hidden'); return; }
+        const matches = fullInventory.filter(b => b.title.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
+        if (matches.length === 0) { suggestions.classList.add('hidden'); return; }
+        suggestions.innerHTML = matches.map(m => `<div class="dropdown-item" onclick="triggerSearchPopUp('${m.title}')">${m.title}</div>`).join('');
+        suggestions.classList.remove('hidden');
+    }
 
-    window.deleteBook = async (id) => {
-        if(confirm("Delete book?")) { await deleteDoc(doc(db, "books", id)); loadBooks(); }
-    };
+    function triggerSearchPopUp(query) {
+        document.getElementById('search-suggestions').classList.add('hidden');
+        const list = document.getElementById('popup-results-list');
+        const results = fullInventory.filter(b => b.title.toLowerCase().includes(query.toLowerCase()));
+        list.innerHTML = results.length ? "" : "<tr><td colspan='3'>No matches</td></tr>";
+        results.forEach(b => {
+            list.innerHTML += `<tr><td><b>${b.title}</b></td><td>${b.category || 'N/A'}</td><td><button class="btn-sm" style="background:var(--blue); color:white;" onclick="closeSearchPopUp()">Select</button></td></tr>`;
+        });
+        document.getElementById('search-results-popup').classList.remove('hidden');
+    }
 
+    // --- MANAGEMENT LOGIC (FIXED: SHOWS COLLEGE IDs) ---
+    async function loadCollegeStudents(cid) {
+        if(!cid) return;
+        const list = document.getElementById('user-folders-list');
+        list.innerHTML = "Loading...";
+        try {
+            const snap = await db.collection("users").where("collegeId", "==", cid).get();
+            list.innerHTML = snap.empty ? "No members found." : "";
+            snap.forEach(doc => {
+                const u = doc.data();
+                // Shows College ID primarily as requested
+                list.innerHTML += `<div class="user-folder"><span><b>ID: ${u.studentId || u.collegeId}</b></span><small>${u.fullName}</small></div>`;
+            });
+        } catch (e) { list.innerHTML = "Error loading database."; }
+    }
+
+    function closeSearchPopUp() { document.getElementById('search-results-popup').classList.add('hidden'); }
+    function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('t-'+t).classList.add('active'); document.querySelectorAll('.glass-card').forEach(s => s.classList.add('hidden')); document.getElementById(t+'-section').classList.remove('hidden'); }
+    function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => { if(m.id !== id) m.classList.remove('show'); }); document.getElementById(id).classList.toggle('show'); }
+    async function toggleAccess(id, coll, has) { const ref = db.collection("library_settings").doc(id); const doc = await ref.get(); let allowed = doc.data().allowedColleges || []; allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll]; await ref.update({ allowedColleges: allowed }); }
+    async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
+    async function processBulk() { const lines = document.getElementById('bulk-input').value.split('\n'); for(let l of lines) { const p = l.split(',').map(i=>i.trim()); if(p.length===5) await db.collection("users").add({ fullName:p[0], collegeId:p[1], studentId:p[2], password:p[3], role:p[4].toLowerCase(), createdAt: new Date().toISOString() }); } alert("Done!"); }
 </script>
 </body>
 </html>
