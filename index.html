@@ -19,9 +19,9 @@
         .btn-preview { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; margin-top: 5px; }
         #auth-screen, #profile-overlay, #reader-overlay, #full-lib-view, #borrow-view, #search-results-overlay, .full-modal { position: fixed; inset: 0; z-index: 9000; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
         .hidden { display: none !important; }
-        .dropdown { position: relative; margin-bottom: 15px; }
-        .dropdown-btn { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 12px; width: 100%; text-align: left; color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .dropdown-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; margin-top: 5px; display: none; overflow: hidden; }
+        .dropdown { position: relative; margin-bottom: 15px; width: 100%; }
+        .dropdown-btn { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 12px; width: 100%; text-align: left; color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
+        .dropdown-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; margin-top: 5px; display: none; overflow: hidden; width: 100%; box-sizing: border-box; }
         .dropdown.active .dropdown-content { display: block; }
         .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 13px; }
         .dropdown-item:hover { background: #0f172a; color: var(--blue); }
@@ -41,7 +41,7 @@
             <input type="text" id="login-coll-id" class="login-field" placeholder="College ID">
             <input type="text" id="login-user-id" class="login-field" placeholder="User ID">
             <input type="password" id="login-pass" class="login-field" placeholder="Password">
-            <button onclick="handleLogin()" style="background:var(--blue); color:white; border:none; width:100%; padding:15px; border-radius:12px; font-weight:600;">Enter Portal</button>
+            <button onclick="handleLogin()" style="background:var(--blue); color:white; border:none; width:100%; padding:15px; border-radius:12px; font-weight:600; cursor:pointer;">Enter Portal</button>
         </div>
     </div>
 
@@ -57,9 +57,10 @@
             <div class="stat-card" style="background:var(--purple)" onclick="toggleProfile()"><h4>Profile</h4><p>U</p></div>
         </div>
 
-        <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap: 15px;">
+        <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap: 15px; align-items: start;">
             <div>
                 <input type="text" id="lib-search" class="login-field" placeholder="🔍 Search library..." oninput="mirrorTyping(this.value)">
+                
                 <div class="dropdown" id="cat-dropdown">
                     <div class="dropdown-btn" onclick="toggleDropdown()"><span>📂 Categories (7 Folders)</span> <span>▼</span></div>
                     <div class="dropdown-content">
@@ -72,9 +73,11 @@
                         <div class="dropdown-item" onclick="loadCat('Other Books')">📚 Other Books</div>
                     </div>
                 </div>
+
                 <div class="glass-card"><h3>🕒 Recent</h3><div id="recent-list"></div></div>
                 <div class="glass-card"><h3>🔥 Trending</h3><div id="trending-list"></div></div>
             </div>
+
             <div>
                 <div class="glass-card" style="border-color: var(--purple);">
                     <h4>💡 Suggestions</h4>
@@ -93,11 +96,10 @@
 
     <div id="profile-overlay" class="hidden">
         <div class="glass-card" style="max-width:350px; margin:auto; text-align:center;">
-            <h2 id="p-name">Name</h2>
-            <div id="p-role-box" style="background:var(--blue); display:inline-block; padding:5px 15px; border-radius:20px; font-size:11px; font-weight:800; margin-bottom:15px;">ROLE</div>
+            <h2 id="p-name"></h2><div id="p-role-box" style="background:var(--blue); display:inline-block; padding:5px 15px; border-radius:20px; font-size:11px; font-weight:800; margin-bottom:15px;"></div>
             <div style="text-align:left; font-size:13px; margin-bottom:20px; border-top:1px solid var(--border); padding-top:15px;">
-                <p><b>College ID:</b> <span id="p-coll-id-display">--</span></p>
-                <p><b>User ID:</b> <span id="p-user-id-display">--</span></p>
+                <p><b>College ID:</b> <span id="p-coll-id-display"></span></p>
+                <p><b>User ID:</b> <span id="p-user-id-display"></span></p>
             </div>
             <button onclick="toggleProfile()" class="btn-preview">Back</button>
             <button onclick="handleLogout()" style="background:red; margin-top:10px;" class="btn-preview">Logout</button>
@@ -112,18 +114,10 @@
         <div id="search-results-list" style="padding:20px;"></div>
     </div>
 
-    <div id="contact-modal" class="full-modal hidden">
-        <div class="glass-card" style="max-width:400px; margin:auto;">
-            <h3>Contact Administrator</h3>
-            <textarea id="con-msg" placeholder="Your Message..." style="height:120px;"></textarea>
-            <button class="btn-preview" style="width:100%; padding:15px;" onclick="submitContact()">Send Message</button>
-            <button class="btn-preview" style="background:none; border:1px solid var(--border); width:100%; margin-top:10px;" onclick="closeContactModal()">Cancel</button>
-        </div>
-    </div>
-
+    <div id="reader-overlay" class="hidden"><div style="background:#1e293b; padding:15px; display:flex; justify-content:space-between;"><span id="reader-title"></span><button onclick="closeReader()" style="background:red; color:white; border:none; padding:8px 12px; border-radius:5px;">Exit</button></div><iframe id="pdf-frame" style="width:100%; height:100%; border:none;"></iframe></div>
     <div id="full-lib-view" class="hidden"><div style="display:flex; justify-content:space-between; padding:20px;"><h3>📚 Books</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list" style="padding:20px;"></div></div>
     <div id="borrow-view" class="hidden"><div style="display:flex; justify-content:space-between; padding:20px;"><h3>📥 Issued</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-list" style="padding:20px;"></div></div>
-    <div id="reader-overlay" class="hidden"><div style="background:#1e293b; padding:15px; display:flex; justify-content:space-between;"><span id="reader-title"></span><button onclick="closeReader()" style="background:red; color:white; border:none; padding:8px 12px; border-radius:5px;">Exit</button></div><iframe id="pdf-frame" style="width:100%; height:100%; border:none;"></iframe></div>
+    <div id="contact-modal" class="full-modal hidden"><div class="glass-card" style="max-width:400px; margin:auto;"><h3>Contact Administrator</h3><textarea id="con-msg" placeholder="Your Message..." style="height:120px;"></textarea><button class="btn-preview" style="width:100%; padding:15px;" onclick="submitContact()">Send</button><button class="btn-preview" style="background:none; border:1px solid var(--border); width:100%; margin-top:10px;" onclick="closeContactModal()">Cancel</button></div></div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
@@ -139,11 +133,10 @@
         });
 
         async function handleLogin() {
-            const role = document.getElementById('login-role').value, cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
+            const r = document.getElementById('login-role').value, cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
             const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).get();
             if(!snap.empty) {
-                const u = snap.docs[0].data();
-                if((u.role || 'student') !== role) { alert("Invalid role"); return; }
+                const u = snap.docs[0].data(); if((u.role || 'student') !== r) { alert("Wrong Role"); return; }
                 currentUser = { uid: snap.docs[0].id, ...u };
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
                 initSystem(); await startTracking("Usage", "Dashboard Session");
@@ -199,17 +192,16 @@
             }
         }
 
-        async function nominate(id, t) { await db.collection("admin_messages").add({ type: "Nomination", book: t, user: currentUser.fullName, college: currentUser.collegeId, date: Date.now() }); alert("Sent!"); }
-        async function submitContact() { const m = document.getElementById('con-msg').value; if(!m) return; await db.collection("admin_messages").add({ type: "Helpdesk", college: currentUser.collegeId, message: m, user: currentUser.fullName, date: Date.now() }); alert("Sent!"); closeContactModal(); }
-        async function submitSuggestion() { const s = document.getElementById('feat-suggest').value; if(!s) return; await db.collection("admin_messages").add({ type: "Suggestion", message: s, user: currentUser.fullName, date: Date.now() }); alert("Sent!"); document.getElementById('feat-suggest').value = ""; }
-        async function submitRequest() { const b = document.getElementById('req-book').value; if(!b) return; await db.collection("admin_messages").add({ type: "Request", book: b, user: currentUser.fullName, college: currentUser.collegeId, date: Date.now() }); alert("Sent!"); document.getElementById('req-book').value = ""; }
-
         function toggleDropdown() { document.getElementById('cat-dropdown').classList.toggle('active'); }
         function loadCat(cat) { const list = document.getElementById('full-book-list'); list.innerHTML = ""; collegeBooks.filter(b => b.category === cat).forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); document.getElementById('cat-dropdown').classList.remove('active'); }
         function toggleProfile() { document.getElementById('p-name').innerText = currentUser.fullName; document.getElementById('p-role-box').innerText = currentUser.role.toUpperCase(); document.getElementById('p-coll-id-display').innerText = currentUser.collegeId; document.getElementById('p-user-id-display').innerText = currentUser.studentId; document.getElementById('profile-overlay').classList.toggle('hidden'); }
         function openPdfPreview(id, t) { stopTracking(); startTracking("Online Read", t); document.getElementById('reader-title').innerText = t + " (Preview)"; document.getElementById('pdf-frame').src = `/public/${id}_read_online.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
-        function openFullPdf(id, t) { stopTracking(); startTracking("Borrowed Read", t); document.getElementById('reader-title').innerText = t + " (Full)"; document.getElementById('pdf-frame').src = `/public/${id}.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
+        function openFullPdf(id, t) { stopTracking(); startTracking("Full Read", t); document.getElementById('reader-title').innerText = t + " (Full)"; document.getElementById('pdf-frame').src = `/public/${id}.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
         async function borrowBook(id, t) { await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, date: Date.now() }); alert("Issued!"); }
+        async function nominate(id, t) { await db.collection("admin_messages").add({ type: "Nomination", book: t, user: currentUser.fullName, college: currentUser.collegeId, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); }
+        async function submitContact() { const m = document.getElementById('con-msg').value; if(!m) return; await db.collection("admin_messages").add({ type: "Helpdesk", college: currentUser.collegeId, message: m, user: currentUser.fullName, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); closeContactModal(); }
+        async function submitSuggestion() { const s = document.getElementById('feat-suggest').value; if(!s) return; await db.collection("admin_messages").add({ type: "Suggestion", message: s, user: currentUser.fullName, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); document.getElementById('feat-suggest').value = ""; }
+        async function submitRequest() { const b = document.getElementById('req-book').value; if(!b) return; await db.collection("admin_messages").add({ type: "Request", book: b, user: currentUser.fullName, college: currentUser.collegeId, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); document.getElementById('req-book').value = ""; }
         function closeReader() { stopTracking(); startTracking("Usage", "Dashboard Session"); document.getElementById('reader-overlay').classList.add('hidden'); }
         function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
         function showFullLibrary() { const list = document.getElementById('full-book-list'); list.innerHTML = ""; collegeBooks.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); }
