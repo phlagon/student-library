@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TheoLib - Final Master Portal</title>
+    <title>TheoLib - Library Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -14,17 +14,18 @@
         .glass-card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid var(--border); margin-bottom: 15px; }
         .stat-card { padding: 15px; border-radius: 15px; color: white; text-align: center; cursor: pointer; }
         .stat-card p { font-size: 20px; margin: 5px 0 0; font-weight: 800; }
-        .book-item { background: #0f172a; padding: 15px; border-radius: 15px; border: 1px solid var(--border); margin-bottom: 12px; }
+        .book-item { background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .login-field, select, textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; font-family: inherit; }
-        .btn-preview { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; margin-top: 5px; }
+        .btn-preview { background: var(--blue); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; }
         #auth-screen, #profile-overlay, #reader-overlay, #full-lib-view, #borrow-view, #search-results-overlay, .full-modal { position: fixed; inset: 0; z-index: 9000; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
         .hidden { display: none !important; }
-        .cat-item { cursor: pointer; background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 13px; text-align: center; }
+        .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .cat-item { cursor: pointer; background: #162033; padding: 12px; border-radius: 12px; border: 1px solid var(--border); font-size: 13px; text-align: center; transition: 0.3s; }
+        .cat-item:hover { border-color: var(--blue); background: #1e293b; }
         .time-header { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .time-box { background: var(--card-bg); border: 1px solid var(--border); padding: 10px; border-radius: 15px; text-align: center; }
         .time-val { font-family: monospace; font-weight: 800; font-size: 16px; }
         .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .paused .status-dot { background: #ef4444; }
     </style>
 </head>
 <body>
@@ -54,32 +55,51 @@
 
         <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap: 15px;">
             <div>
-                <div class="glass-card"><h3>📚 Categories</h3>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                <div class="search-container" style="position: relative; margin-bottom: 15px;">
+                    <input type="text" id="lib-search" class="login-field" style="margin-bottom:0;" placeholder="🔍 Search title or category..." oninput="showSug(this.value)">
+                    <div id="search-suggestions" class="hidden" style="position:absolute; top:50px; width:100%; background:var(--card-bg); border:1px solid var(--border); border-radius:10px; z-index:10000; max-height:200px; overflow-y:auto;"></div>
+                </div>
+
+                <div class="glass-card">
+                    <h3 style="margin-top:0;">📚 Categories</h3>
+                    <div class="cat-grid">
                         <div class="cat-item" onclick="loadCat('Theology')">📖 Theology</div>
-                        <div class="cat-item" onclick="loadCat('Church History')">⛪ History</div>
+                        <div class="cat-item" onclick="loadCat('History')">⛪ History</div>
                         <div class="cat-item" onclick="loadCat('Mission')">🌍 Mission</div>
-                        <div class="cat-item" onclick="loadCat('Bible Intro')">📘 Bible</div>
+                        <div class="cat-item" onclick="loadCat('Bible')">📘 Bible</div>
                         <div class="cat-item" onclick="loadCat('Acts')">📜 Acts</div>
-                        <div class="cat-item" onclick="loadCat('Other Books')">📚 Others</div>
+                        <div class="cat-item" onclick="loadCat('Others')">📚 Others</div>
                     </div>
                 </div>
-                <div class="glass-card" style="border-color: var(--orange);">
-                    <h3 style="margin-top:0; color:var(--orange);">📖 Request a Book</h3>
-                    <input type="text" id="req-book" placeholder="Book Name (Mandatory)" class="login-field">
-                    <input type="text" id="req-author" placeholder="Author Name" class="login-field">
-                    <button class="btn-preview" style="background:var(--orange); width:100%;" onclick="submitRequest()">Submit Request</button>
+
+                <div class="glass-card">
+                    <h3 style="margin-top:0; color:var(--purple);">🔥 Trending</h3>
+                    <div id="trending-list"></div>
+                </div>
+
+                <div class="glass-card">
+                    <h3 style="margin-top:0; color:var(--green);">🕒 Recently Added</h3>
+                    <div id="recent-list"></div>
                 </div>
             </div>
+
             <div>
                 <div class="glass-card" style="border-color: var(--purple);">
                     <h4 style="margin:0; color:var(--purple);">💡 Suggestions</h4>
                     <textarea id="feat-suggest" style="height:80px; margin-top:10px;" placeholder="Features..."></textarea>
                     <button class="btn-preview" style="background:var(--purple); width:100%;" onclick="submitSuggestion()">Send</button>
                 </div>
+
                 <div class="glass-card">
-                    <h4>📞 Helpdesk</h4>
-                    <button class="btn-preview" style="width:100%;" onclick="showContactModal()">Contact Us</button>
+                    <h4 style="margin:0;">📞 Helpdesk</h4>
+                    <button class="btn-preview" style="width:100%; margin-top:10px;" onclick="showContactModal()">Contact Us</button>
+                </div>
+
+                <div class="glass-card" style="border-color: var(--orange);">
+                    <h4 style="margin:0; color:var(--orange);">📖 Request a Book</h4>
+                    <input type="text" id="req-book" placeholder="Book Name (Mandatory)" class="login-field" style="margin-top:10px;">
+                    <input type="text" id="req-author" placeholder="Author Name" class="login-field">
+                    <button class="btn-preview" style="background:var(--orange); width:100%;" onclick="submitRequest()">Submit Request</button>
                 </div>
             </div>
         </div>
@@ -87,115 +107,104 @@
 
     <div id="full-lib-view" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📚 All Books</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list"></div></div>
     <div id="borrow-view" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📥 Issued Books</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-list"></div></div>
-    
-    <div id="profile-overlay" class="hidden">
-        <div class="glass-card" style="max-width:350px; margin:auto; text-align:center;">
-            <h2 id="prof-name">Name</h2>
-            <div id="prof-role" style="background:var(--blue); display:inline-block; padding:5px 15px; border-radius:20px; font-size:11px; margin-bottom:15px;">ROLE</div>
-            <div style="text-align:left; font-size:12px;">
-                <p><b>College ID:</b> <span id="p-coll-id"></span></p>
-                <p><b>User ID:</b> <span id="p-stud-id"></span></p>
-            </div>
-            <button onclick="toggleProfile()" class="btn-preview">Back</button>
-            <button onclick="handleLogout()" style="background:red; margin-top:10px; width:100%;" class="btn-preview">Logout</button>
-        </div>
-    </div>
-
-    <div id="contact-modal" class="full-modal hidden">
-        <div class="glass-card" style="max-width:400px; margin:auto;">
-            <h3>Contact Super Admin</h3>
-            <input type="text" id="con-coll" placeholder="College Name" class="login-field">
-            <input type="text" id="con-num" placeholder="Phone Number" class="login-field">
-            <textarea id="con-msg" placeholder="Message..." style="height:100px;"></textarea>
-            <button class="btn-preview" style="width:100%;" onclick="submitContact()">Send</button>
-            <button class="btn-preview" style="background:none; border:1px solid var(--border); width:100%; margin-top:10px;" onclick="closeContactModal()">Cancel</button>
-        </div>
-    </div>
-
+    <div id="search-results-overlay" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>🔎 Results</h3><button onclick="closeSearchView()" class="btn-preview">Back</button></div><div id="search-results-list"></div></div>
     <div id="reader-overlay" class="hidden"><div style="background:#1e293b; padding:15px; display:flex; justify-content:space-between; align-items:center;"> <span id="reader-title"></span> <button onclick="closeReader()" style="background:red; color:white; border:none; padding:8px 12px; border-radius:5px;">Exit</button> </div> <iframe id="pdf-frame" style="width:100%; height:100%; border:none;"></iframe></div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
-        let currentUser = null; let collegeBooks = []; let sessionSeconds = 0; let isActive = true;
-        let trackingState = { activeDocId: null, type: "Total App Usage", title: "Login Session" };
-
-        // PAUSE LOGIC
-        document.addEventListener("visibilitychange", async () => {
-            isActive = !document.hidden;
-            document.getElementById('session-box').classList.toggle('paused', !isActive);
-            if (!isActive) await stopTracking();
-            else if (currentUser) await startTracking(trackingState.type, trackingState.title);
-        });
+        let currentUser = null; let collegeBooks = []; let sessionSeconds = 0;
 
         async function handleLogin() {
             const r = document.getElementById('login-role').value, cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
             const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).get();
             if(!snap.empty) {
-                const u = snap.docs[0].data(); if((u.role || 'student') !== r) { alert("Wrong Role"); return; }
-                currentUser = { uid: snap.docs[0].id, ...u };
+                currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
-                initSystem(); await startTracking("Total App Usage", "Login Session");
+                initSystem();
             } else { alert("Login Failed"); }
         }
 
         function initSystem() {
-            setInterval(() => { if(isActive) { sessionSeconds++; updCl('session-clock', sessionSeconds); } }, 1000);
+            setInterval(() => { sessionSeconds++; updCl('session-clock', sessionSeconds); }, 1000);
             setInterval(() => { document.getElementById('real-time-clock').innerText = new Date().toLocaleTimeString([], {hour12: false}); }, 1000);
-            loadBooks(); listenIssued();
+            loadLibrary();
         }
 
         function updCl(id, s) { const h = Math.floor(s/3600).toString().padStart(2,'0'), m = Math.floor((s%3600)/60).toString().padStart(2,'0'), sec = (s%60).toString().padStart(2,'0'); document.getElementById(id).innerText = `${h}:${m}:${sec}`; }
 
-        function loadBooks() {
+        function loadLibrary() {
             db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).onSnapshot(snap => {
-                collegeBooks = []; snap.forEach(doc => collegeBooks.push({id: doc.id, ...doc.data()}));
-                document.getElementById('top-total').innerText = collegeBooks.length;
+                collegeBooks = [];
+                const rec = document.getElementById('recent-list'), trend = document.getElementById('trending-list');
+                rec.innerHTML = ""; trend.innerHTML = "";
+                snap.forEach(doc => {
+                    const b = doc.data(); const bookData = {id: doc.id, ...b};
+                    collegeBooks.push(bookData);
+                    const html = `<div class="book-item"><span><b>${b.title}</b><br><small>${b.category}</small></span><button class="btn-preview" onclick="openPdf('${doc.id}','${b.title}')">Read</button></div>`;
+                    rec.innerHTML += html;
+                    if(b.recent) trend.innerHTML += html;
+                });
+                document.getElementById('top-total').innerText = snap.size;
             });
-        }
-
-        function listenIssued() {
             db.collection("borrows").where("userId","==",currentUser.uid).onSnapshot(snap => {
-                const list = document.getElementById('borrow-list'); list.innerHTML = "";
-                snap.forEach(doc => { const d = doc.data(); list.innerHTML += `<div class="book-item"><b>${d.title}</b><br><button class="btn-preview" onclick="openFullPdf('${d.bookId}','${d.title}')">Open Full Book</button></div>`; });
                 document.getElementById('top-issued').innerText = snap.size;
+                const list = document.getElementById('borrow-list'); list.innerHTML = "";
+                snap.forEach(doc => { list.innerHTML += `<div class="book-item"><b>${doc.data().title}</b><button class="btn-preview" onclick="openPdf('${doc.data().bookId}','${doc.data().title}')">Open</button></div>`; });
             });
         }
 
-        function loadCat(cat) {
-            const list = document.getElementById('full-book-list'); list.innerHTML = "";
-            const filtered = collegeBooks.filter(b => b.category === cat);
-            filtered.forEach(b => { list.innerHTML += `<div class="book-item"><b>${b.title}</b><br><button class="btn-preview" onclick="openPdf('${b.id}','${b.title}')">Preview</button></div>`; });
+        function showSug(v) {
+            const b = document.getElementById('search-suggestions'); if(!v.trim()){b.classList.add('hidden'); return;}
+            const f = collegeBooks.filter(x => x.title.toLowerCase().includes(v.toLowerCase()) || x.category.toLowerCase().includes(v.toLowerCase()));
+            b.innerHTML = f.map(x => `<div style="padding:12px; border-bottom:1px solid var(--border); cursor:pointer;" onclick="triggerSearch('${x.title}')">${x.title} <small>(${x.category})</small></div>`).join('');
+            b.classList.toggle('hidden', f.length === 0);
+        }
+
+        function triggerSearch(t) {
+            document.getElementById('search-suggestions').classList.add('hidden');
+            const l = document.getElementById('search-results-list'); l.innerHTML = "";
+            collegeBooks.filter(x => x.title.toLowerCase().includes(t.toLowerCase())).forEach(x => {
+                l.innerHTML += `<div class="book-item"><b>${x.title}</b><button class="btn-preview" onclick="openPdf('${x.id}','${x.title}')">Read</button></div>`;
+            });
+            document.getElementById('search-results-overlay').classList.remove('hidden');
+        }
+
+        function loadCat(c) {
+            const l = document.getElementById('full-book-list'); l.innerHTML = "";
+            collegeBooks.filter(x => x.category === c).forEach(x => {
+                l.innerHTML += `<div class="book-item"><b>${x.title}</b><button class="btn-preview" onclick="openPdf('${x.id}','${x.title}')">Read</button></div>`;
+            });
             document.getElementById('full-lib-view').classList.remove('hidden');
         }
 
         function showFullLibrary() {
-            const list = document.getElementById('full-book-list'); list.innerHTML = "";
-            collegeBooks.forEach(b => { list.innerHTML += `<div class="book-item"><b>${b.title}</b><br><button class="btn-preview" onclick="openPdf('${b.id}','${b.title}')">Preview</button></div>`; });
+            const l = document.getElementById('full-book-list'); l.innerHTML = "";
+            collegeBooks.forEach(x => {
+                l.innerHTML += `<div class="book-item"><b>${x.title}</b><button class="btn-preview" onclick="openPdf('${x.id}','${x.title}')">Read</button></div>`;
+            });
             document.getElementById('full-lib-view').classList.remove('hidden');
         }
 
-        async function startTracking(type, title) {
-            trackingState.type = type; trackingState.title = title;
-            const log = await db.collection("activity_logs").add({ userId: currentUser.uid, type: type, startTime: Date.now(), endTime: null, activity: title });
-            trackingState.activeDocId = log.id;
+        async function submitRequest() { 
+            const b = document.getElementById('req-book').value; if(!b) return;
+            await db.collection("admin_messages").add({ type: "Request", book: b, user: currentUser.fullName, college: currentUser.collegeId, date: Date.now() });
+            alert("Request Sent!"); document.getElementById('req-book').value = "";
         }
-        async function stopTracking() { if(trackingState.activeDocId) { await db.collection("activity_logs").doc(trackingState.activeDocId).update({ endTime: Date.now() }); trackingState.activeDocId = null; } }
+        
+        async function submitSuggestion() {
+            const s = document.getElementById('feat-suggest').value; if(!s) return;
+            await db.collection("admin_messages").add({ type: "Suggestion", message: s, user: currentUser.fullName, date: Date.now() });
+            alert("Sent!"); document.getElementById('feat-suggest').value = "";
+        }
 
-        async function openPdf(id, title) { await stopTracking(); await startTracking("Read Online", "Preview: "+title); document.getElementById('reader-title').innerText = title; document.getElementById('pdf-frame').src = `/public/${id}_read_online.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
-        async function openFullPdf(id, title) { await stopTracking(); await startTracking("Borrowed Reading", "Full: "+title); document.getElementById('reader-title').innerText = title; document.getElementById('pdf-frame').src = `/public/${id}.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
-        async function closeReader() { await stopTracking(); await startTracking("Total App Usage", "Login Session"); document.getElementById('reader-overlay').classList.add('hidden'); }
-
-        async function submitRequest() { const b = document.getElementById('req-book').value; if(!b) return; await db.collection("admin_messages").add({ type: "Request", book: b, user: currentUser.fullName, college: currentUser.collegeId, date: Date.now() }); alert("Sent!"); }
-        async function submitSuggestion() { const s = document.getElementById('feat-suggest').value; if(!s) return; await db.collection("admin_messages").add({ type: "Suggestion", message: s, user: currentUser.fullName, date: Date.now() }); alert("Sent!"); }
-        async function submitContact() { const m = document.getElementById('con-msg').value; if(!m) return; await db.collection("admin_messages").add({ type: "Helpdesk", college: document.getElementById('con-coll').value, message: m, user: currentUser.fullName, date: Date.now() }); alert("Sent!"); closeContactModal(); }
-
-        function toggleProfile() { document.getElementById('prof-name').innerText = currentUser.fullName; document.getElementById('prof-role').innerText = (currentUser.role || "student").toUpperCase(); document.getElementById('p-coll-id').innerText = currentUser.collegeId; document.getElementById('p-stud-id').innerText = currentUser.studentId; document.getElementById('profile-overlay').classList.toggle('hidden'); }
-        function handleLogout() { stopTracking(); location.reload(); }
-        function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
-        function showContactModal() { document.getElementById('contact-modal').classList.remove('hidden'); }
-        function closeContactModal() { document.getElementById('contact-modal').classList.add('hidden'); }
+        function toggleProfile() { document.getElementById('profile-overlay').classList.toggle('hidden'); document.getElementById('prof-name').innerText = currentUser.fullName; }
+        function openPdf(id, t) { document.getElementById('reader-title').innerText = t; document.getElementById('pdf-frame').src = `/public/${id}_read_online.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
+        function closeReader() { document.getElementById('reader-overlay').classList.add('hidden'); }
         function closeView(id) { document.getElementById(id).classList.add('hidden'); }
+        function closeSearchView() { document.getElementById('search-results-overlay').classList.add('hidden'); }
+        function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
+        function handleLogout() { location.reload(); }
     </script>
 </body>
 </html>
