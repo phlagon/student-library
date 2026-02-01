@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TheoLib - Accurate Tracking Portal</title>
+    <title>TheoLib - Master Portal</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -20,7 +20,7 @@
         .btn-preview { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; margin-top: 10px; }
         #auth-screen, #profile-overlay, #reader-overlay, #full-lib-view, #borrow-view, #search-results-overlay { position: fixed; inset: 0; z-index: 9000; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
         .hidden { display: none !important; }
-        .cat-item { cursor: pointer; background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 13px; transition: 0.3s; }
+        .cat-item { cursor: pointer; background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 13px; }
         .time-header { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .time-box { background: var(--card-bg); border: 1px solid var(--border); padding: 10px; border-radius: 15px; text-align: center; }
         .time-val { font-family: monospace; font-weight: 800; font-size: 16px; }
@@ -59,9 +59,7 @@
         </div>
 
         <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap: 15px;">
-            <div>
-                <div class="glass-card"><h3>🕒 Recent Resources</h3><div id="recent-list"></div></div>
-            </div>
+            <div><div class="glass-card"><h3>🕒 Recent</h3><div id="recent-list"></div></div></div>
             <div class="glass-card"><h3>📂 Categories</h3>
                 <div class="cat-item" onclick="loadCat('Theology')">📖 Theology</div>
                 <div class="cat-item" onclick="loadCat('Church History')">⛪ History</div>
@@ -75,7 +73,7 @@
         <div style="display:flex; height:calc(100vh - 60px);">
             <iframe id="pdf-frame" style="flex:3; height:100%; border:none;"></iframe>
             <div style="flex:1; background:var(--card-bg); border-left:1px solid var(--border); padding:15px; overflow-y:auto;">
-                <h4 style="margin-top:0;">📂 Nav</h4>
+                <h4>📂 Navigation</h4>
                 <div class="cat-item" onclick="closeReader(); showFullLibrary()">All Library</div>
                 <div class="cat-item" onclick="closeReader(); showBorrowView()">My Issued</div>
             </div>
@@ -100,7 +98,6 @@
         let currentUser = null; let collegeBooks = []; let sessionSeconds = 0;
         let trackingState = { activeDocId: null, type: "Total App Usage", title: "Login Session" };
 
-        // --- ACCURATE TAB-SWITCH PAUSE LOGIC ---
         document.addEventListener("visibilitychange", async () => {
             if (document.hidden) {
                 document.getElementById('session-box').classList.add('paused');
@@ -115,6 +112,7 @@
             const role = document.getElementById('login-role').value, cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
             const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).get();
             if(!snap.empty) {
+                const u = snap.docs[0].data(); if((u.role || 'student') !== role) { alert("Wrong Role"); return; }
                 currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
                 initSystem();
@@ -145,29 +143,6 @@
 
         function updCl(id, s) { const h = Math.floor(s/3600).toString().padStart(2,'0'), m = Math.floor((s%3600)/60).toString().padStart(2,'0'), sec = (s%60).toString().padStart(2,'0'); document.getElementById(id).innerHTML = `<span class="status-dot"></span>${h}:${m}:${sec}`; }
 
-        async function openPdf(id, title) { 
-            await stopTracking(); 
-            await startTracking("Read Online", "Preview: " + title);
-            document.getElementById('reader-title').innerText = title;
-            document.getElementById('pdf-frame').src = `https://docs.google.com/viewer?url=${window.location.origin}/public/${id}_read_online.pdf&embedded=true`;
-            document.getElementById('reader-overlay').classList.remove('hidden'); 
-        }
-
-        async function openBorrowedPdf(id, title) {
-            await stopTracking();
-            await startTracking("Borrowed Book Reading", "Full Book: " + title);
-            document.getElementById('borrow-view').classList.add('hidden');
-            document.getElementById('reader-title').innerText = title;
-            document.getElementById('pdf-frame').src = `https://docs.google.com/viewer?url=${window.location.origin}/public/${id}.pdf&embedded=true`;
-            document.getElementById('reader-overlay').classList.remove('hidden');
-        }
-
-        async function closeReader() { 
-            await stopTracking();
-            await startTracking("Total App Usage", "Login Session");
-            document.getElementById('reader-overlay').classList.add('hidden'); document.getElementById('pdf-frame').src = ""; 
-        }
-
         function load() {
             db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).onSnapshot(snap => {
                 const rec = document.getElementById('recent-list'); rec.innerHTML = ""; collegeBooks = [];
@@ -175,20 +150,39 @@
                 document.getElementById('top-total').innerText = snap.size;
             });
         }
+
         function listen() {
             db.collection("borrows").where("userId","==",currentUser.uid).onSnapshot(snap => {
                 const list = document.getElementById('borrow-list'); if(list) { list.innerHTML = ""; snap.forEach(doc => { const d = doc.data(); list.innerHTML += `<div class="book-item"><b>${d.title}</b><button class="btn-preview" onclick="openBorrowedPdf('${d.bookId}','${d.title}')">Open Full</button></div>`; }); }
                 document.getElementById('top-issued').innerText = snap.size;
             });
         }
-        function showSug(v) { /* existing logic */ }
-        function triggerSearch(t) { /* existing logic */ }
-        function loadCat(c) { /* existing logic */ }
+
+        async function openPdf(id, title) { 
+            await stopTracking(); await startTracking("Read Online", "Preview: " + title);
+            document.getElementById('reader-title').innerText = title;
+            document.getElementById('pdf-frame').src = `https://docs.google.com/viewer?url=${window.location.origin}/public/${id}_read_online.pdf&embedded=true`;
+            document.getElementById('reader-overlay').classList.remove('hidden'); 
+        }
+
+        async function openBorrowedPdf(id, title) {
+            await stopTracking(); await startTracking("Borrowed Book Reading", "Full: " + title);
+            document.getElementById('borrow-view').classList.add('hidden');
+            document.getElementById('reader-title').innerText = title;
+            document.getElementById('pdf-frame').src = `https://docs.google.com/viewer?url=${window.location.origin}/public/${id}.pdf&embedded=true`;
+            document.getElementById('reader-overlay').classList.remove('hidden');
+        }
+
+        async function closeReader() { await stopTracking(); await startTracking("Total App Usage", "Login Session"); document.getElementById('reader-overlay').classList.add('hidden'); document.getElementById('pdf-frame').src = ""; }
+        function showSug(v) { /* suggestions code */ }
+        function triggerSearch(t) { /* search code */ }
+        function loadCat(c) { /* categories code */ }
         async function borrow(id, t) { if(prompt("Code:") === "BORROW2026") await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, borrowedAt: new Date().toISOString() }); }
         function toggleProfile() { document.getElementById('profile-overlay').classList.toggle('hidden'); }
         function showFullLibrary() { document.getElementById('full-lib-view').classList.remove('hidden'); }
         function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
         function closeView(id) { document.getElementById(id).classList.add('hidden'); }
+        function closeSearchView() { document.getElementById('search-results-overlay').classList.add('hidden'); }
     </script>
 </body>
 </html>
