@@ -25,8 +25,6 @@
         .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .stat-box { background: #0f172a; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
         .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; z-index: 100; min-width: 180px; padding: 10px; top: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .dropdown-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 12px; color: var(--text-sub); }
-        .dropdown-item:hover { background: #0f172a; color: white; }
         .show { display: block; }
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 6000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         .modal-content { background: var(--card-bg); width: 100%; max-width: 900px; border-radius: 24px; padding: 30px; max-height: 90vh; border: 1px solid var(--border); overflow-y: auto; }
@@ -52,12 +50,19 @@
             <div id="add-book-form" class="hidden" style="margin-bottom:25px; padding:20px; border:1px dashed var(--blue); border-radius:15px;">
                 <h3>📚 Add New Book Entry</h3>
                 <input type="text" id="new-title" class="login-field" placeholder="Title">
-                <select id="new-cat" class="login-field"><option value="Theology">Theology</option><option value="Church History">Church History</option><option value="Mission">Mission</option><option value="Bible Intro">Bible Intro</option><option value="Acts">Acts</option><option value="Ethics">Ethics</option><option value="Other Books">Other Books</option></select>
-                <input type="text" id="new-access" class="login-field" placeholder="Allowed Colleges (comma-separated)">
+                <select id="new-cat" class="login-field">
+                    <option value="">Category</option>
+                    <option value="Theology">Theology</option><option value="Church History">Church History</option>
+                    <option value="Mission">Mission</option><option value="Bible Intro">Bible Intro</option>
+                    <option value="Acts">Acts</option><option value="Ethics">Ethics</option><option value="Other Books">Other Books</option>
+                </select>
+                <input type="text" id="new-access" class="login-field" placeholder="Allowed Colleges (comma separated)">
                 <button class="btn-sm" style="background:var(--green); width:100%;" onclick="addNewBook()">Add Book</button>
             </div>
             <table><thead><tr><th>Title</th><th>Access</th><th>Cat</th><th>Promo</th><th>Del</th></tr></thead><tbody id="inventory-list"></tbody></table>
         </div>
+
+        <div id="nom-section" class="hidden glass-card"><h2>📥 Faculty Nominations</h2><div id="nomination-list"></div></div>
 
         <div id="att-section" class="hidden glass-card">
             <div id="coll-selector-div"><select id="mon-coll" onchange="loadAttendanceList(this.value)" class="login-field" style="max-width:250px;"><option value="">Select College</option><option value="IMC26">IMC26</option><option value="ASLIN26">ASLIN26</option></select></div>
@@ -77,7 +82,15 @@
     <div id="user-modal" class="hidden">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between;"><h3 id="modal-title">Log</h3><div style="display:flex; gap:10px;"><button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue);">📥 CSV</button><button onclick="closeModal()" class="btn-sm" style="background:#ef4444;">X</button></div></div>
-            <div id="role-change-box" class="glass-card" style="padding:15px; margin-top:15px; border-color:var(--purple);"><label style="font-size:11px;">Change Role:</label><div style="display:flex; gap:10px; margin-top:5px;"><select id="new-role-select" class="login-field" style="margin:0; flex:1;"><option value="student">Student</option><option value="faculty">Faculty</option></select><button class="btn-sm" style="background:var(--purple);" onclick="changeUserRole()">Update Role</button></div></div>
+            
+            <div id="role-change-box" class="glass-card" style="padding:15px; margin-top:15px; border-color:var(--purple);">
+                <label style="font-size:11px;">Update User Role:</label>
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <select id="new-role-select" class="login-field" style="margin:0; flex:1;"><option value="student">Student</option><option value="faculty">Faculty</option></select>
+                    <button class="btn-sm" style="background:var(--purple);" onclick="changeUserRole()">Update Role</button>
+                </div>
+            </div>
+
             <div id="modal-stats" style="margin-top:15px;"></div>
             <table style="margin-top:20px;"><thead><tr><th>Activity</th><th>Start</th><th>End</th><th>Duration</th></tr></thead><tbody id="log-body"></tbody></table>
         </div>
@@ -104,30 +117,30 @@
         db.collection("library_settings").onSnapshot(snap => {
             const list = document.getElementById('inventory-list'); list.innerHTML = "";
             snap.forEach(doc => {
-                const b = doc.data(); const id = doc.id; const allowed = b.allowedColleges || [];
+                const b = doc.data(), id = doc.id, allowed = b.allowedColleges || [];
                 const cats = ['Theology','Church History','Mission','Bible Intro','Acts','Ethics','Other Books'];
-                list.innerHTML += `<tr><td><b>${b.title}</b></td><td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--purple)" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">${Object.keys(adminAccounts).filter(c=>c!=='aslin').map(c => `<div class="dropdown-item" onclick="toggleAccess('${id}','${c}',${allowed.includes(c)})">${c} ${allowed.includes(c)?'✅':''}</div>`).join('')}</div>` : 'Restricted'}</td><td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--green)" onclick="toggleM('c-${id}')">${b.category || 'Cat'}</button><div id="c-${id}" class="dropdown-menu">${cats.map(c => `<div class="dropdown-item" onclick="updF('${id}','category','${c}')">${c} ${b.category === c ? '✅' : ''}</div>`).join('')}</div>` : b.category}</td><td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--orange)" onclick="toggleM('p-${id}')">Promo</button><div id="p-${id}" class="dropdown-menu"><div class="dropdown-item" onclick="updF('${id}','recent',${!b.recent})">Recent ${b.recent?'✅':''}</div><div class="dropdown-item" onclick="updF('${id}','trending',${!b.trending})">Trending ${b.trending?'✅':''}</div></div>` : 'None'}</td><td>${isSuper ? `<button class="btn-sm" style="background:red" onclick="deletePDF('${id}')">🗑️</button>` : 'None'}</td></tr>`;
+                list.innerHTML += `<tr><td><b>${b.title}</b></td><td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--purple)" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">${Object.keys(adminAccounts).filter(c=>c!=='aslin').map(c => `<div class="dropdown-item" onclick="toggleAccess('${id}','${c}',${allowed.includes(c)})">${c} ${allowed.includes(c)?'✅':''}</div>`).join('')}</div>` : 'Restricted'}</td><td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--green)" onclick="toggleM('c-${id}')">${b.category || 'Cat'}</button><div id="c-${id}" class="dropdown-menu">${cats.map(c => `<div class="dropdown-item" onclick="updF('${id}','category','${c}')">${c}</div>`).join('')}</div>` : b.category}</td><td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--orange)" onclick="toggleM('p-${id}')">Promo</button><div id="p-${id}" class="dropdown-menu"><div class="dropdown-item" onclick="updF('${id}','recent',${!b.recent})">Recent ${b.recent?'✅':''}</div><div class="dropdown-item" onclick="updF('${id}','trending',${!b.trending})">Trending ${b.trending?'✅':''}</div></div>` : 'None'}</td><td>${isSuper ? `<button class="btn-sm" style="background:red" onclick="deletePDF('${id}')">🗑️</button>` : 'None'}</td></tr>`;
             });
         });
         if(isSuper) refreshInbox();
     }
 
-    // RESTORED SORTING AND CORRECTED USAGE CALCULATION
+    function loadAttendanceList(cid) { if(!cid) return; db.collection("users").where("collegeId", "==", cid).onSnapshot(snap => { const list = document.getElementById('attendance-user-list'); list.innerHTML = ""; snap.forEach(doc => { const u = doc.data(); list.innerHTML += `<div class="user-folder" onclick='openReport("${doc.id}","${u.fullName}","${u.role}")'>📂 <b>${u.fullName}</b></div>`; }); }); }
+
     async function openReport(uid, name, role) {
         activeUID = uid; activeName = name; document.getElementById('user-modal').classList.remove('hidden');
         document.getElementById('modal-title').innerText = name;
         document.getElementById('new-role-select').value = role || 'student';
+        
         if (logUnsub) logUnsub();
         logUnsub = db.collection("activity_logs").where("userId", "==", uid).onSnapshot(snap => {
             let t=0, o=0, b=0, rowsHtml=""; currentLogs = [];
             snap.forEach(d => { currentLogs.push(d.data()); });
-            
-            // Apply sorting latest first
             currentLogs.sort((x, y) => (y.startTime || 0) - (x.startTime || 0));
 
             currentLogs.forEach(data => {
-                // Fix: Usage logic - if endTime is missing but session started, use current time
-                const end = data.endTime ? data.endTime : (data.type !== "Logout" ? Date.now() : data.startTime);
+                // LIVE CALCULATION: If session is open (endTime is null), use current time to prevent freeze
+                const end = data.endTime ? data.endTime : Date.now();
                 const dur = Math.floor((end - data.startTime) / 1000);
                 
                 if(data.type === "Usage") t += dur; 
@@ -152,14 +165,13 @@
         a.download = `${activeName}_Report.csv`; a.click();
     }
 
-    function loadAttendanceList(cid) { if(!cid) return; db.collection("users").where("collegeId", "==", cid).onSnapshot(snap => { const list = document.getElementById('attendance-user-list'); list.innerHTML = ""; snap.forEach(doc => { const u = doc.data(); list.innerHTML += `<div class="user-folder" onclick='openReport("${doc.id}","${u.fullName}","${u.role}")'>📂 <b>${u.fullName}</b></div>`; }); }); }
-    function refreshInbox() { db.collection("admin_messages").orderBy("date", "desc").onSnapshot(snap => { const list = document.getElementById('inbox-list'); const nomList = document.getElementById('nomination-list'); list.innerHTML = ""; nomList.innerHTML = ""; let n=0, m=0; snap.forEach(doc => { const d = doc.data(); const html = `<div class="glass-card" style="margin-bottom:10px; border-left:4px solid var(--blue);"><small>${new Date(d.date).toLocaleString()}</small><br><b>${d.type}</b> from <b>${d.college}</b><br><p>${d.message || d.book}</p><div style="text-align:right;"><button class="btn-sm" style="background:red" onclick="deleteMsg('${doc.id}')">Delete</button></div></div>`; if(d.type.includes("Nomination")) { n++; nomList.innerHTML += html; } else { m++; list.innerHTML += html; } }); document.getElementById('nom-badge').innerText = n; document.getElementById('msg-badge').innerText = m; }); }
-    async function changeUserRole() { await db.collection("users").doc(activeUID).update({ role: document.getElementById('new-role-select').value }); alert("Role Updated!"); }
-    async function addNewBook() { const t = document.getElementById('new-title').value.trim(), c = document.getElementById('new-cat').value, a = document.getElementById('new-access').value.trim().split(',').map(s=>s.trim()); if(!t) return; await db.collection("library_settings").add({ title: t, category: c, allowedColleges: a, recent: true, trending: false }); alert("Added!"); }
+    function refreshInbox() { db.collection("admin_messages").orderBy("date", "desc").onSnapshot(snap => { const list = document.getElementById('inbox-list'); list.innerHTML = ""; snap.forEach(doc => { const d = doc.data(); list.innerHTML += `<div class="glass-card" style="margin-bottom:10px; border-left:4px solid var(--blue);"><small>${new Date(d.date).toLocaleString()}</small><br><b>${d.type}</b> from <b>${d.college}</b><br><p>${d.message || d.book}</p><div style="text-align:right;"><button class="btn-sm" style="background:red" onclick="deleteMsg('${doc.id}')">Delete</button></div></div>`; }); }); }
+    async function changeUserRole() { if(!activeUID) return; const newRole = document.getElementById('new-role-select').value; await db.collection("users").doc(activeUID).update({ role: newRole }); alert("Role Updated!"); }
+    async function addNewBook() { const t = document.getElementById('new-title').value.trim(), c = document.getElementById('new-cat').value, a = document.getElementById('new-access').value.trim().split(',').map(s=>s.trim()); if(!t) return; await db.collection("library_settings").add({ title: t, category: c, allowedColleges: a, recent: true, trending: false }); alert("Added!"); document.getElementById('new-title').value = ""; }
     async function updF(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
     async function toggleAccess(id, coll, has) { const ref = db.collection("library_settings").doc(id); const d = await ref.get(); let allowed = d.data().allowedColleges || []; allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll]; await ref.update({ allowedColleges: allowed }); }
-    async function deleteMsg(id) { if(confirm("Delete message?")) await db.collection("admin_messages").doc(id).delete(); }
-    async function deletePDF(id) { if(confirm("Delete book?")) await db.collection("library_settings").doc(id).delete(); }
+    async function deleteMsg(id) { if(confirm("Delete?")) await db.collection("admin_messages").doc(id).delete(); }
+    async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
     function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
     function fmt(s) { if(isNaN(s) || s <= 0) return "00:00:00"; const h = Math.floor(s/3600).toString().padStart(2,'0'), m = Math.floor((s%3600)/60).toString().padStart(2,'0'), sec = (s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`; }
     function closeModal() { document.getElementById('user-modal').classList.add('hidden'); if(logUnsub) logUnsub(); }
