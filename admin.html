@@ -47,20 +47,54 @@
         </div>
 
         <div id="inv-section" class="glass-card">
+            <div id="add-book-form" class="hidden" style="margin-bottom:25px; padding:20px; border:1px dashed var(--blue); border-radius:15px;">
+                <h3 style="margin-top:0;">📚 Add New Book Entry</h3>
+                <input type="text" id="new-title" class="login-field" placeholder="Title">
+                <select id="new-cat" class="login-field">
+                    <option value="">Category</option>
+                    <option value="Theology">Theology</option>
+                    <option value="Church History">Church History</option>
+                    <option value="Mission">Mission</option>
+                    <option value="Bible Intro">Bible Intro</option>
+                    <option value="Acts">Acts</option>
+                    <option value="Ethics">Ethics</option>
+                    <option value="Other Books">Other Books</option>
+                </select>
+                <input type="text" id="new-access" class="login-field" placeholder="Allowed Colleges (comma-separated)">
+                <button class="btn-sm" style="background:var(--green); width:100%; padding:12px;" onclick="addNewBook()">Add to Library</button>
+            </div>
             <table><thead><tr id="inv-header"><th>Title</th><th>Access</th><th>Cat</th><th>Promo</th><th>Del</th></tr></thead><tbody id="inventory-list"></tbody></table>
         </div>
 
         <div id="nom-section" class="hidden glass-card"><h2>📥 Faculty Nominations</h2><div id="nomination-list"></div></div>
-        <div id="mem-section" class="hidden glass-card"><select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;"><option value="">Select College</option><option value="IMC26">IMC26</option><option value="ASLIN26">ASLIN26</option></select><div id="user-folders-list"></div></div>
-        <div id="stud-section" class="hidden glass-card"><h2>📤 Registration</h2><textarea id="bulk-input" class="login-field" style="height:100px;" placeholder="Name, CollID, StudentID, Pass, Role"></textarea></div>
-        <div id="msg-section" class="hidden glass-card"><h2>📥 Inbox</h2><div id="inbox-list"></div></div>
-        <div id="help-section" class="hidden glass-card"><h2>📞 Contact Super Admin</h2><textarea id="help-msg" class="login-field" style="height:150px;" placeholder="Message to Super Admin..."></textarea><button class="btn-sm" style="background:var(--blue); width:100%;" onclick="sendAdminHelp()">Send</button></div>
+        
+        <div id="mem-section" class="hidden glass-card">
+            <div id="coll-selector-div">
+                <select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;">
+                    <option value="">Select College</option>
+                    <option value="IMC26">IMC26</option>
+                    <option value="ASLIN26">ASLIN26</option>
+                </select>
+            </div>
+            <div id="user-folders-list"></div>
+        </div>
+
+        <div id="stud-section" class="hidden glass-card"><h2>📤 Registration</h2><p id="reg-msg" class="hidden">Contact Super Admin to add members.</p><textarea id="bulk-input" class="login-field" style="height:100px;" placeholder="Name, CollID, StudentID, Pass, Role"></textarea></div>
+        
+        <div id="msg-section" class="hidden glass-card"><div style="display:flex; justify-content:space-between; align-items:center;"><h2>📥 Inbox</h2><button class="btn-sm" style="background:var(--orange);" onclick="refreshInbox()">🔄 Refresh</button></div><div id="inbox-list"></div></div>
+
+        <div id="help-section" class="hidden glass-card">
+            <h2>📞 Contact Super Admin</h2>
+            <textarea id="help-msg" class="login-field" style="height:150px;" placeholder="Type your message..."></textarea>
+            <button class="btn-sm" style="background:var(--blue); width:100%;" onclick="sendAdminHelp()">Send Message</button>
+        </div>
     </div>
 
     <div id="user-modal" class="hidden">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between;"><h3 id="modal-title">Report</h3><div style="display:flex; gap:10px;"><button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue);">📥 CSV</button><button onclick="closeModal()" class="btn-sm" style="background:#ef4444;">X</button></div></div>
-            <div id="modal-stats"></div>
+            <div id="super-role-box" class="hidden glass-card" style="padding:15px; margin-top:15px; border-color:var(--purple);"><label style="font-size:11px;">Change Role:</label><div style="display:flex; gap:10px; margin-top:5px;"><select id="new-role-select" class="login-field" style="margin:0; flex:1;"><option value="student">Student</option><option value="faculty">Faculty</option></select><button class="btn-sm" style="background:var(--purple);" onclick="changeUserRole()">Update</button></div></div>
+            <div id="modal-stats" style="margin-top:15px;"></div>
             <table style="margin-top:20px;"><thead><tr><th>Activity</th><th>Start</th><th>End</th><th>Duration</th></tr></thead><tbody id="log-body"></tbody></table>
         </div>
     </div>
@@ -76,24 +110,44 @@
         if(adminAccounts[id] === p) {
             isSuper = (id === "aslin"); loggedID = id;
             document.getElementById('auth-overlay').classList.add('hidden'); document.getElementById('master-panel').classList.remove('hidden');
-            if(!isSuper) { document.getElementById('t-nom').classList.add('hidden'); document.getElementById('t-msg').classList.add('hidden'); document.getElementById('t-help').classList.remove('hidden'); loadCollegeStudents(id); }
+            if(!isSuper) {
+                document.getElementById('t-nom').classList.add('hidden'); document.getElementById('t-msg').classList.add('hidden');
+                document.getElementById('t-help').classList.remove('hidden'); document.getElementById('bulk-input').classList.add('hidden');
+                document.getElementById('reg-msg').classList.remove('hidden'); document.getElementById('coll-selector-div').classList.add('hidden');
+                loadCollegeStudents(id);
+            } else { document.getElementById('add-book-form').classList.remove('hidden'); }
             initAdmin();
         } else alert("Denied");
     }
 
-    // --- RESTORED LOG ENGINE ---
+    function initAdmin() {
+        db.collection("library_settings").onSnapshot(snap => {
+            const list = document.getElementById('inventory-list'); list.innerHTML = "";
+            snap.forEach(doc => {
+                const b = doc.data(); const id = doc.id; const allowed = b.allowedColleges || [];
+                list.innerHTML += `<tr>
+                    <td><b>${b.title}</b></td>
+                    <td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--purple)" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">${Object.keys(adminAccounts).filter(c=>c!=='aslin').map(c => `<div class="dropdown-item" onclick="toggleAccess('${id}','${c}',${allowed.includes(c)})">${c} ${allowed.includes(c)?'✅':''}</div>`).join('')}</div>` : 'Restricted'}</td>
+                    <td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--green)" onclick="toggleM('c-${id}')">Cat</button><div id="c-${id}" class="dropdown-menu">${['Theology','Church History','Mission','Bible Intro','Acts','Ethics','Other Books'].map(cat => `<div class="dropdown-item" onclick="updF('${id}','category','${cat}')">${cat}</div>`).join('')}</div>` : b.category}</td>
+                    <td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--orange)" onclick="toggleM('p-${id}')">Promo</button><div id="p-${id}" class="dropdown-menu"><div class="dropdown-item" onclick="updF('${id}','recent',${!b.recent})">Recent ${b.recent?'✅':''}</div><div class="dropdown-item" onclick="updF('${id}','trending',${!b.trending})">Trending ${b.trending?'✅':''}</div></div>` : 'None'}</td>
+                    <td>${isSuper ? `<button class="btn-sm" style="background:red" onclick="deletePDF('${id}')">🗑️</button>` : 'None'}</td>
+                </tr>`;
+            });
+        });
+        if(isSuper) refreshInbox();
+    }
+
     async function openReport(uid, name, role) {
         activeUID = uid; activeName = name; document.getElementById('user-modal').classList.remove('hidden');
         document.getElementById('modal-title').innerText = name;
+        if(isSuper) document.getElementById('super-role-box').classList.remove('hidden');
         if (logUnsub) logUnsub();
         logUnsub = db.collection("activity_logs").where("userId", "==", uid).onSnapshot(snap => {
             let t=0, o=0, b=0, rowsHtml=""; currentLogs = [];
             snap.forEach(d => { 
                 const data = d.data(); currentLogs.push(data); 
                 const dur = data.endTime ? Math.floor((data.endTime - data.startTime) / 1000) : 0;
-                if(data.type.includes("Usage")) t += dur; 
-                if(data.type.includes("Online Read")) o += dur; 
-                if(data.type.includes("Full Read")) b += dur;
+                if(data.type.includes("Usage")) t += dur; if(data.type.includes("Online Read")) o += dur; if(data.type.includes("Full Read")) b += dur;
                 rowsHtml += `<tr><td>${data.type}<br><small>${data.activity || ''}</small></td><td>${data.startTime ? new Date(data.startTime).toLocaleTimeString() : '--'}</td><td>${data.endTime ? new Date(data.endTime).toLocaleTimeString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
             });
             document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">App Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online Read<br><b>${fmt(o)}</b></div><div class="stat-box">Full Read<br><b>${fmt(b)}</b></div></div>`;
@@ -107,40 +161,55 @@
         currentLogs.forEach(d => {
             const dur = d.endTime ? Math.floor((d.endTime - d.startTime) / 1000) : 0;
             if(d.type.includes("Usage")) t += dur; if(d.type.includes("Online Read")) o += dur; if(d.type.includes("Full Read")) b += dur;
-            csv += `"${d.type}",${new Date(d.startTime).toLocaleString()},${fmt(dur)}\n`;
+            csv += `"${d.type} - ${d.activity || ''}",${new Date(d.startTime).toLocaleString()},${fmt(dur)}\n`;
         });
         csv += `\nTOTAL USAGE,${fmt(t)}\nTOTAL ONLINE,${fmt(o)}\nTOTAL FULL,${fmt(b)}`;
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `${activeName}_Report.csv`; a.click();
     }
 
     function loadCollegeStudents(cid) {
+        if(!cid) return;
         db.collection("users").where("collegeId", "==", cid).onSnapshot(snap => {
             const list = document.getElementById('user-folders-list'); list.innerHTML = "";
             snap.forEach(doc => { const u = doc.data(); list.innerHTML += `<div class="user-folder" onclick='openReport("${doc.id}","${u.fullName}","${u.role}")'>📂 <b>${u.fullName}</b></div>`; });
         });
     }
 
-    function initAdmin() {
-        db.collection("library_settings").onSnapshot(snap => {
-            const list = document.getElementById('inventory-list'); list.innerHTML = "";
-            snap.forEach(doc => { const b = doc.data(); list.innerHTML += `<tr><td><b>${b.title}</b></td><td>${isSuper?'Access':'Restricted'}</td><td>${b.category}</td><td>Promo</td><td>Del</td></tr>`; });
-        });
-        if(isSuper) refreshInbox();
-    }
-
     function refreshInbox() {
         db.collection("admin_messages").orderBy("date", "desc").onSnapshot(snap => {
-            const list = document.getElementById('inbox-list'); list.innerHTML = ""; let n=0, m=0;
-            snap.forEach(doc => { const d = doc.data(); list.innerHTML += `<div class="glass-card"><b>${d.type}</b> from ${d.college}<br>${d.message || d.book}</div>`; });
+            const list = document.getElementById('inbox-list'); const nomList = document.getElementById('nomination-list');
+            list.innerHTML = nomList.innerHTML = ""; let n=0, m=0;
+            snap.forEach(doc => {
+                const d = doc.data(); const dt = new Date(d.date);
+                const html = `<div class="glass-card" style="margin-bottom:10px; border-left:4px solid var(--blue);">
+                    <small>${dt.toLocaleString()}</small><br><b>${d.type}</b> from <b>${d.college}</b><br><p>${d.message || d.book || ''}</p>
+                    <div style="text-align:right;"><button class="btn-sm" style="background:red;" onclick="deleteMsg('${doc.id}')">Delete</button></div>
+                </div>`;
+                if(d.type.includes("Nomination")) { n++; nomList.innerHTML += html; } else { m++; list.innerHTML += html; }
+            });
+            document.getElementById('nom-badge').innerText = n; document.getElementById('msg-badge').innerText = m;
         });
     }
 
     async function sendAdminHelp() {
-        const m = document.getElementById('help-msg').value; if(!m) return;
-        await db.collection("admin_messages").add({ type: "College Admin Help", college: loggedID, message: m, date: Date.now(), user: loggedID });
+        const msg = document.getElementById('help-msg').value; if(!msg) return;
+        await db.collection("admin_messages").add({ type: "College Admin Help", college: loggedID, message: msg, date: Date.now(), user: loggedID });
         alert("Sent!"); document.getElementById('help-msg').value = "";
     }
 
+    async function addNewBook() {
+        const t = document.getElementById('new-title').value.trim(), c = document.getElementById('new-cat').value, a = document.getElementById('new-access').value.trim().split(',').map(s=>s.trim());
+        if(!t || !c) return alert("Required");
+        await db.collection("library_settings").add({ title: t, category: c, allowedColleges: a, recent: true, trending: false });
+        alert("Added!"); document.getElementById('new-title').value = "";
+    }
+
+    async function toggleAccess(id, coll, has) { const ref = db.collection("library_settings").doc(id); const d = await ref.get(); let allowed = d.data().allowedColleges || []; allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll]; await ref.update({ allowedColleges: allowed }); }
+    async function updF(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
+    async function changeUserRole() { await db.collection("users").doc(activeUID).update({ role: document.getElementById('new-role-select').value }); alert("Updated!"); }
+    async function deleteMsg(id) { if(confirm("Delete?")) await db.collection("admin_messages").doc(id).delete(); }
+    async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
+    function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
     function fmt(s) { if(isNaN(s) || s <= 0) return "00:00:00"; const h = Math.floor(s/3600).toString().padStart(2,'0'), m = Math.floor((s%3600)/60).toString().padStart(2,'0'), sec = (s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`; }
     function closeModal() { document.getElementById('user-modal').classList.add('hidden'); if(logUnsub) logUnsub(); }
     function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
