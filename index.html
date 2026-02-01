@@ -78,7 +78,6 @@
                 </div>
 
                 <div class="glass-card"><h3>🕒 Recent</h3><div id="recent-list"></div></div>
-                
                 <div class="glass-card"><h3>🔥 Trending</h3><div id="trending-list"></div></div>
             </div>
 
@@ -163,7 +162,17 @@
         }
 
         function renderItem(b) {
-            return `<div class="book-item"><b>${b.title}</b><br><button class="btn-preview" onclick="openPdfPreview('${b.id}','${b.title}')">Preview</button><button class="btn-preview" style="background:var(--orange)" onclick="borrowBook('${b.id}','${b.title}')">Borrow</button></div>`;
+            let html = `<div class="book-item"><b>${b.title}</b><br>
+                <button class="btn-preview" onclick="openPdfPreview('${b.id}','${b.title}')">Preview</button>
+                <button class="btn-preview" style="background:var(--orange)" onclick="borrowBook('${b.id}','${b.title}')">Borrow</button>`;
+            
+            // NOMINATE BUTTON FOR FACULTY
+            if(currentUser && currentUser.role === 'faculty') {
+                html += `<button class="btn-preview" style="background:var(--purple)" onclick="nominateBook('${b.id}','${b.title}')">Nominate</button>`;
+            }
+            
+            html += `</div>`;
+            return html;
         }
 
         function loadLibrary() {
@@ -185,6 +194,11 @@
                 const list = document.getElementById('borrow-list'); list.innerHTML = "";
                 snap.forEach(doc => { const d = doc.data(); list.innerHTML += `<div class="book-item"><b>${d.title}</b><br><button class="btn-preview" style="background:var(--green)" onclick="openFullPdf('${d.bookId}','${d.title}')">Read Full</button></div>`; });
             });
+        }
+
+        async function nominateBook(id, t) {
+            await db.collection("admin_messages").add({ type: "Faculty Nomination", book: t, bookId: id, user: currentUser.fullName, college: currentUser.collegeId, date: Date.now() });
+            alert("Nomination sent to Admin!");
         }
 
         function mirrorTyping(val) {
