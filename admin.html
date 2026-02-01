@@ -90,8 +90,6 @@
         const id = document.getElementById('acid').value, p = document.getElementById('apass').value;
         if(adminAccounts[id] === p) {
             isSuperAdmin = (id === "aslin"); document.getElementById('auth-overlay').classList.add('hidden'); document.getElementById('master-panel').classList.remove('hidden');
-            
-            // HIDE INBOX AND NOMINATIONS FOR COLLEGE ADMINS
             if(!isSuperAdmin) {
                 document.getElementById('t-nom').classList.add('hidden');
                 document.getElementById('t-msg').classList.add('hidden');
@@ -118,6 +116,7 @@
         refreshInbox();
     }
 
+    // MONITORING LOG LOGIC - UPDATED
     async function openReport(uid, name, role) {
         activeUID = uid; activeName = name; document.getElementById('user-modal').classList.remove('hidden');
         document.getElementById('modal-title').innerText = name;
@@ -129,20 +128,29 @@
             currentLogs.sort((x, y) => (y.startTime || 0) - (x.startTime || 0));
             currentLogs.forEach(d => {
                 const dur = d.endTime ? Math.floor((d.endTime - d.startTime) / 1000) : 0;
-                if(d.type.includes("Usage")) t += dur; if(d.type.includes("Online")) o += dur; if(d.type.includes("Borrowed")) b += dur;
+                if(d.type.includes("Usage")) t += dur; 
+                if(d.type.includes("Online Read")) o += dur; 
+                if(d.type.includes("Full Read")) b += dur;
                 html += `<tr><td>${d.type}<br><small>${d.activity || ''}</small></td><td>${d.startTime ? new Date(d.startTime).toLocaleTimeString() : '--'}</td><td>${d.endTime ? new Date(d.endTime).toLocaleTimeString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
             });
-            document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online<br><b>${fmt(o)}</b></div><div class="stat-box">Borrowed<br><b>${fmt(b)}</b></div></div>`;
+            document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">App Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online Read<br><b>${fmt(o)}</b></div><div class="stat-box">Borrowed Read<br><b>${fmt(b)}</b></div></div>`;
             document.getElementById('log-body').innerHTML = html || "<tr><td colspan='4'>No activity</td></tr>";
         });
     }
 
+    // CSV DOWNLOAD ENGINE - UPDATED
     function downloadCSV() {
         if (!currentLogs.length) return alert("No logs to download");
-        let csv = "Activity,Date,Duration\n";
-        currentLogs.forEach(d => { csv += `"${d.type} - ${d.activity || ''}",${new Date(d.startTime).toLocaleString()},${fmt(Math.floor((d.endTime-d.startTime)/1000))}\n`; });
+        let t=0, o=0, b=0;
+        let csv = "Activity,Date,Start,End,Duration\n";
+        currentLogs.forEach(d => {
+            const dur = d.endTime ? Math.floor((d.endTime - d.startTime) / 1000) : 0;
+            if(d.type.includes("Usage")) t += dur; if(d.type.includes("Online Read")) o += dur; if(d.type.includes("Full Read")) b += dur;
+            csv += `"${d.type} - ${d.activity || ''}",${new Date(d.startTime).toLocaleDateString()},${new Date(d.startTime).toLocaleTimeString()},${d.endTime ? new Date(d.endTime).toLocaleTimeString() : 'Active'},${fmt(dur)}\n`;
+        });
+        csv += `\nTOTALS\nApp Usage,${fmt(t)}\nOnline Read,${fmt(o)}\nBorrowed Read,${fmt(b)}\n`;
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-        a.download = `${activeName}_Report.csv`; a.click();
+        a.download = `${activeName}_TheoLib_Report.csv`; a.click();
     }
 
     function refreshInbox() {
