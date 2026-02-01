@@ -68,7 +68,10 @@
         </div>
 
         <div id="msg-section" class="hidden glass-card">
-            <h2>📥 Admin Inbox (Super Admin Only)</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2 style="margin:0;">📥 Admin Inbox</h2>
+                <button class="btn-sm" style="background:var(--orange);" onclick="refreshInbox()">🔄 Refresh Inbox</button>
+            </div>
             <div id="inbox-list"></div>
         </div>
     </div>
@@ -88,7 +91,7 @@
                 <label style="font-size:11px;">Update Member Role:</label>
                 <div style="display:flex; gap:10px; margin-top:5px;">
                     <select id="new-role-select" class="login-field" style="margin:0; flex:1;"><option value="student">Student</option><option value="faculty">Faculty</option></select>
-                    <button class="btn-sm" style="background:var(--purple);" onclick="changeUserRole()">Update</button>
+                    <button class="btn-sm" style="background:var(--purple);" onclick="changeUserRole()">Update Role</button>
                 </div>
             </div>
 
@@ -123,11 +126,8 @@
             loadCollegeStudents(loggedAdminId);
         } else {
             document.getElementById('inv-header').innerHTML = "<th>Title</th><th>Access</th><th>Cat</th><th>Promo</th><th>Del</th>";
-            document.getElementById('super-role-box').classList.remove('hidden');
         }
     }
-
-    function checkBulkAccess() { if (!isSuperAdmin) { alert("Please contact Super Admin."); document.getElementById('bulk-input').blur(); } }
 
     function initAdmin() {
         const booksQuery = isSuperAdmin ? db.collection("library_settings") : db.collection("library_settings").where("allowedColleges", "array-contains", loggedAdminId);
@@ -145,22 +145,24 @@
                 html += `</tr>`; list.innerHTML += html;
             });
         });
+        if (isSuperAdmin) refreshInbox();
+    }
 
-        if (isSuperAdmin) {
-            db.collection("admin_messages").orderBy("date", "desc").onSnapshot(snap => {
-                const list = document.getElementById('inbox-list'); list.innerHTML = "";
-                snap.forEach(doc => {
-                    const m = doc.data();
-                    list.innerHTML += `<div class="glass-card" style="margin-bottom:10px; font-size:12px;">
-                        <b style="color:var(--blue)">${m.type}</b> | ${new Date(m.date).toLocaleString()}<br>
-                        ${m.user} (${m.college || 'N/A'})<br>
-                        ${m.book ? `<b>Book:</b> ${m.book} | <b>Author:</b> ${m.author}<br>` : ''}
-                        ${m.message ? `<b>Msg:</b> ${m.message}` : ''}
-                        <div style="text-align:right"><button class="btn-sm" style="background:#ef4444;" onclick="deleteMsg('${doc.id}')">Delete</button></div>
-                    </div>`;
-                });
+    function refreshInbox() {
+        db.collection("admin_messages").orderBy("date", "desc").limit(50).get().then(snap => {
+            const list = document.getElementById('inbox-list'); list.innerHTML = "";
+            snap.forEach(doc => {
+                const m = doc.data();
+                list.innerHTML += `<div class="glass-card" style="margin-bottom:10px; font-size:12px;"><b style="color:var(--blue)">${m.type}</b> | ${new Date(m.date).toLocaleString()}<br>${m.user} (${m.college || 'N/A'})<br>${m.message || m.book || ''}<div style="text-align:right"><button class="btn-sm" style="background:#ef4444;" onclick="deleteMsg('${doc.id}')">Delete</button></div></div>`;
             });
-        }
+        });
+    }
+
+    async function changeUserRole() { 
+        if(!isSuperAdmin || !activeUID) return; 
+        const newR = document.getElementById('new-role-select').value; 
+        await db.collection("users").doc(activeUID).update({ role: newR }); 
+        alert("Role Updated Successfully!"); 
     }
 
     function loadCollegeStudents(cid) { 
@@ -170,13 +172,15 @@
         }); 
     }
 
-    async function openReport(uid, name, role) { activeUID = uid; activeName = name; document.getElementById('user-modal').classList.remove('hidden'); document.getElementById('modal-title').innerText = name; if(isSuperAdmin) document.getElementById('new-role-select').value = role; fetchUsageData(); }
-
-    async function changeUserRole() { 
-        if(!isSuperAdmin || !activeUID) return; 
-        const newR = document.getElementById('new-role-select').value; 
-        await db.collection("users").doc(activeUID).update({ role: newR }); 
-        alert("Role Updated Successfully!"); 
+    async function openReport(uid, name, role) { 
+        activeUID = uid; activeName = name; 
+        document.getElementById('user-modal').classList.remove('hidden'); 
+        document.getElementById('modal-title').innerText = name; 
+        if(isSuperAdmin) {
+            document.getElementById('super-role-box').classList.remove('hidden');
+            document.getElementById('new-role-select').value = role || 'student';
+        }
+        fetchUsageData(); 
     }
 
     async function fetchUsageData() {
@@ -191,30 +195,16 @@
                 if(d.type && d.type.includes("Usage")) t += dur; if(d.type && d.type.includes("Online")) o += dur; if(d.type && d.type.includes("Borrowed")) b += dur;
                 html += `<tr><td>${d.type}<br><small>${d.activity || ''}</small></td><td>${start ? new Date(start).toLocaleTimeString() : '--'}</td><td>${end ? new Date(end).toLocaleTimeString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
             });
-            document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">App Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online Read<br><b>${fmt(o)}</b></div><div class="stat-box">Full Read<br><b>${fmt(b)}</b></div></div>`;
+            document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online<br><b>${fmt(o)}</b></div><div class="stat-box">Full Read<br><b>${fmt(b)}</b></div></div>`;
             body.innerHTML = html || "<tr><td colspan='4'>No activity yet.</td></tr>";
         } catch (err) { body.innerHTML = "<tr><td colspan='4'>Error fetching data.</td></tr>"; }
     }
 
-    async function downloadCSV() {
-        const snap = await db.collection("activity_logs").where("userId", "==", activeUID).get();
-        let logs = []; snap.forEach(d => logs.push(d.data()));
-        logs.sort((a, b) => b.startTime - a.startTime);
-        let t = 0, o = 0, b = 0, rows = "Activity,Start,End,Duration\n";
-        logs.forEach(d => { 
-            const dur = d.endTime ? Math.floor((d.endTime - d.startTime) / 1000) : 0;
-            if(d.type.includes("Usage")) t += dur; if(d.type.includes("Online")) o += dur; if(d.type.includes("Borrowed")) b += dur;
-            rows += `"${d.activity}",${new Date(d.startTime).toLocaleString()},${d.endTime ? new Date(d.endTime).toLocaleString() : 'Active'},${fmt(dur)}\n`; 
-        });
-        let csv = `Report: ${activeName}\nTotal Usage,${fmt(t)}\nOnline,${fmt(o)}\nBorrowed,${fmt(b)}\n\n${rows}`;
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `${activeName}_Report.csv`; a.click();
-    }
-
-    async function deleteMsg(id) { if(confirm("Delete message?")) await db.collection("admin_messages").doc(id).delete(); }
     function fmt(s) { if(isNaN(s) || s <= 0) return "00:00:00"; const h = Math.floor(s/3600).toString().padStart(2,'0'), m = Math.floor((s%3600)/60).toString().padStart(2,'0'), sec = (s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`; }
-    function closeModal() { document.getElementById('user-modal').classList.add('hidden'); }
+    function closeModal() { document.getElementById('user-modal').classList.add('hidden'); document.getElementById('super-role-box').classList.add('hidden'); }
     function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
     function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
+    async function deleteMsg(id) { if(confirm("Delete message?")) await db.collection("admin_messages").doc(id).delete(); }
     async function updF(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
     async function toggleAccess(id, coll, has) { const ref = db.collection("library_settings").doc(id); const d = await ref.get(); let allowed = d.data().allowedColleges || []; allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll]; await ref.update({ allowedColleges: allowed }); }
     async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
