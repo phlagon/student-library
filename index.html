@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TheoLib - Final Master Portal</title>
+    <title>TheoLib - Master Portal</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -16,11 +16,19 @@
         .stat-card p { font-size: 20px; margin: 5px 0 0; font-weight: 800; }
         .book-item { background: #0f172a; padding: 15px; border-radius: 15px; border: 1px solid var(--border); margin-bottom: 12px; }
         .login-field, select, textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; font-family: inherit; }
-        .btn-preview { background: var(--blue); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; margin-right: 5px; margin-top: 5px; }
+        .btn-preview { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; margin-top: 5px; }
         #auth-screen, #profile-overlay, #reader-overlay, #full-lib-view, #borrow-view, #search-results-overlay, .full-modal { position: fixed; inset: 0; z-index: 9000; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
         .hidden { display: none !important; }
-        .cat-item { cursor: pointer; background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
-        .cat-item:hover { border-color: var(--blue); }
+        
+        /* Dropdown Styling */
+        .dropdown { position: relative; margin-bottom: 15px; }
+        .dropdown-btn { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 12px; width: 100%; text-align: left; color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .dropdown-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; margin-top: 5px; display: none; overflow: hidden; }
+        .dropdown.active .dropdown-content { display: block; }
+        .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .dropdown-item:hover { background: #0f172a; color: var(--blue); }
+
+        .typing-mirror { background: #0f172a; padding: 10px; border-radius: 10px; color: var(--blue); font-family: monospace; margin-bottom: 15px; font-size: 14px; border-left: 4px solid var(--blue); }
         .time-box { background: var(--card-bg); border: 1px solid var(--border); padding: 10px; border-radius: 15px; text-align: center; }
         .time-val { font-family: monospace; font-weight: 800; font-size: 16px; }
         .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; display: inline-block; margin-right: 5px; }
@@ -32,7 +40,6 @@
     <div id="auth-screen">
         <div style="background:var(--card-bg); padding:30px; border-radius:24px; text-align:center; max-width:350px; margin:auto; border:1px solid var(--border);">
             <h2 style="color:var(--blue)">TheoLib Login</h2>
-            <select id="login-role" class="login-field"><option value="student">Student</option><option value="faculty">Faculty</option></select>
             <input type="text" id="login-coll-id" class="login-field" placeholder="College ID">
             <input type="text" id="login-user-id" class="login-field" placeholder="User ID">
             <input type="password" id="login-pass" class="login-field" placeholder="Password">
@@ -54,53 +61,77 @@
 
         <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap: 15px;">
             <div>
-                <input type="text" id="lib-search" class="login-field" placeholder="🔍 Search title or category..." oninput="handleSearch(this.value)">
+                <input type="text" id="lib-search" class="login-field" placeholder="🔍 Search library..." oninput="mirrorTyping(this.value)">
                 
-                <div class="glass-card">
-                    <h3>📂 Categories</h3>
-                    <div id="category-folders">
-                        <div class="cat-item" onclick="loadCat('Theology')"><span>📖 Theology</span> ➔</div>
-                        <div class="cat-item" onclick="loadCat('Church History')"><span>⛪ Church History</span> ➔</div>
-                        <div class="cat-item" onclick="loadCat('Mission')"><span>🌍 Mission</span> ➔</div>
-                        <div class="cat-item" onclick="loadCat('Bible Intro')"><span>📘 Bible Intro</span> ➔</div>
-                        <div class="cat-item" onclick="loadCat('Acts')"><span>📜 Acts of Apostles</span> ➔</div>
-                        <div class="cat-item" onclick="loadCat('Ethics')"><span>⚖️ Christian Ethics</span> ➔</div>
-                        <div class="cat-item" onclick="loadCat('Other Books')"><span>📚 Other Books</span> ➔</div>
+                <div class="dropdown" id="cat-dropdown">
+                    <div class="dropdown-btn" onclick="toggleDropdown()">
+                        <span>📂 Categories (7 Folders)</span> <span>▼</span>
+                    </div>
+                    <div class="dropdown-content">
+                        <div class="dropdown-item" onclick="loadCat('Theology')">📖 Theology</div>
+                        <div class="dropdown-item" onclick="loadCat('Church History')">⛪ Church History</div>
+                        <div class="dropdown-item" onclick="loadCat('Mission')">🌍 Mission</div>
+                        <div class="dropdown-item" onclick="loadCat('Bible Intro')">📘 Bible Intro</div>
+                        <div class="dropdown-item" onclick="loadCat('Acts')">📜 Acts of Apostles</div>
+                        <div class="dropdown-item" onclick="loadCat('Ethics')">⚖️ Christian Ethics</div>
+                        <div class="dropdown-item" onclick="loadCat('Other Books')">📚 Other Books</div>
                     </div>
                 </div>
-                <div class="glass-card"><h3>🕒 Recently Added</h3><div id="recent-list"></div></div>
+
+                <div class="glass-card"><h3>🕒 Recent</h3><div id="recent-list"></div></div>
             </div>
 
             <div>
                 <div class="glass-card" style="border-color: var(--purple);">
                     <h4>💡 Suggestions</h4>
-                    <textarea id="feat-suggest" style="height:80px;" placeholder="Message to Admin..."></textarea>
+                    <textarea id="feat-suggest" style="height:60px;" placeholder="Message admin..."></textarea>
                     <button class="btn-preview" style="background:var(--purple); width:100%;" onclick="submitSuggestion()">Send</button>
                 </div>
                 <div class="glass-card" style="border-color: var(--orange);">
-                    <h4>📖 Request Book</h4>
+                    <h4>📖 Request</h4>
                     <input type="text" id="req-book" placeholder="Book Name" class="login-field">
                     <button class="btn-preview" style="background:var(--orange); width:100%;" onclick="submitRequest()">Request</button>
                 </div>
+                <div class="glass-card">
+                    <h4>📞 Helpdesk</h4>
+                    <button class="btn-preview" style="width:100%;" onclick="showContactModal()">Contact Us</button>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <div id="search-results-overlay" class="hidden">
+        <div style="background:var(--card-bg); padding:20px; border-bottom:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>🔎 Results</h3>
+                <button onclick="closeView('search-results-overlay')" class="btn-preview">Back</button>
+            </div>
+            <div class="typing-mirror">Searching for: <span id="mirror-text">...</span></div>
+        </div>
+        <div id="search-results-list" style="padding:20px;"></div>
+    </div>
+
+    <div id="contact-modal" class="full-modal hidden">
+        <div class="glass-card" style="max-width:400px; margin:auto;">
+            <h3>Contact Administrator</h3>
+            <input type="text" id="con-coll" placeholder="Your College" class="login-field">
+            <textarea id="con-msg" placeholder="Your Message..." style="height:120px;"></textarea>
+            <button class="btn-preview" style="width:100%; padding:15px;" onclick="submitContact()">Send Message</button>
+            <button class="btn-preview" style="background:none; border:1px solid var(--border); width:100%; margin-top:10px;" onclick="closeContactModal()">Cancel</button>
         </div>
     </div>
 
     <div id="profile-overlay" class="hidden">
         <div class="glass-card" style="max-width:350px; margin:auto; text-align:center;">
-            <h2 id="p-name">User Name</h2>
+            <h2 id="p-name">Name</h2>
             <div id="p-role-box" style="background:var(--blue); display:inline-block; padding:5px 15px; border-radius:20px; font-size:11px; margin-bottom:15px; font-weight:800;">ROLE</div>
-            <div style="text-align:left; font-size:13px; margin-bottom:20px;">
-                <p><b>College ID:</b> <span id="p-coll"></span></p>
-                <p><b>Student ID:</b> <span id="p-sid"></span></p>
-            </div>
             <button onclick="toggleProfile()" class="btn-preview">Back</button>
             <button onclick="location.reload()" style="background:red; margin-top:10px;" class="btn-preview">Logout</button>
         </div>
     </div>
 
-    <div id="full-lib-view" class="hidden"><div style="display:flex; justify-content:space-between;"><h3>📚 Library</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list"></div></div>
-    <div id="borrow-view" class="hidden"><div style="display:flex; justify-content:space-between;"><h3>📥 Issued</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-list"></div></div>
+    <div id="full-lib-view" class="hidden"><div style="display:flex; justify-content:space-between; padding:20px;"><h3>📚 Books</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list" style="padding:20px;"></div></div>
+    <div id="borrow-view" class="hidden"><div style="display:flex; justify-content:space-between; padding:20px;"><h3>📥 Issued</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-list" style="padding:20px;"></div></div>
     <div id="reader-overlay" class="hidden"><div style="background:#1e293b; padding:15px; display:flex; justify-content:space-between;"><span id="reader-title"></span><button onclick="closeReader()" style="background:red; color:white; border:none; padding:8px 12px; border-radius:5px;">Exit</button></div><iframe id="pdf-frame" style="width:100%; height:100%; border:none;"></iframe></div>
 
     <script>
@@ -111,7 +142,7 @@
         document.addEventListener("visibilitychange", () => { isActive = !document.hidden; document.getElementById('session-box').classList.toggle('paused', !isActive); });
 
         async function handleLogin() {
-            const role = document.getElementById('login-role').value, cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
+            const cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
             const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).get();
             if(!snap.empty) {
                 currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
@@ -127,9 +158,7 @@
         }
 
         function renderItem(b) {
-            let h = `<div class="book-item"><b>${b.title}</b><br><button class="btn-preview" onclick="openPdfPreview('${b.id}','${b.title}')">Preview</button><button class="btn-preview" style="background:var(--orange)" onclick="borrowBook('${b.id}','${b.title}')">Borrow</button>`;
-            if(currentUser.role==='faculty') h+=`<button class="btn-preview" style="background:var(--purple)" onclick="nominate('${b.id}','${b.title}')">Nominate</button>`;
-            return h + `</div>`;
+            return `<div class="book-item"><b>${b.title}</b><br><button class="btn-preview" onclick="openPdfPreview('${b.id}','${b.title}')">Preview</button><button class="btn-preview" style="background:var(--orange)" onclick="borrowBook('${b.id}','${b.title}')">Borrow</button></div>`;
         }
 
         function loadLibrary() {
@@ -145,32 +174,35 @@
             });
         }
 
-        function handleSearch(val) {
-            const list = document.getElementById('full-book-list'); list.innerHTML = "";
-            const filtered = collegeBooks.filter(b => b.title.toLowerCase().includes(val.toLowerCase()) || b.category.toLowerCase().includes(val.toLowerCase()));
-            filtered.forEach(b => list.innerHTML += renderItem(b));
-            if(val.trim() !== "") document.getElementById('full-lib-view').classList.remove('hidden');
+        function mirrorTyping(val) {
+            document.getElementById('mirror-text').innerText = val || "...";
+            if(val.trim().length > 1) {
+                const list = document.getElementById('search-results-list'); list.innerHTML = "";
+                const filtered = collegeBooks.filter(b => b.title.toLowerCase().includes(val.toLowerCase()) || b.category.toLowerCase().includes(val.toLowerCase()));
+                filtered.forEach(b => list.innerHTML += renderItem(b));
+                document.getElementById('search-results-overlay').classList.remove('hidden');
+            }
         }
 
-        function loadCat(cat) {
+        function toggleDropdown() { document.getElementById('cat-dropdown').classList.toggle('active'); }
+        function loadCat(cat) { 
             const list = document.getElementById('full-book-list'); list.innerHTML = "";
             collegeBooks.filter(b => b.category === cat).forEach(b => list.innerHTML += renderItem(b));
             document.getElementById('full-lib-view').classList.remove('hidden');
+            document.getElementById('cat-dropdown').classList.remove('active');
         }
 
-        function toggleProfile() {
-            const p = document.getElementById('profile-overlay');
-            if(p.classList.contains('hidden')) {
-                document.getElementById('p-name').innerText = currentUser.fullName;
-                document.getElementById('p-role-box').innerText = currentUser.role.toUpperCase();
-                document.getElementById('p-coll').innerText = currentUser.collegeId;
-                document.getElementById('p-sid').innerText = currentUser.studentId;
-                p.classList.remove('hidden');
-            } else p.classList.add('hidden');
+        function toggleProfile() { 
+            document.getElementById('p-name').innerText = currentUser.fullName;
+            document.getElementById('p-role-box').innerText = currentUser.role.toUpperCase();
+            document.getElementById('profile-overlay').classList.toggle('hidden'); 
         }
 
+        async function submitContact() { const m = document.getElementById('con-msg').value; if(!m) return; await db.collection("admin_messages").add({ type: "Helpdesk", college: document.getElementById('con-coll').value, message: m, user: currentUser.fullName, date: Date.now() }); alert("Sent!"); closeContactModal(); }
+        function showContactModal() { document.getElementById('contact-modal').classList.remove('hidden'); }
+        function closeContactModal() { document.getElementById('contact-modal').classList.add('hidden'); }
         function openPdfPreview(id, t) { document.getElementById('reader-title').innerText = t + " (Preview)"; document.getElementById('pdf-frame').src = `/public/${id}_read_online.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
-        function openFullPdf(id, t) { document.getElementById('reader-title').innerText = t + " (Full Access)"; document.getElementById('pdf-frame').src = `/public/${id}.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
+        function openFullPdf(id, t) { document.getElementById('reader-title').innerText = t + " (Full)"; document.getElementById('pdf-frame').src = `/public/${id}.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
         async function borrowBook(id, t) { await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, date: Date.now() }); alert("Issued!"); }
         function closeReader() { document.getElementById('reader-overlay').classList.add('hidden'); document.getElementById('pdf-frame').src = ""; }
         function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
