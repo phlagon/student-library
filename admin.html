@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TheoLib Admin - Master Control</title>
+    <title>TheoLib Admin - Restored Control</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -11,9 +11,10 @@
     <style>
         :root { --blue: #3b82f6; --orange: #f97316; --green: #10b981; --purple: #a855f7; --bg: #0b1120; --card-bg: #1e293b; --text-main: #f8fafc; --text-sub: #94a3b8; --border: #334155; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); }
+        #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; }
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; }
-        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); border: 1px solid var(--border); transition: 0.3s; white-space: nowrap; }
-        .tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); border: 1px solid var(--border); transition: 0.3s; }
+        .tab-btn.active { background: var(--blue); color: white; }
         .glass-card { background: var(--card-bg); border-radius: 20px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
@@ -24,14 +25,12 @@
         .stat-box { background: #0f172a; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
         .stat-val { font-size: 14px; font-weight: 800; color: var(--blue); display: block; }
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 6000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        .modal-content { background: var(--card-bg); width: 100%; max-width: 800px; border-radius: 24px; padding: 30px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 850px; border-radius: 24px; padding: 30px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div id="auth-overlay" style="position:fixed; inset:0; background:var(--bg); z-index:9999; display:flex; align-items:center; justify-content:center;">
-        <div class="glass-card" style="text-align:center;"><h2>Admin</h2><input type="text" id="acid" placeholder="Coll ID"><br><input type="password" id="apass" placeholder="Pass"><br><button onclick="login()">Login</button></div>
-    </div>
+    <div id="auth-overlay"><div style="background:var(--card-bg); padding:30px; border-radius:24px; text-align:center; border:1px solid var(--border);"><h2>Admin</h2><input type="text" id="acid" class="login-field" placeholder="Coll ID"><br><input type="password" id="apass" class="login-field" placeholder="Pass"><br><button class="btn-sm" style="background:var(--blue); color:white; width:100%; padding:15px; border-radius:12px;" onclick="login()">Login</button></div></div>
     
     <div id="master-panel" class="hidden">
         <div class="nav-tabs">
@@ -42,27 +41,24 @@
             <button class="tab-btn" style="background:#ef4444; color:white; margin-left:auto;" onclick="location.reload()">Logout</button>
         </div>
 
-        <div id="inv-section" class="glass-card"><table><thead><tr><th>Resource</th><th>Access</th><th>Cat</th><th>Promo</th><th>Del</th></tr></thead><tbody id="inventory-list"></tbody></table></div>
+        <div id="inv-section" class="glass-card"><table><thead><tr><th>Title</th><th>Access</th><th>Cat</th><th>Action</th></tr></thead><tbody id="inventory-list"></tbody></table></div>
         <div id="nom-section" class="hidden glass-card"><h2>📥 Nominations</h2><div id="nomination-list"></div></div>
-        <div id="mem-section" class="hidden glass-card">
-            <select id="mon-coll" onchange="loadCollegeStudents(this.value)"><option value="">Select College</option><option value="IMC26">IMC26</option><option value="ASLIN26">ASLIN26</option></select>
-            <div id="user-folders-list" style="margin-top:20px;"></div>
-        </div>
-        <div id="stud-section" class="hidden glass-card"><h2>📤 Bulk</h2><textarea id="bulk-input" class="login-field" style="height:100px;"></textarea><button onclick="processBulk()">Upload</button></div>
+        <div id="mem-section" class="hidden glass-card"><select id="mon-coll" onchange="loadCollegeStudents(this.value)"><option value="">Select College</option><option value="IMC26">IMC26</option><option value="ASLIN26">ASLIN26</option></select><div id="user-folders-list" style="margin-top:20px;"></div></div>
+        <div id="stud-section" class="hidden glass-card"><h2>📤 Bulk</h2><textarea id="bulk-input" class="login-field" style="height:100px;"></textarea><button class="btn-sm" style="background:var(--blue); color:white;" onclick="processBulk()">Upload</button></div>
     </div>
 
     <div id="user-modal" class="hidden">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 id="modal-title">Report</h3>
-                <div>
+                <h3 id="modal-title">Student Activity Log</h3>
+                <div style="display:flex; gap:10px;">
                     <button onclick="fetchUsageData()" class="btn-sm" style="background:var(--orange); color:white;">🔄 Force Sync</button>
                     <button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue); color:white;">📥 Detailed CSV</button>
                     <button onclick="closeModal()" class="btn-sm" style="background:#ef4444; color:white;">X</button>
                 </div>
             </div>
             <div id="modal-stats" style="margin-top:20px;"></div>
-            <table style="margin-top:20px;"><thead><tr><th>Type & Book Title</th><th>Start</th><th>End</th><th>Duration</th></tr></thead><tbody id="log-body"></tbody></table>
+            <table style="margin-top:20px;"><thead><tr><th>Type & Details</th><th>Start</th><th>End</th><th>Duration</th></tr></thead><tbody id="log-body"></tbody></table>
         </div>
     </div>
 
@@ -78,7 +74,7 @@
             const list = document.getElementById('inventory-list'); list.innerHTML = "";
             snap.forEach(doc => {
                 const b = doc.data(); const id = doc.id;
-                list.innerHTML += `<tr><td><b>${b.title}</b></td><td style="position:relative;"><button class="btn-sm" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">...</div></td><td><button class="btn-sm" onclick="toggleM('c-${id}')">Cat</button></td><td><button class="btn-sm" onclick="toggleM('p-${id}')">Promo</button></td><td><button onclick="deletePDF('${id}')">🗑️</button></td></tr>`;
+                list.innerHTML += `<tr><td><b>${b.title}</b></td><td style="position:relative;"><button class="btn-sm" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">...</div></td><td><button class="btn-sm" onclick="toggleM('c-${id}')">Cat</button></td><td><button onclick="deletePDF('${id}')">🗑️</button></td></tr>`;
             });
         });
     }
@@ -97,15 +93,15 @@
     async function fetchUsageData() {
         document.getElementById('log-body').innerHTML = "<tr><td colspan='4'>Bypassing Cache...</td></tr>";
         const logs = await db.collection("activity_logs").where("userId", "==", activeUID).get({ source: 'server' });
-        let t = 0, o = 0, b = 0, html = "";
+        let total = 0, online = 0, borrow = 0, html = "";
         logs.forEach(l => { 
             const d = l.data(); const dur = d.endTime ? Math.floor((d.endTime - d.startTime) / 1000) : 0;
-            if(d.type === "Total App Usage") t += dur;
-            if(d.type === "Read Online") o += dur;
-            if(d.type === "Borrowed Book Reading") b += dur;
-            html += `<tr><td>${d.type}<br><small>${d.activity}</small></td><td>${new Date(d.startTime).toLocaleString()}</td><td>${d.endTime ? new Date(d.endTime).toLocaleString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
+            if(d.type === "Total App Usage") total += dur;
+            if(d.type === "Read Online") online += dur;
+            if(d.type === "Borrowed Book Reading") borrow += dur;
+            html += `<tr><td>${d.type}<br><small>${d.activity || 'N/A'}</small></td><td>${new Date(d.startTime).toLocaleString()}</td><td>${d.endTime ? new Date(d.endTime).toLocaleString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
         });
-        document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">App Usage<br><b class="stat-val">${fmt(t)}</b></div><div class="stat-box">Online Read<br><b class="stat-val">${fmt(o)}</b></div><div class="stat-box">Borrowed Read<br><b class="stat-val">${fmt(b)}</b></div></div>`;
+        document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">App Usage<br><b class="stat-val">${fmt(total)}</b></div><div class="stat-box">Online Read<br><b class="stat-val">${fmt(online)}</b></div><div class="stat-box">Borrowed Read<br><b class="stat-val">${fmt(borrow)}</b></div></div>`;
         document.getElementById('log-body').innerHTML = html;
     }
 
@@ -117,8 +113,8 @@
             if(d.type === "Total App Usage") t += dur; if(d.type === "Read Online") o += dur; if(d.type === "Borrowed Book Reading") b += dur;
             rows += `"${d.activity}",${new Date(d.startTime).toLocaleString()},${d.endTime ? new Date(d.endTime).toLocaleString() : 'Active'},${fmt(dur)}\n`; 
         });
-        let csv = `Detailed Report: ${activeName}\nTotal App Usage,${fmt(t)}\nOnline Read,${fmt(o)}\nBorrowed Read,${fmt(b)}\n\n${rows}`;
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `${activeName}_Detailed_Report.csv`; a.click();
+        let csv = `Report: ${activeName}\nTotal Usage,${fmt(t)}\nOnline,${fmt(o)}\nBorrowed,${fmt(b)}\n\n${rows}`;
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `${activeName}_Report.csv`; a.click();
     }
 
     function closeModal() { document.getElementById('user-modal').classList.add('hidden'); }
