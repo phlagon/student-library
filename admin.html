@@ -115,8 +115,8 @@
                 list.innerHTML += `<tr>
                     <td><b>${b.title}</b></td>
                     <td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--purple)" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">${Object.keys(adminAccounts).filter(c=>c!=='aslin').map(c => `<div class="dropdown-item" onclick="toggleAccess('${id}','${c}',${allowed.includes(c)})">${c} ${allowed.includes(c)?'✅':''}</div>`).join('')}</div>` : 'Restricted'}</td>
-                    <td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--green)" onclick="toggleM('c-${id}')">Cat</button><div id="c-${id}" class="dropdown-menu">${['Theology','Church History','Mission','Bible Intro','Acts','Ethics','Other Books'].map(cat => `<div class="dropdown-item" onclick="updF('${id}','category','${cat}')">${cat}</div>`).join('')}</div>` : b.category}</td>
-                    <td>${isSuper ? `<button class="btn-sm" style="background:var(--orange)" onclick="toggleM('p-${id}')">Promo</button><div id="p-${id}" class="dropdown-menu"><div class="dropdown-item" onclick="updF('${id}','recent',${!b.recent})">Recent ${b.recent?'✅':''}</div><div class="dropdown-item" onclick="updF('${id}','trending',${!b.trending})">Trending ${b.trending?'✅':''}</div></div>` : 'None'}</td>
+                    <td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--green)" onclick="toggleM('c-${id}')">Cat</button><div id="c-${id}" class="dropdown-menu">${['Theology','Church History','Mission','Bible Intro','Acts','Ethics','Other Books'].map(cat => `<div class="dropdown-item" onclick="updF('${id}','category','${cat}')">${cat} ${b.category === cat ? '✅' : ''}</div>`).join('')}</div>` : b.category}</td>
+                    <td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--orange)" onclick="toggleM('p-${id}')">Promo</button><div id="p-${id}" class="dropdown-menu"><div class="dropdown-item" onclick="updF('${id}','recent',${!b.recent})">Recent ${b.recent?'✅':''}</div><div class="dropdown-item" onclick="updF('${id}','trending',${!b.trending})">Trending ${b.trending?'✅':''}</div></div>` : 'None'}</td>
                     <td>${isSuper ? `<button class="btn-sm" style="background:red" onclick="deletePDF('${id}')">🗑️</button>` : 'None'}</td>
                 </tr>`;
             });
@@ -124,7 +124,7 @@
         refreshInbox();
     }
 
-    // RESTORED LOG LOGIC (Appreciated Version)
+    // RESTORED FIX: ENSURING ROWS APPEND TO TABLE
     async function openReport(uid, name, role) {
         activeUID = uid; activeName = name; document.getElementById('user-modal').classList.remove('hidden');
         document.getElementById('modal-title').innerText = name;
@@ -136,7 +136,9 @@
             snap.forEach(d => { 
                 const data = d.data(); currentLogs.push(data); 
                 const dur = data.endTime ? Math.floor((data.endTime - data.startTime) / 1000) : 0;
-                if(data.type.includes("Usage")) t += dur; if(data.type.includes("Online")) o += dur; if(data.type.includes("Borrowed") || data.type.includes("Full")) b += dur;
+                if(data.type.includes("Usage")) t += dur; 
+                if(data.type.includes("Online")) o += dur; 
+                if(data.type.includes("Borrowed") || data.type.includes("Full")) b += dur;
                 rowsHtml += `<tr><td>${data.type}<br><small>${data.activity || ''}</small></td><td>${data.startTime ? new Date(data.startTime).toLocaleTimeString() : '--'}</td><td>${data.endTime ? new Date(data.endTime).toLocaleTimeString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
             });
             currentLogs.sort((x, y) => (y.startTime || 0) - (x.startTime || 0));
@@ -154,6 +156,19 @@
                 list.innerHTML += `<div class="user-folder" onclick='openReport("${doc.id}","${u.fullName}","${u.role}")'>📂 <b>${u.fullName}</b></div>`;
             });
         });
+    }
+
+    function downloadCSV() {
+        if (!currentLogs.length) return alert("No logs to download");
+        let csv = "Activity,Date,Duration\n";
+        currentLogs.forEach(d => {
+            const start = d.startTime ? new Date(d.startTime) : null;
+            const end = d.endTime ? new Date(d.endTime) : null;
+            const dur = end ? Math.floor((d.endTime - d.startTime) / 1000) : 0;
+            csv += `"${d.type} - ${d.activity || ''}",${start ? start.toLocaleDateString() : '--'},${fmt(dur)}\n`;
+        });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        a.download = `${activeName}_Report.csv`; a.click();
     }
 
     function refreshInbox() {
@@ -179,12 +194,6 @@
         if(!t || !c) return alert("Title and Category required");
         await db.collection("library_settings").add({ title: t, category: c, allowedColleges: a, recent: true, trending: false });
         alert("Added!"); document.getElementById('new-title').value = "";
-    }
-
-    function downloadCSV() {
-        let csv = "Activity,Date,Duration\n";
-        currentLogs.forEach(d => { csv += `"${d.type} - ${d.activity || ''}",${new Date(d.startTime).toLocaleString()},${fmt(Math.floor((d.endTime-d.startTime)/1000))}\n`; });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `${activeName}_Report.csv`; a.click();
     }
 
     async function changeUserRole() { await db.collection("users").doc(activeUID).update({ role: document.getElementById('new-role-select').value }); alert("Updated!"); }
