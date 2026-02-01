@@ -22,8 +22,6 @@
         td, th { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 13px; text-align: left; }
         .btn-sm { padding: 8px 15px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; color: white; }
         .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; z-index: 100; min-width: 180px; padding: 10px; top: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .dropdown-item { padding: 8px 12px; cursor: pointer; border-radius: 6px; font-size: 12px; color: var(--text-sub); }
-        .dropdown-item:hover { background: var(--bg); color: white; }
         .show { display: block; }
         .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
@@ -62,10 +60,10 @@
                     <option value="Ethics">Ethics</option>
                     <option value="Other Books">Other Books</option>
                 </select>
-                <input type="text" id="new-access" class="login-field" placeholder="Allowed Colleges (comma-separated)">
-                <button class="btn-sm" style="background:var(--green); width:100%;" onclick="addNewBook()">Add to Library</button>
+                <input type="text" id="new-access" class="login-field" placeholder="Allowed Colleges">
+                <button class="btn-sm" style="background:var(--green); width:100%;" onclick="addNewBook()">Add Book</button>
             </div>
-            <table><thead><tr id="inv-header"><th>Title</th><th>Access</th><th>Cat</th><th>Promo</th><th>Del</th></tr></thead><tbody id="inventory-list"></tbody></table>
+            <table><thead><tr><th>Title</th><th>Access</th><th>Cat</th><th>Promo</th><th>Del</th></tr></thead><tbody id="inventory-list"></tbody></table>
         </div>
 
         <div id="nom-section" class="hidden glass-card"><h2>📥 Faculty Nominations</h2><div id="nomination-list"></div></div>
@@ -81,13 +79,12 @@
             <div id="user-folders-list"></div>
         </div>
 
-        <div id="stud-section" class="hidden glass-card"><h2>📤 Registration</h2><p id="reg-msg" class="hidden">Contact Super Admin to add members.</p><textarea id="bulk-input" class="login-field" style="height:100px;" placeholder="Name, CollID, StudentID, Pass, Role"></textarea></div>
-        
+        <div id="stud-section" class="hidden glass-card"><h2>📤 Registration</h2><p id="reg-msg" class="hidden">Contact Super Admin to add members.</p><textarea id="bulk-input" class="login-field" style="height:100px;"></textarea></div>
         <div id="msg-section" class="hidden glass-card"><div style="display:flex; justify-content:space-between; align-items:center;"><h2>📥 Inbox</h2><button class="btn-sm" style="background:var(--orange);" onclick="refreshInbox()">🔄 Refresh</button></div><div id="inbox-list"></div></div>
 
         <div id="help-section" class="hidden glass-card">
             <h2>📞 Contact Super Admin</h2>
-            <textarea id="help-msg" class="login-field" style="height:150px;" placeholder="Type your message..."></textarea>
+            <textarea id="help-msg" class="login-field" style="height:150px;" placeholder="Message to Super Admin..."></textarea>
             <button class="btn-sm" style="background:var(--blue); width:100%;" onclick="sendAdminHelp()">Send Message</button>
         </div>
     </div>
@@ -95,6 +92,7 @@
     <div id="user-modal" class="hidden">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between;"><h3 id="modal-title">Report</h3><div style="display:flex; gap:10px;"><button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue);">📥 CSV</button><button onclick="closeModal()" class="btn-sm" style="background:#ef4444;">X</button></div></div>
+            <div id="super-role-box" class="hidden glass-card" style="padding:15px; margin-top:15px; border-color:var(--purple);"><label style="font-size:11px;">Change Role:</label><div style="display:flex; gap:10px; margin-top:5px;"><select id="new-role-select" class="login-field" style="margin:0; flex:1;"><option value="student">Student</option><option value="faculty">Faculty</option></select><button class="btn-sm" style="background:var(--purple);" onclick="changeUserRole()">Update</button></div></div>
             <div id="modal-stats" style="margin-top:15px;"></div>
             <table style="margin-top:20px;"><thead><tr><th>Activity</th><th>Start</th><th>End</th><th>Duration</th></tr></thead><tbody id="log-body"></tbody></table>
         </div>
@@ -130,12 +128,7 @@
                 list.innerHTML += `<tr>
                     <td><b>${b.title}</b></td>
                     <td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--purple)" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">${Object.keys(adminAccounts).filter(c=>c!=='aslin').map(c => `<div class="dropdown-item" onclick="toggleAccess('${id}','${c}',${allowed.includes(c)})">${c} ${allowed.includes(c)?'✅':''}</div>`).join('')}</div>` : 'Restricted'}</td>
-                    <td style="position:relative;">
-                        ${isSuper ? `<button class="btn-sm" style="background:var(--green)" onclick="toggleM('c-${id}')">${b.category || 'Cat'}</button>
-                        <div id="c-${id}" class="dropdown-menu">
-                            ${cats.map(c => `<div class="dropdown-item" onclick="updF('${id}','category','${c}')">${c} ${b.category === c ? '✅' : ''}</div>`).join('')}
-                        </div>` : b.category}
-                    </td>
+                    <td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--green)" onclick="toggleM('c-${id}')">${b.category || 'Cat'}</button><div id="c-${id}" class="dropdown-menu">${cats.map(c => `<div class="dropdown-item" onclick="updF('${id}','category','${c}')">${c} ${b.category === c ? '✅' : ''}</div>`).join('')}</div>` : b.category}</td>
                     <td style="position:relative;">${isSuper ? `<button class="btn-sm" style="background:var(--orange)" onclick="toggleM('p-${id}')">Promo</button><div id="p-${id}" class="dropdown-menu"><div class="dropdown-item" onclick="updF('${id}','recent',${!b.recent})">Recent ${b.recent?'✅':''}</div><div class="dropdown-item" onclick="updF('${id}','trending',${!b.trending})">Trending ${b.trending?'✅':''}</div></div>` : 'None'}</td>
                     <td>${isSuper ? `<button class="btn-sm" style="background:red" onclick="deletePDF('${id}')">🗑️</button>` : 'None'}</td>
                 </tr>`;
@@ -147,6 +140,7 @@
     async function openReport(uid, name, role) {
         activeUID = uid; activeName = name; document.getElementById('user-modal').classList.remove('hidden');
         document.getElementById('modal-title').innerText = name;
+        if(isSuper) document.getElementById('super-role-box').classList.remove('hidden');
         if (logUnsub) logUnsub();
         logUnsub = db.collection("activity_logs").where("userId", "==", uid).onSnapshot(snap => {
             let t=0, o=0, b=0, rowsHtml=""; currentLogs = [];
@@ -156,6 +150,7 @@
                 if(data.type.includes("Usage")) t += dur; if(data.type.includes("Online Read")) o += dur; if(data.type.includes("Full Read")) b += dur;
                 rowsHtml += `<tr><td>${data.type}<br><small>${data.activity || ''}</small></td><td>${data.startTime ? new Date(data.startTime).toLocaleTimeString() : '--'}</td><td>${data.endTime ? new Date(data.endTime).toLocaleTimeString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
             });
+            currentLogs.sort((x, y) => (y.startTime || 0) - (x.startTime || 0));
             document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">App Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online Read<br><b>${fmt(o)}</b></div><div class="stat-box">Full Read<br><b>${fmt(b)}</b></div></div>`;
             document.getElementById('log-body').innerHTML = rowsHtml || "<tr><td colspan='4'>No activity</td></tr>";
         });
@@ -187,10 +182,7 @@
             list.innerHTML = nomList.innerHTML = ""; let n=0, m=0;
             snap.forEach(doc => {
                 const d = doc.data(); const dt = new Date(d.date);
-                const html = `<div class="glass-card" style="margin-bottom:10px; border-left:4px solid var(--blue);">
-                    <small>${dt.toLocaleString()}</small><br><b>${d.type}</b> from <b>${d.college}</b><br><p>${d.message || d.book || ''}</p>
-                    <div style="text-align:right;"><button class="btn-sm" style="background:red;" onclick="deleteMsg('${doc.id}')">Delete</button></div>
-                </div>`;
+                const html = `<div class="glass-card" style="margin-bottom:10px; border-left:4px solid var(--blue);"><small>${dt.toLocaleString()}</small><br><b>${d.type}</b> from <b>${d.college}</b><br><p>${d.message || d.book || ''}</p><div style="text-align:right;"><button class="btn-sm" style="background:red;" onclick="deleteMsg('${doc.id}')">Delete</button></div></div>`;
                 if(d.type.includes("Nomination")) { n++; nomList.innerHTML += html; } else { m++; list.innerHTML += html; }
             });
             document.getElementById('nom-badge').innerText = n; document.getElementById('msg-badge').innerText = m;
@@ -212,6 +204,7 @@
 
     async function toggleAccess(id, coll, has) { const ref = db.collection("library_settings").doc(id); const d = await ref.get(); let allowed = d.data().allowedColleges || []; allowed = has ? allowed.filter(c => c !== coll) : [...allowed, coll]; await ref.update({ allowedColleges: allowed }); }
     async function updF(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
+    async function changeUserRole() { await db.collection("users").doc(activeUID).update({ role: document.getElementById('new-role-select').value }); alert("Updated!"); }
     async function deleteMsg(id) { if(confirm("Delete?")) await db.collection("admin_messages").doc(id).delete(); }
     async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
     function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
