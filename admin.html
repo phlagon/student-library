@@ -14,23 +14,23 @@
         #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; }
         .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; text-align: center; border: 1px solid var(--border); width: 300px; }
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 10px; }
-        .tab-btn { padding: 10px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); border: 1px solid var(--border); transition: 0.3s; white-space: nowrap; }
+        .tab-btn { padding: 12px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); border: 1px solid var(--border); transition: 0.3s; white-space: nowrap; }
         .tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
         .glass-card { background: var(--card-bg); border-radius: 20px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px; color: var(--text-sub); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
         td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        th { text-align: left; padding: 12px; color: var(--text-sub); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
         .btn-sm { padding: 8px 15px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; color: white; }
         .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; z-index: 100; min-width: 180px; padding: 10px; top: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .show { display: block; }
-        .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: #0f172a; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 6000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         .modal-content { background: var(--card-bg); width: 100%; max-width: 850px; border-radius: 24px; padding: 30px; max-height: 90vh; border: 1px solid var(--border); overflow-y: auto; }
         .hidden { display: none !important; }
         .login-field { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; }
         textarea { width: 100%; height: 100px; background: var(--bg); color: white; border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 15px; font-family: inherit; resize: none; }
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat-box { background: #0f172a; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
+        .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border); }
     </style>
 </head>
 <body>
@@ -58,21 +58,26 @@
         <div id="msg-section" class="hidden glass-card">
             <h2>📥 Super Inbox</h2>
             <div id="inbox-list"></div>
+            <div id="coll-help-div" class="hidden" style="margin-top:30px; border-top:1px solid var(--border); padding-top:20px;">
+                <h3 style="color:var(--orange)">Contact Super Admin</h3>
+                <textarea id="admin-help-msg" placeholder="Your message..."></textarea>
+                <button class="btn-sm" style="background:var(--orange); width:100%;" onclick="sendAdminHelp()">Send</button>
+            </div>
         </div>
     </div>
 
     <div id="user-modal" class="hidden">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 id="modal-title">Report</h3>
+                <h3 id="modal-title">Student Report</h3>
                 <button onclick="closeModal()" class="btn-sm" style="background:#ef4444;">X</button>
             </div>
 
             <div id="super-role-box" class="hidden glass-card" style="padding:15px; margin: 15px 0; border-color:var(--purple);">
-                <label style="font-size:11px;">Change Role:</label>
+                <label style="font-size:11px;">Change Member Role:</label>
                 <div style="display:flex; gap:10px; margin-top:5px;">
                     <select id="new-role-select" class="login-field" style="margin:0; flex:1;"><option value="student">Student</option><option value="faculty">Faculty</option></select>
-                    <button class="btn-sm" style="background:var(--purple);" onclick="changeUserRole()">Apply</button>
+                    <button class="btn-sm" style="background:var(--purple);" onclick="changeUserRole()">Update</button>
                 </div>
             </div>
 
@@ -101,13 +106,12 @@
 
     function setupUI() {
         if (!isSuperAdmin) {
-            document.getElementById('t-msg').classList.add('hidden');
             document.getElementById('coll-selector-div').classList.add('hidden');
+            document.getElementById('coll-help-div').classList.remove('hidden');
             document.getElementById('inv-header').innerHTML = "<th>Title</th><th>Category</th>";
             loadCollegeStudents(loggedAdminId);
         } else {
             document.getElementById('inv-header').innerHTML = "<th>Title</th><th>Access</th><th>Cat</th><th>Action</th>";
-            document.getElementById('super-role-box').classList.remove('hidden');
         }
     }
 
@@ -118,19 +122,20 @@
                 const b = doc.data(); const id = doc.id;
                 let html = `<tr><td><b>${b.title}</b></td>`;
                 if (isSuperAdmin) {
-                    html += `<td><button class="btn-sm" style="background:var(--purple)" onclick="toggleM('a-${id}')">Access</button></td>`;
-                    html += `<td><button class="btn-sm" style="background:var(--green)" onclick="toggleM('c-${id}')">Cat</button></td>`;
-                    html += `<td><button class="btn-sm" style="background:#ef4444" onclick="deletePDF('${id}')">🗑️</button></td>`;
+                    html += `<td style="position:relative;"><button class="btn-sm" style="background:var(--purple);" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">...</div></td>`;
+                    html += `<td style="position:relative;"><button class="btn-sm" style="background:var(--green);" onclick="toggleM('c-${id}')">Cat</button></td>`;
+                    html += `<td><button class="btn-sm" style="background:#ef4444;" onclick="deletePDF('${id}')">🗑️</button></td>`;
                 } else { html += `<td>${b.category || 'N/A'}</td>`; }
                 html += `</tr>`; list.innerHTML += html;
             });
         });
         if(isSuperAdmin) {
             db.collection("admin_messages").onSnapshot(snap => {
-                const list = document.getElementById('inbox-list'); list.innerHTML = "";
-                snap.forEach(doc => {
-                    const m = doc.data();
-                    list.innerHTML += `<div class="glass-card" style="margin-bottom:10px; font-size:12px;"><b style="color:var(--blue)">${m.type}</b> | ${m.college}<br>${m.message || m.book}<div style="text-align:right"><button class="btn-sm" style="background:#ef4444" onclick="deleteMsg('${doc.id}')">Del</button></div></div>`;
+                const list = document.getElementById('inbox-list'); if(!list) return;
+                list.innerHTML = "";
+                let msgs = []; snap.forEach(d => msgs.push({id: d.id, ...d.data()}));
+                msgs.sort((a,b) => b.date - a.date).forEach(m => {
+                    list.innerHTML += `<div class="glass-card" style="margin-bottom:10px; font-size:12px;"><b style="color:var(--blue)">${m.type}</b> from ${m.college}<br>${m.message || m.book}<div style="text-align:right"><button class="btn-sm" style="background:#ef4444" onclick="deleteMsg('${m.id}')">Del</button></div></div>`;
                 });
             });
         }
@@ -143,21 +148,20 @@
         }); 
     }
 
-    // STUDENT LOG LOGIC (RETAINED PREVIOUS EXCELLENT LOGIC)
+    // ROLE-CHAMGE & LOG LOGIC
     function openReport(uid, name, role) { 
         activeUID = uid; document.getElementById('user-modal').classList.remove('hidden'); document.getElementById('modal-title').innerText = name; 
-        if(isSuperAdmin) document.getElementById('new-role-select').value = role || 'student';
-        
+        if(isSuperAdmin) {
+            document.getElementById('super-role-box').classList.remove('hidden');
+            document.getElementById('new-role-select').value = role || 'student';
+        }
         if(logUnsubscribe) logUnsubscribe();
-        
         logUnsubscribe = db.collection("activity_logs").where("userId", "==", uid).onSnapshot(snap => {
             let t=0, o=0, b=0, html="", logs=[];
             snap.forEach(d => logs.push(d.data()));
             logs.sort((x, y) => (y.startTime || 0) - (x.startTime || 0));
-
             logs.forEach(d => {
-                const start = d.startTime || 0, end = d.endTime || 0;
-                const dur = end ? Math.floor((end - start) / 1000) : 0;
+                const start = d.startTime || 0, end = d.endTime || 0, dur = end ? Math.floor((end - start) / 1000) : 0;
                 if(d.type.includes("Usage")) t += dur; if(d.type.includes("Online")) o += dur; if(d.type.includes("Borrowed")) b += dur;
                 html += `<tr><td>${d.type}<br><small>${d.activity || ''}</small></td><td>${start ? new Date(start).toLocaleTimeString() : '--'}</td><td>${end ? new Date(end).toLocaleTimeString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
             });
@@ -173,8 +177,14 @@
         alert("Role Updated!");
     }
 
+    async function sendAdminHelp() {
+        const m = document.getElementById('admin-help-msg').value; if(!m) return;
+        await db.collection("admin_messages").add({ type: "Admin Helpdesk", message: m, college: loggedAdminId, date: Date.now() });
+        alert("Message Sent!"); document.getElementById('admin-help-msg').value = "";
+    }
+
     function fmt(s) { if(isNaN(s) || s <= 0) return "00:00:00"; const h = Math.floor(s/3600).toString().padStart(2,'0'), m = Math.floor((s%3600)/60).toString().padStart(2,'0'), sec = (s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`; }
-    function closeModal() { document.getElementById('user-modal').classList.add('hidden'); if(logUnsubscribe) logUnsubscribe(); }
+    function closeModal() { document.getElementById('user-modal').classList.add('hidden'); document.getElementById('super-role-box').classList.add('hidden'); if(logUnsubscribe) logUnsubscribe(); }
     function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
     function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
     async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
