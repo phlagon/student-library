@@ -34,7 +34,7 @@
 </head>
 <body>
     <div id="auth-overlay"><div class="login-card"><h2>Admin Login</h2><input type="text" id="acid" class="login-field" placeholder="ID"><input type="password" id="apass" class="login-field" placeholder="Pass"><button class="btn-sm" style="background:var(--blue); width:100%; padding:15px;" onclick="handleAdminLogin()">Login</button></div></div>
-    
+   
     <div id="master-panel" class="hidden">
         <div class="nav-tabs">
             <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">Inventory</button>
@@ -45,7 +45,6 @@
             <button id="t-help" class="tab-btn hidden" onclick="switchTab('help')">Contact Admin</button>
             <button class="tab-btn" style="background:#ef4444; color:white; margin-left:auto;" onclick="location.reload()">Logout</button>
         </div>
-
         <div id="inv-section" class="glass-card">
             <div id="add-book-form" class="hidden" style="margin-bottom:25px; padding:20px; border:1px dashed var(--blue); border-radius:15px;">
                 <h3>📚 Add New Book Entry</h3>
@@ -65,14 +64,12 @@
             </div>
             <table><thead><tr id="inv-header"><th>Title</th><th>Access</th><th>Cat</th><th>Promo</th><th>Del</th></tr></thead><tbody id="inventory-list"></tbody></table>
         </div>
-
         <div id="nom-section" class="hidden glass-card"><h2>📥 Faculty Nominations</h2><div id="nomination-list"></div></div>
         <div id="mem-section" class="hidden glass-card"><select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;"><option value="">Select College</option><option value="IMC26">IMC26</option><option value="ASLIN26">ASLIN26</option></select><div id="user-folders-list"></div></div>
         <div id="stud-section" class="hidden glass-card"><h2>📤 Registration</h2><p id="reg-msg" class="hidden">Contact Super Admin to add members.</p><textarea id="bulk-input" class="login-field" style="height:100px;"></textarea></div>
         <div id="msg-section" class="hidden glass-card"><div style="display:flex; justify-content:space-between; align-items:center;"><h2>📥 Inbox</h2><button class="btn-sm" style="background:var(--orange);" onclick="refreshInbox()">🔄 Refresh</button></div><div id="inbox-list"></div></div>
         <div id="help-section" class="hidden glass-card"><h2>📞 Contact Super Admin</h2><textarea id="help-msg" class="login-field" style="height:150px;" placeholder="Message to Super Admin..."></textarea><button class="btn-sm" style="background:var(--blue); width:100%;" onclick="sendAdminHelp()">Send</button></div>
     </div>
-
     <div id="user-modal" class="hidden">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between;"><h3 id="modal-title">Report</h3><div style="display:flex; gap:10px;"><button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue);">📥 CSV</button><button onclick="closeModal()" class="btn-sm" style="background:#ef4444;">X</button></div></div>
@@ -81,13 +78,11 @@
             <table style="margin-top:20px;"><thead><tr><th>Activity</th><th>Start</th><th>End</th><th>Duration</th></tr></thead><tbody id="log-body"></tbody></table>
         </div>
     </div>
-
 <script>
     const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
     firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
     const adminAccounts = { "aslin": "Phlagon@28", "IMC26": "IMC26@theo", "ASLIN26": "ASLIN26@theo" };
     let activeUID = "", activeName = "", isSuper = false, loggedID = "", logUnsub = null, currentLogs = [];
-
     function handleAdminLogin() {
         const id = document.getElementById('acid').value, p = document.getElementById('apass').value;
         if(adminAccounts[id] === p) {
@@ -98,7 +93,6 @@
             initAdmin();
         } else alert("Denied");
     }
-
     function initAdmin() {
         db.collection("library_settings").onSnapshot(snap => {
             const list = document.getElementById('inventory-list'); list.innerHTML = "";
@@ -110,58 +104,57 @@
         });
         if(isSuper) refreshInbox();
     }
-
     async function openReport(uid, name, role) {
         activeUID = uid; activeName = name; document.getElementById('user-modal').classList.remove('hidden');
         document.getElementById('modal-title').innerText = name;
         if(isSuper) document.getElementById('super-role-box').classList.remove('hidden');
         if (logUnsub) logUnsub();
         logUnsub = db.collection("activity_logs").where("userId", "==", uid).onSnapshot(snap => {
-            let t=0, o=0, b=0, rowsHtml=""; currentLogs = [];
-            snap.forEach(d => { 
-                const data = d.data(); currentLogs.push(data); 
-                const dur = data.endTime ? Math.floor((data.endTime - data.startTime) / 1000) : 0;
-                if(data.type.includes("Usage")) t += dur; if(data.type.includes("Online Read")) o += dur; if(data.type.includes("Full Read")) b += dur;
-                rowsHtml += `<tr><td>${data.type}<br><small>${data.activity || ''}</small></td><td>${data.startTime ? new Date(data.startTime).toLocaleTimeString() : '--'}</td><td>${data.endTime ? new Date(data.endTime).toLocaleTimeString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
+            let t=0, o=0, b=0, html="";
+            let logs = [];
+            currentLogs = [];
+            snap.forEach(d => logs.push(d.data()));
+            logs.sort((x, y) => (y.startTime || 0) - (x.startTime || 0));
+            currentLogs = [...logs];
+            logs.forEach(d => {
+                const dur = d.endTime ? Math.floor((d.endTime - d.startTime) / 1000) : Math.floor((Date.now() - d.startTime) / 1000);
+                if(d.type.includes("Usage")) t += dur; if(d.type.includes("Online Read")) o += dur; if(d.type.includes("Full Read")) b += dur;
+                html += `<tr><td>${d.type}<br><small>${d.activity || ''}</small></td><td>${d.startTime ? new Date(d.startTime).toLocaleTimeString() : '--'}</td><td>${d.endTime ? new Date(d.endTime).toLocaleTimeString() : 'Ongoing'}</td><td>${fmt(dur)}</td></tr>`;
             });
-            currentLogs.sort((x, y) => (y.startTime || 0) - (x.startTime || 0));
             document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online<br><b>${fmt(o)}</b></div><div class="stat-box">Full Read<br><b>${fmt(b)}</b></div></div>`;
-            document.getElementById('log-body').innerHTML = rowsHtml || "<tr><td colspan='4'>No activity</td></tr>";
+            document.getElementById('log-body').innerHTML = html || "<tr><td colspan='4'>No activity</td></tr>";
         });
     }
-
     function downloadCSV() {
         if (!currentLogs.length) return alert("No logs to download");
         let t=0, o=0, b=0;
         let csv = "Activity,Date,Start,End,Duration\n";
         currentLogs.forEach(d => {
-            const dur = d.endTime ? Math.floor((d.endTime - d.startTime) / 1000) : 0;
+            const dur = d.endTime ? Math.floor((d.endTime - d.startTime) / 1000) : Math.floor((Date.now() - d.startTime) / 1000);
             if(d.type.includes("Usage")) t += dur; if(d.type.includes("Online Read")) o += dur; if(d.type.includes("Full Read")) b += dur;
-            csv += `"${d.type} - ${d.activity || ''}",${new Date(d.startTime).toLocaleDateString()},${new Date(d.startTime).toLocaleTimeString()},${d.endTime?new Date(d.endTime).toLocaleTimeString():'Active'},${fmt(dur)}\n`;
+            const activity = `${d.type} - ${d.activity || ''}`.replace(/"/g, '""');
+            csv += `"${activity}",${new Date(d.startTime).toLocaleDateString()},${new Date(d.startTime).toLocaleTimeString()},${d.endTime ? new Date(d.endTime).toLocaleTimeString() : 'Ongoing'},${fmt(dur)}\n`;
         });
         csv += `\nSUMMARY\nTotal App Usage,${fmt(t)}\nTotal Online Read,${fmt(o)}\nTotal Full Read,${fmt(b)}`;
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `${activeName}_Report.csv`; a.click();
     }
-
     function loadCollegeStudents(cid) {
         db.collection("users").where("collegeId", "==", cid).onSnapshot(snap => {
             const list = document.getElementById('user-folders-list'); list.innerHTML = "";
             snap.forEach(doc => { const u = doc.data(); list.innerHTML += `<div class="user-folder" onclick='openReport("${doc.id}","${u.fullName}","${u.role}")'>📂 <b>${u.fullName}</b></div>`; });
         });
     }
-
     function refreshInbox() {
         db.collection("admin_messages").orderBy("date", "desc").onSnapshot(snap => {
             const list = document.getElementById('inbox-list'); list.innerHTML = ""; let n=0, m=0;
             snap.forEach(doc => { const d = doc.data(); list.innerHTML += `<div class="glass-card"><b>${d.type}</b> from ${d.college}<br>${d.message || d.book}</div>`; });
         });
     }
-
-    async function changeUserRole() { 
+    async function changeUserRole() {
         if(!activeUID) return;
         const newRole = document.getElementById('new-role-select').value;
-        await db.collection("users").doc(activeUID).update({ role: newRole }); 
-        alert("Updated to " + newRole); 
+        await db.collection("users").doc(activeUID).update({ role: newRole });
+        alert("Updated to " + newRole);
     }
     async function sendAdminHelp() {
         const msg = document.getElementById('help-msg').value; if(!msg) return;
