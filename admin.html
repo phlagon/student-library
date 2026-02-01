@@ -147,7 +147,6 @@
         });
 
         if (isSuperAdmin) {
-            // Load Inbox Messages
             db.collection("admin_messages").orderBy("date", "desc").onSnapshot(snap => {
                 const list = document.getElementById('inbox-list'); list.innerHTML = "";
                 snap.forEach(doc => {
@@ -172,6 +171,13 @@
     }
 
     async function openReport(uid, name, role) { activeUID = uid; activeName = name; document.getElementById('user-modal').classList.remove('hidden'); document.getElementById('modal-title').innerText = name; if(isSuperAdmin) document.getElementById('new-role-select').value = role; fetchUsageData(); }
+
+    async function changeUserRole() { 
+        if(!isSuperAdmin || !activeUID) return; 
+        const newR = document.getElementById('new-role-select').value; 
+        await db.collection("users").doc(activeUID).update({ role: newR }); 
+        alert("Role Updated Successfully!"); 
+    }
 
     async function fetchUsageData() {
         const body = document.getElementById('log-body'); body.innerHTML = "<tr><td colspan='4'>Syncing...</td></tr>";
@@ -204,7 +210,6 @@
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `${activeName}_Report.csv`; a.click();
     }
 
-    async function changeUserRole() { if(!isSuperAdmin || !activeUID) return; const newR = document.getElementById('new-role-select').value; await db.collection("users").doc(activeUID).update({ role: newR }); alert("Updated!"); }
     async function deleteMsg(id) { if(confirm("Delete message?")) await db.collection("admin_messages").doc(id).delete(); }
     function fmt(s) { if(isNaN(s) || s <= 0) return "00:00:00"; const h = Math.floor(s/3600).toString().padStart(2,'0'), m = Math.floor((s%3600)/60).toString().padStart(2,'0'), sec = (s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`; }
     function closeModal() { document.getElementById('user-modal').classList.add('hidden'); }
