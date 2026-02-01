@@ -114,7 +114,7 @@
         const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
         let currentUser = null; let collegeBooks = []; let sessionSeconds = 0; let isActive = true;
-        let logId = null; let previousView = 'dashboard'; // To track view before opening reader
+        let logId = null; let previousView = 'dashboard';
         document.addEventListener("visibilitychange", async () => {
             isActive = !document.hidden;
             document.getElementById('session-box').classList.toggle('paused', !isActive);
@@ -152,9 +152,8 @@
         function loadLibrary() {
             db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).onSnapshot(snap => {
                 collegeBooks = []; const rec = document.getElementById('recent-list'), trend = document.getElementById('trending-list');
-                rec.innerHTML = trend.innerHTML = "Loading...";
                 rec.innerHTML = trend.innerHTML = "";
-                snap.forEach(doc => {
+                snap.forEach(doc => { 
                     const b = doc.data(); const bookData = {id: doc.id, ...b}; collegeBooks.push(bookData);
                     rec.innerHTML += renderItem(bookData);
                     if(b.recent) trend.innerHTML += renderItem(bookData);
@@ -163,7 +162,7 @@
             });
             db.collection("borrows").where("userId","==",currentUser.uid).onSnapshot(snap => {
                 document.getElementById('top-issued').innerText = snap.size;
-                const list = document.getElementById('borrow-list'); list.innerHTML = "Loading...";
+                const list = document.getElementById('borrow-list');
                 list.innerHTML = "";
                 snap.forEach(doc => { const d = doc.data(); list.innerHTML += `<div class="book-item"><b>${d.title}</b><br><button class="btn-preview" style="background:var(--green)" onclick="openFullPdf('${d.bookId}','${d.title}')">Read Full</button><button class="btn-preview" style="background:red; margin-left:5px;" onclick="returnBook('${doc.id}','${d.title}')">Return</button></div>`; });
             });
@@ -171,7 +170,7 @@
         function mirrorTyping(val) {
             document.getElementById('mirror-text').innerText = val || "...";
             if(val.trim().length > 1) {
-                const list = document.getElementById('search-results-list'); list.innerHTML = "Loading...";
+                const list = document.getElementById('search-results-list');
                 list.innerHTML = "";
                 const filtered = collegeBooks.filter(b => b.title.toLowerCase().includes(val.toLowerCase()) || (b.category && b.category.toLowerCase().includes(val.toLowerCase())));
                 filtered.forEach(b => list.innerHTML += renderItem(b));
@@ -182,20 +181,55 @@
             document.getElementById('lib-search').value = ''; mirrorTyping(''); closeView('search-results-overlay');
         }
         function toggleDropdown() { document.getElementById('cat-dropdown').classList.toggle('active'); }
-        function loadCat(cat) { const list = document.getElementById('full-book-list'); list.innerHTML = "Loading..."; list.innerHTML = ""; collegeBooks.filter(b => b.category === cat).forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); document.getElementById('cat-dropdown').classList.remove('active'); }
+        function loadCat(cat) { const list = document.getElementById('full-book-list'); list.innerHTML = ""; collegeBooks.filter(b => b.category === cat).forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); document.getElementById('cat-dropdown').classList.remove('active'); }
         function toggleProfile() { document.getElementById('p-name').innerText = currentUser.fullName; document.getElementById('p-role-box').innerText = currentUser.role.toUpperCase(); document.getElementById('p-coll-id-display').innerText = currentUser.collegeId; document.getElementById('p-user-id-display').innerText = currentUser.studentId; document.getElementById('profile-overlay').classList.toggle('hidden'); }
-        function openPdfPreview(id, t) { previousView = getCurrentView(); stopTracking(); startTracking("Online Read", t); document.getElementById('reader-title').innerText = t + " (Preview)"; document.getElementById('pdf-frame').src = `/public/${id}_read_online.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
-        function openFullPdf(id, t) { previousView = getCurrentView(); stopTracking(); startTracking("Full Read", t); document.getElementById('reader-title').innerText = t + " (Full)"; document.getElementById('pdf-frame').src = `/public/${id}.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
-        function getCurrentView() { if (!document.getElementById('borrow-view').classList.contains('hidden')) return 'borrow-view'; if (!document.getElementById('full-lib-view').classList.contains('hidden')) return 'full-lib-view'; if (!document.getElementById('search-results-overlay').classList.contains('hidden')) return 'search-results-overlay'; return 'dashboard'; }
+        
+        // MODIFIED TO HIDE BACKGROUND FOLDERS ON OPEN
+        function openPdfPreview(id, t) { 
+            previousView = getCurrentView(); 
+            if(previousView !== 'dashboard') document.getElementById(previousView).classList.add('hidden');
+            stopTracking(); 
+            startTracking("Online Read", t); 
+            document.getElementById('reader-title').innerText = t + " (Preview)"; 
+            document.getElementById('pdf-frame').src = `/public/${id}_read_online.pdf`; 
+            document.getElementById('reader-overlay').classList.remove('hidden'); 
+        }
+        
+        function openFullPdf(id, t) { 
+            previousView = getCurrentView(); 
+            if(previousView !== 'dashboard') document.getElementById(previousView).classList.add('hidden');
+            stopTracking(); 
+            startTracking("Full Read", t); 
+            document.getElementById('reader-title').innerText = t + " (Full)"; 
+            document.getElementById('pdf-frame').src = `/public/${id}.pdf`; 
+            document.getElementById('reader-overlay').classList.remove('hidden'); 
+        }
+
+        function getCurrentView() { 
+            if (!document.getElementById('borrow-view').classList.contains('hidden')) return 'borrow-view'; 
+            if (!document.getElementById('full-lib-view').classList.contains('hidden')) return 'full-lib-view'; 
+            if (!document.getElementById('search-results-overlay').classList.contains('hidden')) return 'search-results-overlay'; 
+            return 'dashboard'; 
+        }
+        
         async function borrowBook(id, t) { await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, date: Date.now() }); alert("Issued!"); }
         async function returnBook(borrowId, t) { if (confirm("Return this book?")) { await db.collection("borrows").doc(borrowId).delete(); await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Return", activity: t, startTime: Date.now(), endTime: Date.now() }); alert("Returned!"); } }
         async function nominate(id, t) { await db.collection("admin_messages").add({ type: "Nomination", book: t, user: currentUser.fullName, college: currentUser.collegeId, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); }
         async function submitContact() { const m = document.getElementById('con-msg').value; if(!m) return; await db.collection("admin_messages").add({ type: "Helpdesk", college: currentUser.collegeId, message: m, user: currentUser.fullName, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); closeContactModal(); }
         async function submitSuggestion() { const s = document.getElementById('feat-suggest').value; if(!s) return; await db.collection("admin_messages").add({ type: "Suggestion", message: s, user: currentUser.fullName, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); document.getElementById('feat-suggest').value = ""; }
         async function submitRequest() { const b = document.getElementById('req-book').value; if(!b) return; await db.collection("admin_messages").add({ type: "Request", book: b, user: currentUser.fullName, college: currentUser.collegeId, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); document.getElementById('req-book').value = ""; }
-        async function closeReader() { await stopTracking(); document.getElementById('pdf-frame').src = ''; document.getElementById('reader-overlay').classList.add('hidden'); await startTracking("Usage", "Dashboard Session"); if (previousView !== 'dashboard') document.getElementById(previousView).classList.remove('hidden'); }
+        
+        // MODIFIED TO RESTORE BACKGROUND FOLDER ON CLOSE
+        async function closeReader() { 
+            await stopTracking(); 
+            document.getElementById('pdf-frame').src = ''; 
+            document.getElementById('reader-overlay').classList.add('hidden'); 
+            await startTracking("Usage", "Dashboard Session"); 
+            if (previousView !== 'dashboard') document.getElementById(previousView).classList.remove('hidden'); 
+        }
+        
         function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
-        function showFullLibrary() { const list = document.getElementById('full-book-list'); list.innerHTML = "Loading..."; list.innerHTML = ""; collegeBooks.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); }
+        function showFullLibrary() { const list = document.getElementById('full-book-list'); list.innerHTML = ""; collegeBooks.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); }
         async function handleLogout() { await stopTracking(); await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Logout", activity: "User Logout", startTime: Date.now(), endTime: Date.now() }); location.reload(); }
         function showContactModal() { document.getElementById('contact-modal').classList.remove('hidden'); }
         function closeContactModal() { document.getElementById('contact-modal').classList.add('hidden'); }
