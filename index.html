@@ -2,177 +2,218 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TheoLib Admin - Master Command</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TheoLib - Master Portal</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --blue: #3b82f6; --orange: #f97316; --green: #10b981; --purple: #a855f7; --bg: #0b1120; --card-bg: #1e293b; --text-main: #f8fafc; --text-sub: #94a3b8; --border: #334155; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); }
-        #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: var(--card-bg); padding: 30px; border-radius: 24px; text-align: center; border: 1px solid var(--border); width: 300px; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 10px; }
-        .tab-btn { padding: 12px 20px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; background: var(--card-bg); color: var(--text-sub); border: 1px solid var(--border); transition: 0.3s; white-space: nowrap; }
-        .tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
-        .glass-card { background: var(--card-bg); border-radius: 20px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-        th { text-align: left; padding: 12px; color: var(--text-sub); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
-        .btn-sm { padding: 8px 15px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; color: white; }
-        #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 6000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        .modal-content { background: var(--card-bg); width: 100%; max-width: 850px; border-radius: 24px; padding: 30px; max-height: 90vh; border: 1px solid var(--border); overflow-y: auto; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text-main); overflow-x: hidden; }
+        .glass-card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid var(--border); margin-bottom: 15px; }
+        .stat-card { padding: 15px; border-radius: 15px; color: white; text-align: center; cursor: pointer; }
+        .stat-card p { font-size: 20px; margin: 5px 0 0; font-weight: 800; }
+        .book-item { background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .login-field, select, textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; font-family: inherit; }
+        .btn-preview { background: var(--blue); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; }
+        #auth-screen, #profile-overlay, #reader-overlay, #full-lib-view, #borrow-view, #search-results-overlay, .full-modal { position: fixed; inset: 0; z-index: 9000; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
         .hidden { display: none !important; }
-        .login-field { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; }
-        textarea { width: 100%; height: 100px; background: var(--bg); color: white; border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 15px; font-family: inherit; resize: none; }
-        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: #0f172a; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
-        .user-folder { background: #0f172a; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border); }
+        .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .cat-item { cursor: pointer; background: #162033; padding: 12px; border-radius: 12px; border: 1px solid var(--border); font-size: 13px; text-align: center; transition: 0.3s; }
+        .cat-item:hover { border-color: var(--blue); background: #1e293b; }
+        .time-header { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .time-box { background: var(--card-bg); border: 1px solid var(--border); padding: 10px; border-radius: 15px; text-align: center; }
+        .time-val { font-family: monospace; font-weight: 800; font-size: 16px; }
+        .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; display: inline-block; margin-right: 5px; }
     </style>
 </head>
 <body>
-    <div id="auth-overlay"><div class="login-card"><h2>Admin</h2><input type="text" id="acid" class="login-field" placeholder="Admin ID"><input type="password" id="apass" class="login-field" placeholder="Password"><button class="btn-sm" style="background:var(--blue); width:100%; margin-top:10px; padding:15px;" onclick="handleAdminLogin()">Login</button></div></div>
-    
-    <div id="master-panel" class="hidden">
-        <div class="nav-tabs">
-            <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">Inventory</button>
-            <button id="t-mem" class="tab-btn" onclick="switchTab('mem')">Monitoring</button>
-            <button id="t-msg" class="tab-btn" onclick="switchTab('msg')">Inbox</button>
-            <button class="tab-btn" style="background:#ef4444; color:white; margin-left:auto;" onclick="location.reload()">Logout</button>
-        </div>
 
-        <div id="inv-section" class="glass-card">
-            <table><thead><tr id="inv-header"><th>Title</th><th>Access</th><th>Cat</th><th>Action</th></tr></thead><tbody id="inventory-list"></tbody></table>
-        </div>
-
-        <div id="mem-section" class="hidden glass-card">
-            <div id="coll-selector-div">
-                <select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;"><option value="">Select College</option><option value="IMC26">IMC26</option><option value="ASLIN26">ASLIN26</option></select>
-            </div>
-            <div id="user-folders-list" style="margin-top:20px;"></div>
-        </div>
-
-        <div id="msg-section" class="hidden glass-card">
-            <h2>📥 Super Inbox</h2>
-            <div id="inbox-list"></div>
+    <div id="auth-screen">
+        <div style="background:var(--card-bg); padding:30px; border-radius:24px; text-align:center; max-width:350px; margin:auto; border:1px solid var(--border);">
+            <h2 style="color:var(--blue)">TheoLib Login</h2>
+            <select id="login-role" class="login-field"><option value="student">Student</option><option value="faculty">Faculty</option></select>
+            <input type="text" id="login-coll-id" class="login-field" placeholder="College ID">
+            <input type="text" id="login-user-id" class="login-field" placeholder="User ID">
+            <input type="password" id="login-pass" class="login-field" placeholder="Password">
+            <button onclick="handleLogin()" style="background:var(--blue); color:white; border:none; width:100%; padding:15px; border-radius:12px; font-weight:600; cursor:pointer;">Enter Library</button>
         </div>
     </div>
 
-    <div id="user-modal" class="hidden">
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 id="modal-title">Student Report</h3>
-                <button onclick="closeModal()" class="btn-sm" style="background:#ef4444;">X</button>
-            </div>
+    <div id="dashboard" class="hidden">
+        <div class="time-header">
+            <div id="session-box" class="time-box" style="border-color: var(--green);"><span class="time-label"><span class="status-dot"></span>Session</span><br><span id="session-clock" class="time-val" style="color: var(--green);">00:00:00</span></div>
+            <div class="time-box"><span class="time-label">Current Time</span><br><span id="real-time-clock" class="time-val" style="color: var(--blue);">00:00:00</span></div>
+        </div>
 
-            <div id="super-role-box" class="hidden glass-card" style="padding:15px; margin: 15px 0; border-color:var(--purple);">
-                <label style="font-size:11px;">Change Member Role:</label>
-                <div style="display:flex; gap:10px; margin-top:5px;">
-                    <select id="new-role-select" class="login-field" style="margin:0; flex:1;"><option value="student">Student</option><option value="faculty">Faculty</option></select>
-                    <button class="btn-sm" style="background:var(--purple);" onclick="changeUserRole()">Update</button>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:20px;">
+            <div class="stat-card" style="background:var(--blue)" onclick="showFullLibrary()"><h4>Books</h4><p id="top-total">0</p></div>
+            <div class="stat-card" style="background:var(--orange)" onclick="showBorrowView()"><h4>Issued</h4><p id="top-issued">0</p></div>
+            <div class="stat-card" style="background:var(--purple)" onclick="toggleProfile()"><h4>Profile</h4><p>U</p></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap: 15px;">
+            <div>
+                <div class="search-container" style="position: relative; margin-bottom: 15px;">
+                    <input type="text" id="lib-search" class="login-field" style="margin-bottom:0;" placeholder="🔍 Search library..." oninput="showSug(this.value)">
+                    <div id="search-suggestions" class="hidden" style="position:absolute; top:50px; width:100%; background:var(--card-bg); border:1px solid var(--border); border-radius:10px; z-index:10000; max-height:200px; overflow-y:auto;"></div>
+                </div>
+
+                <div class="glass-card">
+                    <h3 style="margin-top:0;">📚 Categories</h3>
+                    <div class="cat-grid">
+                        <div class="cat-item" onclick="loadCat('Theology')">📖 Theology</div>
+                        <div class="cat-item" onclick="loadCat('History')">⛪ History</div>
+                        <div class="cat-item" onclick="loadCat('Mission')">🌍 Mission</div>
+                        <div class="cat-item" onclick="loadCat('Bible')">📘 Bible</div>
+                        <div class="cat-item" onclick="loadCat('Acts')">📜 Acts</div>
+                        <div class="cat-item" onclick="loadCat('Others')">📚 Others</div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h3 style="margin-top:0; color:var(--purple);">🔥 Trending</h3>
+                    <div id="trending-list"></div>
+                </div>
+
+                <div class="glass-card">
+                    <h3 style="margin-top:0; color:var(--green);">🕒 Recently Added</h3>
+                    <div id="recent-list"></div>
                 </div>
             </div>
 
-            <div id="modal-stats"></div>
-            <table style="margin-top:20px;"><thead><tr><th>Activity</th><th>Start</th><th>End</th><th>Duration</th></tr></thead><tbody id="log-body"></tbody></table>
+            <div>
+                <div class="glass-card" style="border-color: var(--purple);">
+                    <h4 style="margin:0; color:var(--purple);">💡 Suggestions</h4>
+                    <textarea id="feat-suggest" style="height:80px; margin-top:10px;" placeholder="Features..."></textarea>
+                    <button class="btn-preview" style="background:var(--purple); width:100%;" onclick="submitSuggestion()">Send</button>
+                </div>
+
+                <div class="glass-card">
+                    <h4 style="margin:0;">📞 Helpdesk</h4>
+                    <button class="btn-preview" style="width:100%; margin-top:10px;" onclick="showContactModal()">Contact Us</button>
+                </div>
+
+                <div class="glass-card" style="border-color: var(--orange);">
+                    <h4 style="margin:0; color:var(--orange);">📖 Request a Book</h4>
+                    <input type="text" id="req-book" placeholder="Book Name" class="login-field" style="margin-top:10px;">
+                    <button class="btn-preview" style="background:var(--orange); width:100%;" onclick="submitRequest()">Submit</button>
+                </div>
+            </div>
         </div>
     </div>
 
-<script>
-    const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
-    firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
-    const adminAccounts = { "aslin": "Phlagon@28", "IMC26": "IMC26@theo", "ASLIN26": "ASLIN26@theo" };
-    
-    let activeUID = ""; let loggedAdminId = ""; let isSuperAdmin = false;
-    let logUnsubscribe = null;
+    <div id="profile-overlay" class="hidden">
+        <div class="glass-card" style="max-width:350px; margin:auto; text-align:center;">
+            <h2 id="prof-name-text">User Name</h2>
+            <div id="prof-role-text" style="background:var(--blue); display:inline-block; padding:5px 15px; border-radius:20px; font-size:11px; margin-bottom:15px; font-weight:800;">ROLE</div>
+            <div style="text-align:left; font-size:12px; margin-bottom:20px;">
+                <p><b>College ID:</b> <span id="p-coll-id-text"></span></p>
+                <p><b>User ID:</b> <span id="p-stud-id-text"></span></p>
+            </div>
+            <button onclick="toggleProfile()" class="btn-preview">Back</button>
+            <button onclick="location.reload()" style="background:red; margin-top:10px; width:100%;" class="btn-preview">Logout</button>
+        </div>
+    </div>
 
-    function handleAdminLogin() {
-        const id = document.getElementById('acid').value; const p = document.getElementById('apass').value;
-        if(adminAccounts[id] === p) {
-            loggedAdminId = id; isSuperAdmin = (id === "aslin");
-            document.getElementById('auth-overlay').classList.add('hidden');
-            document.getElementById('master-panel').classList.remove('hidden');
-            setupUI(); initAdmin();
-        } else { alert("Denied"); }
-    }
+    <div id="full-lib-view" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📚 Library</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list"></div></div>
+    <div id="borrow-view" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>📥 Issued</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-list"></div></div>
+    <div id="search-results-overlay" class="hidden"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>🔎 Results</h3><button onclick="closeSearchView()" class="btn-preview">Back</button></div><div id="search-results-list"></div></div>
+    <div id="contact-modal" class="full-modal hidden"><div class="glass-card" style="max-width:400px; margin:auto;"><h3>Contact Us</h3><input type="text" id="con-coll" placeholder="College" class="login-field"><textarea id="con-msg" placeholder="Message..." style="height:100px;"></textarea><button class="btn-preview" style="width:100%;" onclick="submitContact()">Send</button><button class="btn-preview" style="background:none; border:1px solid var(--border); width:100%; margin-top:10px;" onclick="closeContactModal()">Cancel</button></div></div>
+    <div id="reader-overlay" class="hidden"><div style="background:#1e293b; padding:15px; display:flex; justify-content:space-between; align-items:center;"> <span id="reader-title"></span> <button onclick="closeReader()" style="background:red; color:white; border:none; padding:8px 12px; border-radius:5px;">Exit</button> </div> <iframe id="pdf-frame" style="width:100%; height:100%; border:none;"></iframe></div>
 
-    function setupUI() {
-        if (!isSuperAdmin) {
-            document.getElementById('t-msg').classList.add('hidden');
-            document.getElementById('coll-selector-div').classList.add('hidden');
-            document.getElementById('inv-header').innerHTML = "<th>Title</th><th>Category</th>";
-            loadCollegeStudents(loggedAdminId);
-        } else {
-            document.getElementById('inv-header').innerHTML = "<th>Title</th><th>Access</th><th>Cat</th><th>Action</th>";
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
+        firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
+        let currentUser = null; let collegeBooks = []; let sessionSeconds = 0;
+
+        async function handleLogin() {
+            const r = document.getElementById('login-role').value, cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
+            const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).get();
+            if(!snap.empty) {
+                currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
+                document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
+                initSystem();
+            } else { alert("Login Failed"); }
         }
-    }
 
-    function initAdmin() {
-        db.collection("library_settings").onSnapshot(snap => {
-            const list = document.getElementById('inventory-list'); list.innerHTML = "";
-            snap.forEach(doc => {
-                const b = doc.data(); const id = doc.id;
-                let html = `<tr><td><b>${b.title}</b></td>`;
-                if (isSuperAdmin) {
-                    html += `<td><button class="btn-sm" style="background:var(--purple)">Access</button></td>`;
-                    html += `<td><button class="btn-sm" style="background:var(--green)">Cat</button></td>`;
-                    html += `<td><button class="btn-sm" style="background:#ef4444" onclick="deletePDF('${id}')">🗑️</button></td>`;
-                } else { html += `<td>${b.category || 'N/A'}</td>`; }
-                html += `</tr>`; list.innerHTML += html;
+        function initSystem() {
+            setInterval(() => { sessionSeconds++; updCl('session-clock', sessionSeconds); }, 1000);
+            setInterval(() => { document.getElementById('real-time-clock').innerText = new Date().toLocaleTimeString([], {hour12: false}); }, 1000);
+            loadLibrary();
+        }
+
+        function updCl(id, s) { const h = Math.floor(s/3600).toString().padStart(2,'0'), m = Math.floor((s%3600)/60).toString().padStart(2,'0'), sec = (s%60).toString().padStart(2,'0'); document.getElementById(id).innerText = `${h}:${m}:${sec}`; }
+
+        function loadLibrary() {
+            db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).onSnapshot(snap => {
+                collegeBooks = []; const rec = document.getElementById('recent-list'), trend = document.getElementById('trending-list'); rec.innerHTML = trend.innerHTML = "";
+                snap.forEach(doc => { const b = doc.data(); collegeBooks.push({id: doc.id, ...b}); const html = `<div class="book-item"><b>${b.title}</b><button class="btn-preview" onclick="openPdf('${doc.id}','${b.title}')">Read</button></div>`; rec.innerHTML += html; if(b.recent) trend.innerHTML += html; });
+                document.getElementById('top-total').innerText = snap.size;
             });
-        });
-        if(isSuperAdmin) {
-            db.collection("admin_messages").onSnapshot(snap => {
-                const list = document.getElementById('inbox-list'); list.innerHTML = "";
-                let msgs = []; snap.forEach(d => msgs.push({id: d.id, ...d.data()}));
-                msgs.sort((a,b) => (b.date || 0) - (a.date || 0)).forEach(m => {
-                    list.innerHTML += `<div class="glass-card" style="margin-bottom:10px; font-size:12px;"><b style="color:var(--blue)">${m.type}</b> from ${m.college}<br>${m.message || m.book}<div style="text-align:right"><button class="btn-sm" style="background:#ef4444" onclick="deleteMsg('${m.id}')">Del</button></div></div>`;
-                });
+            db.collection("borrows").where("userId","==",currentUser.uid).onSnapshot(snap => {
+                document.getElementById('top-issued').innerText = snap.size;
+                const list = document.getElementById('borrow-list'); list.innerHTML = "";
+                snap.forEach(doc => { list.innerHTML += `<div class="book-item"><b>${doc.data().title}</b><button class="btn-preview" onclick="openPdf('${doc.data().bookId}','${doc.data().title}')">Open</button></div>`; });
             });
         }
-    }
 
-    function loadCollegeStudents(cid) { 
-        db.collection("users").where("collegeId", "==", cid).onSnapshot(snap => { 
-            const list = document.getElementById('user-folders-list'); list.innerHTML = ""; 
-            snap.forEach(doc => { const u = doc.data(); list.innerHTML += `<div class="user-folder" onclick='openReport("${doc.id}", "${u.fullName}", "${u.role}")'>📂 <b>${u.fullName}</b></div>`; }); 
-        }); 
-    }
-
-    // EXCELLENT LOG LOGIC
-    function openReport(uid, name, role) { 
-        activeUID = uid; document.getElementById('user-modal').classList.remove('hidden'); document.getElementById('modal-title').innerText = name; 
-        if(isSuperAdmin) {
-            document.getElementById('super-role-box').classList.remove('hidden');
-            document.getElementById('new-role-select').value = role || 'student';
+        // TOGGLE PROFILE LOGIC (FIXED)
+        function toggleProfile() {
+            const overlay = document.getElementById('profile-overlay');
+            if (overlay.classList.contains('hidden')) {
+                document.getElementById('prof-name-text').innerText = currentUser.fullName;
+                document.getElementById('prof-role-text').innerText = (currentUser.role || "student").toUpperCase();
+                document.getElementById('p-coll-id-text').innerText = currentUser.collegeId;
+                document.getElementById('p-stud-id-text').innerText = currentUser.studentId;
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
         }
-        if(logUnsubscribe) logUnsubscribe();
-        logUnsubscribe = db.collection("activity_logs").where("userId", "==", uid).onSnapshot(snap => {
-            let t=0, o=0, b=0, html="", logs=[];
-            snap.forEach(d => logs.push(d.data()));
-            logs.sort((x, y) => (y.startTime || 0) - (x.startTime || 0));
-            logs.forEach(d => {
-                const start = d.startTime || 0, end = d.endTime || 0, dur = end ? Math.floor((end - start) / 1000) : 0;
-                if(d.type.includes("Usage")) t += dur; if(d.type.includes("Online")) o += dur; if(d.type.includes("Borrowed")) b += dur;
-                html += `<tr><td>${d.type}<br><small>${d.activity || ''}</small></td><td>${start ? new Date(start).toLocaleTimeString() : '--'}</td><td>${end ? new Date(end).toLocaleTimeString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
+
+        function showSug(v) {
+            const b = document.getElementById('search-suggestions'); if(!v.trim()){b.classList.add('hidden'); return;}
+            const f = collegeBooks.filter(x => x.title.toLowerCase().includes(v.toLowerCase()));
+            b.innerHTML = f.map(x => `<div style="padding:12px; border-bottom:1px solid var(--border); cursor:pointer;" onclick="triggerSearch('${x.title}')">${x.title}</div>`).join('');
+            b.classList.toggle('hidden', f.length === 0);
+        }
+
+        function triggerSearch(t) {
+            document.getElementById('search-suggestions').classList.add('hidden');
+            const l = document.getElementById('search-results-list'); l.innerHTML = "";
+            collegeBooks.filter(x => x.title.toLowerCase().includes(t.toLowerCase())).forEach(x => {
+                l.innerHTML += `<div class="book-item"><b>${x.title}</b><button class="btn-preview" onclick="openPdf('${x.id}','${x.title}')">Read</button></div>`;
             });
-            document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online<br><b>${fmt(o)}</b></div><div class="stat-box">Borrowed<br><b>${fmt(b)}</b></div></div>`;
-            document.getElementById('log-body').innerHTML = html || "<tr><td colspan='4'>No activity.</td></tr>";
-        });
-    }
+            document.getElementById('search-results-overlay').classList.remove('hidden');
+        }
 
-    async function changeUserRole() {
-        if(!isSuperAdmin || !activeUID) return;
-        const newR = document.getElementById('new-role-select').value;
-        await db.collection("users").doc(activeUID).update({ role: newR });
-        alert("Role Updated Successfully!");
-    }
+        function loadCat(c) {
+            const l = document.getElementById('full-book-list'); l.innerHTML = "";
+            collegeBooks.filter(x => x.category === c).forEach(x => {
+                l.innerHTML += `<div class="book-item"><b>${x.title}</b><button class="btn-preview" onclick="openPdf('${x.id}','${x.title}')">Read</button></div>`;
+            });
+            document.getElementById('full-lib-view').classList.remove('hidden');
+        }
 
-    function fmt(s) { if(isNaN(s) || s <= 0) return "00:00:00"; const h = Math.floor(s/3600).toString().padStart(2,'0'), m = Math.floor((s%3600)/60).toString().padStart(2,'0'), sec = (s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`; }
-    function closeModal() { document.getElementById('user-modal').classList.add('hidden'); if(logUnsubscribe) logUnsubscribe(); }
-    function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
-    async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
-</script>
+        function showFullLibrary() {
+            const l = document.getElementById('full-book-list'); l.innerHTML = "";
+            collegeBooks.forEach(x => { l.innerHTML += `<div class="book-item"><b>${x.title}</b><button class="btn-preview" onclick="openPdf('${x.id}','${x.title}')">Read</button></div>`; });
+            document.getElementById('full-lib-view').classList.remove('hidden');
+        }
+
+        async function submitRequest() { const b = document.getElementById('req-book').value; if(!b) return; await db.collection("admin_messages").add({ type: "Request", book: b, user: currentUser.fullName, college: currentUser.collegeId, date: Date.now() }); alert("Sent!"); }
+        async function submitSuggestion() { const s = document.getElementById('feat-suggest').value; if(!s) return; await db.collection("admin_messages").add({ type: "Suggestion", message: s, user: currentUser.fullName, date: Date.now() }); alert("Sent!"); }
+        async function submitContact() { const m = document.getElementById('con-msg').value; if(!m) return; await db.collection("admin_messages").add({ type: "Helpdesk", college: document.getElementById('con-coll').value, message: m, user: currentUser.fullName, date: Date.now() }); alert("Sent!"); closeContactModal(); }
+
+        function openPdf(id, t) { document.getElementById('reader-title').innerText = t; document.getElementById('pdf-frame').src = `/public/${id}_read_online.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
+        function closeReader() { document.getElementById('reader-overlay').classList.add('hidden'); }
+        function closeView(id) { document.getElementById(id).classList.add('hidden'); }
+        function closeSearchView() { document.getElementById('search-results-overlay').classList.add('hidden'); }
+        function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
+        function showContactModal() { document.getElementById('contact-modal').classList.remove('hidden'); }
+        function closeContactModal() { document.getElementById('contact-modal').classList.add('hidden'); }
+    </script>
 </body>
 </html>
