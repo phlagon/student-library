@@ -21,8 +21,6 @@
         td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
         th { text-align: left; padding: 12px; color: var(--text-sub); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
         .btn-sm { padding: 8px 15px; border-radius: 8px; border: none; font-size: 11px; cursor: pointer; font-weight: 600; color: white; }
-        .dropdown-menu { display: none; position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; z-index: 100; min-width: 180px; padding: 10px; top: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .show { display: block; }
         #user-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 6000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         .modal-content { background: var(--card-bg); width: 100%; max-width: 850px; border-radius: 24px; padding: 30px; max-height: 90vh; border: 1px solid var(--border); overflow-y: auto; }
         .hidden { display: none !important; }
@@ -40,7 +38,6 @@
         <div class="nav-tabs">
             <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">Inventory</button>
             <button id="t-mem" class="tab-btn" onclick="switchTab('mem')">Monitoring</button>
-            <button id="t-stud" class="tab-btn" onclick="switchTab('stud')">Registration</button>
             <button id="t-msg" class="tab-btn" onclick="switchTab('msg')">Inbox</button>
             <button class="tab-btn" style="background:#ef4444; color:white; margin-left:auto;" onclick="location.reload()">Logout</button>
         </div>
@@ -53,23 +50,12 @@
             <div id="coll-selector-div">
                 <select id="mon-coll" onchange="loadCollegeStudents(this.value)" class="login-field" style="max-width:250px;"><option value="">Select College</option><option value="IMC26">IMC26</option><option value="ASLIN26">ASLIN26</option></select>
             </div>
-            <div id="user-folders-list"></div>
-        </div>
-
-        <div id="stud-section" class="hidden glass-card">
-            <h2>📤 Member Registration</h2>
-            <textarea id="bulk-input" placeholder="Name, CollID, StudentID, Pass, Role" onclick="checkBulkAccess()"></textarea>
-            <button id="bulk-btn" class="btn-sm" style="background:var(--blue);" onclick="processBulk()">Process Bulk</button>
+            <div id="user-folders-list" style="margin-top:20px;"></div>
         </div>
 
         <div id="msg-section" class="hidden glass-card">
             <h2>📥 Super Inbox</h2>
             <div id="inbox-list"></div>
-            <div id="coll-help-div" class="hidden" style="margin-top:30px; border-top:1px solid var(--border); padding-top:20px;">
-                <h3 style="color:var(--orange)">Contact Super Admin</h3>
-                <textarea id="admin-help-msg" placeholder="Your message..."></textarea>
-                <button class="btn-sm" style="background:var(--orange); width:100%;" onclick="sendAdminHelp()">Send</button>
-            </div>
         </div>
     </div>
 
@@ -100,23 +86,6 @@
     
     let activeUID = ""; let loggedAdminId = ""; let isSuperAdmin = false;
     let logUnsubscribe = null;
-    
-    // --- TIMER PAUSE LOGIC START ---
-    let isActive = true;
-    let sessionSeconds = 0;
-
-    document.addEventListener("visibilitychange", () => {
-        isActive = !document.hidden;
-    });
-
-    // We start the timer interval inside handleAdminLogin (or similar) or globally
-    setInterval(() => {
-        if(isActive && !document.getElementById('master-panel').classList.contains('hidden')) {
-            sessionSeconds++;
-            // If you had a session clock display in this HTML, update it here.
-        }
-    }, 1000);
-    // --- TIMER PAUSE LOGIC END ---
 
     function handleAdminLogin() {
         const id = document.getElementById('acid').value; const p = document.getElementById('apass').value;
@@ -130,19 +99,14 @@
 
     function setupUI() {
         if (!isSuperAdmin) {
-            document.getElementById('t-stud').classList.add('hidden');
+            document.getElementById('t-msg').classList.add('hidden');
             document.getElementById('coll-selector-div').classList.add('hidden');
-            document.getElementById('coll-help-div').classList.remove('hidden');
             document.getElementById('inv-header').innerHTML = "<th>Title</th><th>Category</th>";
             loadCollegeStudents(loggedAdminId);
         } else {
-            document.getElementById('t-stud').classList.remove('hidden');
-            document.getElementById('t-msg').classList.remove('hidden');
             document.getElementById('inv-header').innerHTML = "<th>Title</th><th>Access</th><th>Cat</th><th>Action</th>";
         }
     }
-
-    function checkBulkAccess() { if (!isSuperAdmin) { alert("Access Restricted."); document.getElementById('bulk-input').blur(); } }
 
     function initAdmin() {
         db.collection("library_settings").onSnapshot(snap => {
@@ -151,20 +115,19 @@
                 const b = doc.data(); const id = doc.id;
                 let html = `<tr><td><b>${b.title}</b></td>`;
                 if (isSuperAdmin) {
-                    html += `<td style="position:relative;"><button class="btn-sm" style="background:var(--purple);" onclick="toggleM('a-${id}')">Access</button><div id="a-${id}" class="dropdown-menu">...</div></td>`;
-                    html += `<td><button class="btn-sm" style="background:var(--green)" onclick="toggleM('c-${id}')">Cat</button></td>`;
+                    html += `<td><button class="btn-sm" style="background:var(--purple)">Access</button></td>`;
+                    html += `<td><button class="btn-sm" style="background:var(--green)">Cat</button></td>`;
                     html += `<td><button class="btn-sm" style="background:#ef4444" onclick="deletePDF('${id}')">🗑️</button></td>`;
                 } else { html += `<td>${b.category || 'N/A'}</td>`; }
                 html += `</tr>`; list.innerHTML += html;
             });
         });
-
         if(isSuperAdmin) {
             db.collection("admin_messages").onSnapshot(snap => {
                 const list = document.getElementById('inbox-list'); list.innerHTML = "";
                 let msgs = []; snap.forEach(d => msgs.push({id: d.id, ...d.data()}));
                 msgs.sort((a,b) => (b.date || 0) - (a.date || 0)).forEach(m => {
-                    list.innerHTML += `<div class="glass-card" style="margin-bottom:10px; font-size:12px;"><b style="color:var(--blue)">${m.type}</b> from ${m.college || 'User'}<br>${m.message || m.book}<div style="text-align:right"><button class="btn-sm" style="background:#ef4444" onclick="deleteMsg('${m.id}')">Del</button></div></div>`;
+                    list.innerHTML += `<div class="glass-card" style="margin-bottom:10px; font-size:12px;"><b style="color:var(--blue)">${m.type}</b> from ${m.college}<br>${m.message || m.book}<div style="text-align:right"><button class="btn-sm" style="background:#ef4444" onclick="deleteMsg('${m.id}')">Del</button></div></div>`;
                 });
             });
         }
@@ -177,6 +140,7 @@
         }); 
     }
 
+    // EXCELLENT LOG LOGIC
     function openReport(uid, name, role) { 
         activeUID = uid; document.getElementById('user-modal').classList.remove('hidden'); document.getElementById('modal-title').innerText = name; 
         if(isSuperAdmin) {
@@ -184,21 +148,18 @@
             document.getElementById('new-role-select').value = role || 'student';
         }
         if(logUnsubscribe) logUnsubscribe();
-        const body = document.getElementById('log-body');
-        body.innerHTML = "<tr><td colspan='4'>Streaming Activity...</td></tr>";
         logUnsubscribe = db.collection("activity_logs").where("userId", "==", uid).onSnapshot(snap => {
             let t=0, o=0, b=0, html="", logs=[];
             snap.forEach(d => logs.push(d.data()));
             logs.sort((x, y) => (y.startTime || 0) - (x.startTime || 0));
             logs.forEach(d => {
-                const start = d.startTime || 0, end = d.endTime || 0;
-                const dur = end ? Math.floor((end - start) / 1000) : 0;
+                const start = d.startTime || 0, end = d.endTime || 0, dur = end ? Math.floor((end - start) / 1000) : 0;
                 if(d.type.includes("Usage")) t += dur; if(d.type.includes("Online")) o += dur; if(d.type.includes("Borrowed")) b += dur;
                 html += `<tr><td>${d.type}<br><small>${d.activity || ''}</small></td><td>${start ? new Date(start).toLocaleTimeString() : '--'}</td><td>${end ? new Date(end).toLocaleTimeString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
             });
             document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online<br><b>${fmt(o)}</b></div><div class="stat-box">Borrowed<br><b>${fmt(b)}</b></div></div>`;
-            body.innerHTML = html || "<tr><td colspan='4'>No activity logged.</td></tr>";
-        }, err => { body.innerHTML = "<tr><td colspan='4' style='color:red;'>Error Loading Logs.</td></tr>"; });
+            document.getElementById('log-body').innerHTML = html || "<tr><td colspan='4'>No activity.</td></tr>";
+        });
     }
 
     async function changeUserRole() {
@@ -208,18 +169,10 @@
         alert("Role Updated Successfully!");
     }
 
-    async function sendAdminHelp() {
-        const m = document.getElementById('admin-help-msg').value; if(!m) return;
-        await db.collection("admin_messages").add({ type: "Admin Helpdesk", message: m, college: loggedAdminId, date: Date.now() });
-        alert("Message Sent!"); document.getElementById('admin-help-msg').value = "";
-    }
-
     function fmt(s) { if(isNaN(s) || s <= 0) return "00:00:00"; const h = Math.floor(s/3600).toString().padStart(2,'0'), m = Math.floor((s%3600)/60).toString().padStart(2,'0'), sec = (s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`; }
-    function closeModal() { document.getElementById('user-modal').classList.add('hidden'); document.getElementById('super-role-box').classList.add('hidden'); if(logUnsubscribe) logUnsubscribe(); }
+    function closeModal() { document.getElementById('user-modal').classList.add('hidden'); if(logUnsubscribe) logUnsubscribe(); }
     function switchTab(t) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 't-'+t)); document.querySelectorAll('.glass-card').forEach(s => s.classList.toggle('hidden', s.id !== t+'-section')); }
-    function toggleM(id) { document.querySelectorAll('.dropdown-menu').forEach(m => m.id !== id ? m.classList.remove('show') : null); document.getElementById(id).classList.toggle('show'); }
     async function deletePDF(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
-    async function deleteMsg(id) { await db.collection("admin_messages").doc(id).delete(); }
 </script>
 </body>
 </html>
