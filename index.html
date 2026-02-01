@@ -19,15 +19,12 @@
         .btn-preview { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; margin-top: 5px; }
         #auth-screen, #profile-overlay, #reader-overlay, #full-lib-view, #borrow-view, #search-results-overlay, .full-modal { position: fixed; inset: 0; z-index: 9000; background: var(--bg); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
         .hidden { display: none !important; }
-        
-        /* Dropdown Styling */
         .dropdown { position: relative; margin-bottom: 15px; }
         .dropdown-btn { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 12px; width: 100%; text-align: left; color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .dropdown-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; margin-top: 5px; display: none; overflow: hidden; }
         .dropdown.active .dropdown-content { display: block; }
         .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 13px; }
         .dropdown-item:hover { background: #0f172a; color: var(--blue); }
-
         .typing-mirror { background: #0f172a; padding: 10px; border-radius: 10px; color: var(--blue); font-family: monospace; margin-bottom: 15px; font-size: 14px; border-left: 4px solid var(--blue); }
         .time-box { background: var(--card-bg); border: 1px solid var(--border); padding: 10px; border-radius: 15px; text-align: center; }
         .time-val { font-family: monospace; font-weight: 800; font-size: 16px; }
@@ -40,10 +37,14 @@
     <div id="auth-screen">
         <div style="background:var(--card-bg); padding:30px; border-radius:24px; text-align:center; max-width:350px; margin:auto; border:1px solid var(--border);">
             <h2 style="color:var(--blue)">TheoLib Login</h2>
+            <select id="login-role" class="login-field">
+                <option value="student">Student</option>
+                <option value="faculty">Faculty</option>
+            </select>
             <input type="text" id="login-coll-id" class="login-field" placeholder="College ID">
             <input type="text" id="login-user-id" class="login-field" placeholder="User ID">
             <input type="password" id="login-pass" class="login-field" placeholder="Password">
-            <button onclick="handleLogin()" style="background:var(--blue); color:white; border:none; width:100%; padding:15px; border-radius:12px; font-weight:600;">Enter Portal</button>
+            <button onclick="handleLogin()" style="background:var(--blue); color:white; border:none; width:100%; padding:15px; border-radius:12px; font-weight:600; cursor:pointer;">Enter Portal</button>
         </div>
     </div>
 
@@ -62,11 +63,8 @@
         <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap: 15px;">
             <div>
                 <input type="text" id="lib-search" class="login-field" placeholder="🔍 Search library..." oninput="mirrorTyping(this.value)">
-                
                 <div class="dropdown" id="cat-dropdown">
-                    <div class="dropdown-btn" onclick="toggleDropdown()">
-                        <span>📂 Categories (7 Folders)</span> <span>▼</span>
-                    </div>
+                    <div class="dropdown-btn" onclick="toggleDropdown()"><span>📂 Categories (7 Folders)</span> <span>▼</span></div>
                     <div class="dropdown-content">
                         <div class="dropdown-item" onclick="loadCat('Theology')">📖 Theology</div>
                         <div class="dropdown-item" onclick="loadCat('Church History')">⛪ Church History</div>
@@ -77,10 +75,8 @@
                         <div class="dropdown-item" onclick="loadCat('Other Books')">📚 Other Books</div>
                     </div>
                 </div>
-
                 <div class="glass-card"><h3>🕒 Recent</h3><div id="recent-list"></div></div>
             </div>
-
             <div>
                 <div class="glass-card" style="border-color: var(--purple);">
                     <h4>💡 Suggestions</h4>
@@ -92,20 +88,27 @@
                     <input type="text" id="req-book" placeholder="Book Name" class="login-field">
                     <button class="btn-preview" style="background:var(--orange); width:100%;" onclick="submitRequest()">Request</button>
                 </div>
-                <div class="glass-card">
-                    <h4>📞 Helpdesk</h4>
-                    <button class="btn-preview" style="width:100%;" onclick="showContactModal()">Contact Us</button>
-                </div>
+                <div class="glass-card"><h4>📞 Helpdesk</h4><button class="btn-preview" style="width:100%;" onclick="showContactModal()">Contact Us</button></div>
             </div>
+        </div>
+    </div>
+
+    <div id="profile-overlay" class="hidden">
+        <div class="glass-card" style="max-width:350px; margin:auto; text-align:center;">
+            <h2 id="p-name">Name</h2>
+            <div id="p-role-box" style="background:var(--blue); display:inline-block; padding:5px 15px; border-radius:20px; font-size:11px; font-weight:800; margin-bottom:15px;">ROLE</div>
+            <div style="text-align:left; font-size:13px; margin-bottom:20px; border-top:1px solid var(--border); padding-top:15px;">
+                <p style="margin:5px 0;"><b>College ID:</b> <span id="p-coll-id-display">--</span></p>
+                <p style="margin:5px 0;"><b>User ID:</b> <span id="p-user-id-display">--</span></p>
+            </div>
+            <button onclick="toggleProfile()" class="btn-preview">Back</button>
+            <button onclick="location.reload()" style="background:red; margin-top:10px;" class="btn-preview">Logout</button>
         </div>
     </div>
 
     <div id="search-results-overlay" class="hidden">
         <div style="background:var(--card-bg); padding:20px; border-bottom:1px solid var(--border);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3>🔎 Results</h3>
-                <button onclick="closeView('search-results-overlay')" class="btn-preview">Back</button>
-            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;"><h3>🔎 Results</h3><button onclick="closeView('search-results-overlay')" class="btn-preview">Back</button></div>
             <div class="typing-mirror">Searching for: <span id="mirror-text">...</span></div>
         </div>
         <div id="search-results-list" style="padding:20px;"></div>
@@ -116,17 +119,8 @@
             <h3>Contact Administrator</h3>
             <input type="text" id="con-coll" placeholder="Your College" class="login-field">
             <textarea id="con-msg" placeholder="Your Message..." style="height:120px;"></textarea>
-            <button class="btn-preview" style="width:100%; padding:15px;" onclick="submitContact()">Send Message</button>
+            <button class="btn-preview" style="width:100%; padding:15px;" onclick="submitContact()">Send</button>
             <button class="btn-preview" style="background:none; border:1px solid var(--border); width:100%; margin-top:10px;" onclick="closeContactModal()">Cancel</button>
-        </div>
-    </div>
-
-    <div id="profile-overlay" class="hidden">
-        <div class="glass-card" style="max-width:350px; margin:auto; text-align:center;">
-            <h2 id="p-name">Name</h2>
-            <div id="p-role-box" style="background:var(--blue); display:inline-block; padding:5px 15px; border-radius:20px; font-size:11px; margin-bottom:15px; font-weight:800;">ROLE</div>
-            <button onclick="toggleProfile()" class="btn-preview">Back</button>
-            <button onclick="location.reload()" style="background:red; margin-top:10px;" class="btn-preview">Logout</button>
         </div>
     </div>
 
@@ -142,11 +136,19 @@
         document.addEventListener("visibilitychange", () => { isActive = !document.hidden; document.getElementById('session-box').classList.toggle('paused', !isActive); });
 
         async function handleLogin() {
-            const cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
+            const role = document.getElementById('login-role').value;
+            const cid = document.getElementById('login-coll-id').value.trim();
+            const uid = document.getElementById('login-user-id').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            
             const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).get();
+            
             if(!snap.empty) {
-                currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
-                document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
+                const u = snap.docs[0].data();
+                if((u.role || 'student') !== role) { alert("Invalid role for this ID"); return; }
+                currentUser = { uid: snap.docs[0].id, ...u };
+                document.getElementById('auth-screen').classList.add('hidden'); 
+                document.getElementById('dashboard').classList.remove('hidden');
                 initSystem();
             } else alert("Login Failed");
         }
@@ -195,6 +197,9 @@
         function toggleProfile() { 
             document.getElementById('p-name').innerText = currentUser.fullName;
             document.getElementById('p-role-box').innerText = currentUser.role.toUpperCase();
+            // FILLING IDS IN PROFILE
+            document.getElementById('p-coll-id-display').innerText = currentUser.collegeId;
+            document.getElementById('p-user-id-display').innerText = currentUser.studentId;
             document.getElementById('profile-overlay').classList.toggle('hidden'); 
         }
 
