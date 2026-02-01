@@ -90,7 +90,12 @@
         const id = document.getElementById('acid').value, p = document.getElementById('apass').value;
         if(adminAccounts[id] === p) {
             isSuperAdmin = (id === "aslin"); document.getElementById('auth-overlay').classList.add('hidden'); document.getElementById('master-panel').classList.remove('hidden');
-            if(!isSuperAdmin) document.getElementById('t-nom').classList.add('hidden');
+            
+            // HIDE INBOX AND NOMINATIONS FOR COLLEGE ADMINS
+            if(!isSuperAdmin) {
+                document.getElementById('t-nom').classList.add('hidden');
+                document.getElementById('t-msg').classList.add('hidden');
+            }
             initAdmin();
         } else alert("Denied");
     }
@@ -113,7 +118,6 @@
         refreshInbox();
     }
 
-    // LOGS ENGINE (RESTORED)
     async function openReport(uid, name, role) {
         activeUID = uid; activeName = name; document.getElementById('user-modal').classList.remove('hidden');
         document.getElementById('modal-title').innerText = name;
@@ -133,21 +137,14 @@
         });
     }
 
-    // DOWNLOAD ENGINE (FIXED)
     function downloadCSV() {
         if (!currentLogs.length) return alert("No logs to download");
-        let csv = "Activity,Start Date,Start Time,End Time,Duration\n";
-        currentLogs.forEach(d => {
-            const start = d.startTime ? new Date(d.startTime) : null;
-            const end = d.endTime ? new Date(d.endTime) : null;
-            const dur = end ? Math.floor((d.endTime - d.startTime) / 1000) : 0;
-            csv += `"${d.type} - ${d.activity || ''}",${start ? start.toLocaleDateString() : '--'},${start ? start.toLocaleTimeString() : '--'},${end ? end.toLocaleTimeString() : 'Active'},${fmt(dur)}\n`;
-        });
+        let csv = "Activity,Date,Duration\n";
+        currentLogs.forEach(d => { csv += `"${d.type} - ${d.activity || ''}",${new Date(d.startTime).toLocaleString()},${fmt(Math.floor((d.endTime-d.startTime)/1000))}\n`; });
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
         a.download = `${activeName}_Report.csv`; a.click();
     }
 
-    // INBOX ENGINE (PRESERVED)
     function refreshInbox() {
         db.collection("admin_messages").orderBy("date", "desc").onSnapshot(snap => {
             const list = document.getElementById('inbox-list'); const nomList = document.getElementById('nomination-list');
