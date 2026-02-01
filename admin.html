@@ -34,7 +34,7 @@
 </head>
 <body>
     <div id="auth-overlay"><div class="login-card"><h2>Admin Portal</h2><input type="text" id="acid" class="login-field" placeholder="ID"><input type="password" id="apass" class="login-field" placeholder="Pass"><button class="btn-sm" style="background:var(--blue); width:100%; padding:15px;" onclick="handleAdminLogin()">Login</button></div></div>
-   
+    
     <div id="master-panel" class="hidden">
         <div class="nav-tabs">
             <button id="t-inv" class="tab-btn active" onclick="switchTab('inv')">Inventory</button>
@@ -71,19 +71,12 @@
         </div>
 
         <div id="stud-section" class="hidden glass-card"><h2>📤 Registration</h2><textarea id="bulk-input" class="login-field" style="height:100px;"></textarea><button class="btn-sm" style="background:var(--green); width:100%; margin-top:10px;" onclick="bulkRegisterUsers()">Register</button></div>
-        
-        <div id="msg-section" class="hidden glass-card">
-            <div style="display:flex; justify-content:space-between; align-items:center;"><h2>📥 Inbox</h2><button class="btn-sm" style="background:var(--orange);" onclick="refreshInbox()">🔄 Refresh</button></div>
-            <div id="inbox-list"></div>
-        </div>
+        <div id="msg-section" class="hidden glass-card"><h2>📥 Inbox</h2><div id="inbox-list"></div></div>
     </div>
 
     <div id="user-modal" class="hidden">
         <div class="modal-content">
-            <div style="display:flex; justify-content:space-between;">
-                <h3 id="modal-title">Report</h3>
-                <div style="display:flex; gap:10px;"><button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue);">📥 CSV</button><button onclick="closeModal()" class="btn-sm" style="background:#ef4444;">X</button></div>
-            </div>
+            <div style="display:flex; justify-content:space-between;"><h3 id="modal-title">Report</h3><div style="display:flex; gap:10px;"><button onclick="downloadCSV()" class="btn-sm" style="background:var(--blue);">📥 CSV</button><button onclick="closeModal()" class="btn-sm" style="background:#ef4444;">X</button></div></div>
             <div id="super-role-box" class="hidden glass-card" style="padding:15px; margin-top:15px; border-color:var(--purple);"><label style="font-size:11px;">Change Role:</label>
                 <div style="display:flex; gap:10px; margin-top:5px;">
                     <select id="new-role-select" class="login-field" style="margin:0; flex:1;"><option value="student">Student</option><option value="faculty">Faculty</option></select>
@@ -130,24 +123,28 @@
         refreshInbox();
     }
 
-    // LOGIC INJECTION: LIVE SNAPSHOT LOGGING SYSTEM
+    // INJECTED MONITORING LOGIC
     async function openReport(uid, name, role) {
         activeUID = uid; activeName = name; document.getElementById('user-modal').classList.remove('hidden');
         document.getElementById('modal-title').innerText = name;
         if(isSuperAdmin) { document.getElementById('super-role-box').classList.remove('hidden'); document.getElementById('new-role-select').value = role || 'student'; }
+        
         if (logUnsub) logUnsub();
         logUnsub = db.collection("activity_logs").where("userId", "==", uid).onSnapshot(snap => {
             let t=0, o=0, b=0, rowsHtml=""; currentLogs = [];
             snap.forEach(d => { 
                 const data = d.data(); currentLogs.push(data); 
                 const dur = data.endTime ? Math.floor((data.endTime - data.startTime) / 1000) : 0;
+                
+                // Matches exact type names from index.html
                 if(data.type.includes("Usage")) t += dur; 
-                if(data.type.includes("Online")) o += dur; 
-                if(data.type.includes("Borrowed") || data.type.includes("Full")) b += dur;
+                if(data.type.includes("Online Read")) o += dur; 
+                if(data.type.includes("Full Read")) b += dur;
+                
                 rowsHtml += `<tr><td>${data.type}<br><small>${data.activity || ''}</small></td><td>${data.startTime ? new Date(data.startTime).toLocaleTimeString() : '--'}</td><td>${data.endTime ? new Date(data.endTime).toLocaleTimeString() : 'Active'}</td><td>${fmt(dur)}</td></tr>`;
             });
             currentLogs.sort((x, y) => (y.startTime || 0) - (x.startTime || 0));
-            document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online<br><b>${fmt(o)}</b></div><div class="stat-box">Borrowed<br><b>${fmt(b)}</b></div></div>`;
+            document.getElementById('modal-stats').innerHTML = `<div class="stat-grid"><div class="stat-box">App Usage<br><b>${fmt(t)}</b></div><div class="stat-box">Online Read<br><b>${fmt(o)}</b></div><div class="stat-box">Full Read<br><b>${fmt(b)}</b></div></div>`;
             document.getElementById('log-body').innerHTML = rowsHtml || "<tr><td colspan='4'>No activity</td></tr>";
         });
     }
