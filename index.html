@@ -31,7 +31,6 @@
         .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; display: inline-block; margin-right: 5px; }
         .paused .status-dot { background: #ef4444; }
         .reader-engagement { background: var(--green); color: black; padding: 2px 8px; border-radius: 50px; font-weight: 800; font-size: 12px; font-family: monospace; margin-left: 10px; }
-        /* Language Tab CSS */
         .lang-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 15px; scrollbar-width: none; }
         .lang-tabs::-webkit-scrollbar { display: none; }
         .lang-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-sub); white-space: nowrap; padding: 8px 16px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 600; }
@@ -122,8 +121,8 @@
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
         
         let currentUser = null; let collegeBooks = []; let sessionSeconds = 0; let readSeconds = 0;
-        let isActive = true; let currentLogId = null; let currentBookTitle = "";
-        let selectedLanguage = "English"; // Default filter
+        let isActive = true; let currentLogId = null; let readerLogId = null; let currentBookTitle = "";
+        let selectedLanguage = "English";
 
         function setLanguage(lang, btn) {
             selectedLanguage = lang;
@@ -132,18 +131,9 @@
             loadLibrary();
         }
 
-        // Logic for Visibility and Tracking
         document.addEventListener("visibilitychange", async () => {
             isActive = !document.hidden;
             document.getElementById('session-box').classList.toggle('paused', !isActive);
-            if (!isActive) await stopTracking();
-            else if (currentUser) {
-                const cv = getCurrentView();
-                if (cv === 'reader-overlay') {
-                    const isFull = document.getElementById('reader-title').innerText.includes("(Full)");
-                    await startTracking(isFull ? "Full Read" : "Online Read", currentBookTitle);
-                } else await startTracking("Usage", "Dashboard Active");
-            }
         });
 
         async function handleLogin() {
@@ -152,20 +142,20 @@
             if(!snap.empty) {
                 currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
-                initSystem(); await startTracking("Usage", "Dashboard Active");
+                
+                // LOGIN RECORD
+                const doc = await db.collection("activity_logs").add({
+                    userId: currentUser.uid, type: "Usage", activity: "Login Session", startTime: Date.now(), endTime: null
+                });
+                currentLogId = doc.id;
+
+                initSystem();
             } else alert("Login Failed");
         }
 
-        async function startTracking(type, activity) {
-            if (currentLogId) await stopTracking();
-            const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type, activity, startTime: Date.now(), endTime: null });
-            currentLogId = doc.id;
-            if (type === "Full Read") { readSeconds = 0; document.getElementById('engagement-timer-box').classList.remove('hidden'); }
-        }
-
-        async function stopTracking() {
-            if (currentLogId) { await db.collection("activity_logs").doc(currentLogId).update({ endTime: Date.now() }); currentLogId = null; }
-            document.getElementById('engagement-timer-box').classList.add('hidden');
+        async function handleLogout() { 
+            if (currentLogId) await db.collection("activity_logs").doc(currentLogId).update({ endTime: Date.now() });
+            location.reload(); 
         }
 
         function initSystem() {
@@ -200,32 +190,35 @@
             });
         }
 
-        async function returnBook(id) { if(confirm("Return book?")) await db.collection("borrows").doc(id).delete(); }
-
-        function mirrorTyping(val) {
-            const list = document.getElementById('search-results-list');
-            document.getElementById('mirror-text').innerText = val || "...";
-            if(val.trim().length > 1) {
-                list.innerHTML = "";
-                collegeBooks.filter(b => b.title.toLowerCase().includes(val.toLowerCase())).forEach(b => list.innerHTML += renderItem(b));
-                document.getElementById('search-results-overlay').classList.remove('hidden');
-            } else document.getElementById('search-results-overlay').classList.add('hidden');
+        async function openPdfPreview(id, t) { 
+            currentBookTitle = t;
+            const doc = await db.collection("activity_logs").add({
+                userId: currentUser.uid, type: "Online Read", activity: t, startTime: Date.now(), endTime: null
+            });
+            readerLogId = doc.id;
+            document.getElementById('reader-title').innerText = t; document.getElementById('pdf-frame').src = `/${id}_read_online.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); 
+        }
+        
+        async function openFullPdf(id, t) { 
+            currentBookTitle = t;
+            const doc = await db.collection("activity_logs").add({
+                userId: currentUser.uid, type: "Full Read", activity: t, startTime: Date.now(), endTime: null
+            });
+            readerLogId = doc.id;
+            document.getElementById('reader-title').innerText = t; document.getElementById('pdf-frame').src = `/${id}.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); 
         }
 
-        function loadCat(cat) {
-            const list = document.getElementById('full-book-list'); list.innerHTML = "";
-            const filtered = collegeBooks.filter(b => b.category === cat);
-            if(filtered.length === 0) list.innerHTML = `<p style="padding:20px; color:var(--text-sub)">No ${selectedLanguage} books here.</p>`;
-            else filtered.forEach(b => list.innerHTML += renderItem(b));
-            document.getElementById('full-lib-view').classList.remove('hidden');
+        async function closeReader() { 
+            if (readerLogId) await db.collection("activity_logs").doc(readerLogId).update({ endTime: Date.now() });
+            document.getElementById('pdf-frame').src = ''; document.getElementById('reader-overlay').classList.add('hidden'); 
         }
 
-        async function openPdfPreview(id, t) { currentBookTitle = t; await startTracking("Online Read", t); document.getElementById('reader-title').innerText = t; document.getElementById('pdf-frame').src = `/${id}_read_online.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
-        async function openFullPdf(id, t) { currentBookTitle = t; await startTracking("Full Read", t); document.getElementById('reader-title').innerText = t; document.getElementById('pdf-frame').src = `/${id}.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); }
-        async function closeReader() { await stopTracking(); document.getElementById('pdf-frame').src = ''; document.getElementById('reader-overlay').classList.add('hidden'); await startTracking("Usage", "Dashboard Active"); }
-        async function handleLogout() { await stopTracking(); location.reload(); }
         function renderItem(b) { return `<div class="book-item"><b>${b.title}</b><br><button class="btn-preview" onclick="openPdfPreview('${b.id}','${b.title}')">Preview</button><button class="btn-preview" style="background:var(--orange)" onclick="borrowBook('${b.id}','${b.title}')">Borrow</button></div>`; }
         async function borrowBook(id, t) { await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, date: Date.now() }); alert("Issued!"); }
+        async function returnBook(id) { if(confirm("Return book?")) await db.collection("borrows").doc(id).delete(); }
+        function mirrorTyping(val) { const list = document.getElementById('search-results-list'); document.getElementById('mirror-text').innerText = val || "..."; if(val.trim().length > 1) { list.innerHTML = ""; collegeBooks.filter(b => b.title.toLowerCase().includes(val.toLowerCase())).forEach(b => list.innerHTML += renderItem(b)); document.getElementById('search-results-overlay').classList.remove('hidden'); } else document.getElementById('search-results-overlay').classList.add('hidden'); }
+        function loadCat(cat) { const list = document.getElementById('full-book-list'); list.innerHTML = ""; const filtered = collegeBooks.filter(b => b.category === cat); if(filtered.length === 0) list.innerHTML = `<p style="padding:20px; color:var(--text-sub)">No ${selectedLanguage} books here.</p>`; else filtered.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); }
+        function toggleProfile() { document.getElementById('p-name').innerText = currentUser.fullName; document.getElementById('p-role-box').innerText = (currentUser.role||'student').toUpperCase(); document.getElementById('p-coll-id-display').innerText = currentUser.collegeId; document.getElementById('p-user-id-display').innerText = currentUser.studentId; document.getElementById('profile-overlay').classList.toggle('hidden'); }
         function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
         function showFullLibrary() { const list = document.getElementById('full-book-list'); list.innerHTML = ""; collegeBooks.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); }
         function closeView(id) { document.getElementById(id).classList.add('hidden'); }
