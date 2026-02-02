@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -25,7 +25,6 @@
         .dropdown.active .dropdown-content { display: block; }
         .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 13px; }
         .dropdown-item:hover { background: #0f172a; color: var(--blue); }
-        .typing-mirror { background: #0f172a; padding: 10px; border-radius: 10px; color: var(--blue); font-family: monospace; margin-bottom: 15px; font-size: 14px; border-left: 4px solid var(--blue); }
         .time-box { background: var(--card-bg); border: 1px solid var(--border); padding: 10px; border-radius: 15px; text-align: center; }
         .time-val { font-family: monospace; font-weight: 800; font-size: 16px; }
         .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; display: inline-block; margin-right: 5px; }
@@ -47,15 +46,14 @@
 
     <div id="dashboard" class="hidden">
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-            <div id="session-box" class="time-box" style="border-color: var(--green);"><span class="status-dot"></span>Session Active<br><span id="session-clock" class="time-val" style="color: var(--green);">00:00:00</span></div>
-            <div class="time-box">System Clock<br><span id="real-time-clock" class="time-val" style="color: var(--blue);">00:00:00</span></div>
+            <div id="session-box" class="time-box" style="border-color: var(--green);"><span class="status-dot"></span>Active<br><span id="session-clock" class="time-val" style="color: var(--green);">00:00:00</span></div>
+            <div class="time-box">Clock<br><span id="real-time-clock" class="time-val" style="color: var(--blue);">00:00:00</span></div>
         </div>
         <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:20px;">
             <div class="stat-card" style="background:var(--blue)" onclick="showFullLibrary()"><h4>Books</h4><p id="top-total">0</p></div>
             <div class="stat-card" style="background:var(--orange)" onclick="showBorrowView()"><h4>Issued</h4><p id="top-issued">0</p></div>
             <div class="stat-card" style="background:var(--purple)" onclick="toggleProfile()"><h4>Profile</h4><p>U</p></div>
         </div>
-        
         <div style="display:grid; grid-template-columns: 2fr 1.2fr; gap: 15px; align-items: start;">
             <div>
                 <input type="text" id="lib-search" class="login-field" placeholder="🔍 Search library..." oninput="mirrorTyping(this.value)">
@@ -77,6 +75,7 @@
             <div>
                 <div class="glass-card" style="border-color: var(--purple);"><h4>💡 Suggestions</h4><textarea id="feat-suggest" style="height:60px;" placeholder="Message..."></textarea><button class="btn-preview" style="background:var(--purple); width:100%;" onclick="submitSuggestion()">Send</button></div>
                 <div class="glass-card" style="border-color: var(--orange);"><h4>📖 Request</h4><input type="text" id="req-book" placeholder="Book Name" class="login-field"><button class="btn-preview" style="background:var(--orange); width:100%;" onclick="submitRequest()">Request</button></div>
+                <div class="glass-card"><h4>📞 Contact</h4><button class="btn-preview" style="width:100%;" onclick="showContactModal()">Contact Us</button></div>
             </div>
         </div>
     </div>
@@ -84,7 +83,7 @@
     <div id="reader-overlay" class="hidden">
         <div style="background:#1e293b; padding:15px; display:flex; justify-content:space-between; align-items:center;">
             <div><span id="reader-title" style="font-weight:600;"></span><span id="engagement-timer-box" class="hidden reader-engagement">⏳ <span id="read-clock">00:00</span></span></div>
-            <button onclick="closeReader()" style="background:red; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">Exit</button>
+            <button onclick="closeReader()" style="background:red; color:white; border:none; padding:8px 12px; border-radius:5px;">Exit</button>
         </div>
         <iframe id="pdf-frame" style="width:100%; height:100%; border:none;"></iframe>
     </div>
@@ -98,7 +97,15 @@
             <button onclick="handleLogout()" style="background:red; margin-top:10px;" class="btn-preview">Logout</button>
         </div>
     </div>
-    <div id="search-results-overlay" class="hidden"><div style="padding:20px;"><div style="display:flex; justify-content:space-between;"><h3>🔎 Results</h3><button onclick="closeView('search-results-overlay')" class="btn-preview">Back</button></div><div class="typing-mirror">Searching for: <span id="mirror-text">...</span></div><div id="search-results-list"></div></div></div>
+    <div id="contact-modal" class="full-modal hidden">
+        <div class="glass-card" style="max-width:400px; margin:auto;">
+            <h3>Contact Admin</h3>
+            <textarea id="con-msg" placeholder="Your Message..." style="height:120px;"></textarea>
+            <button class="btn-preview" style="width:100%;" onclick="submitContact()">Send</button>
+            <button class="btn-preview" style="background:none; border:1px solid var(--border); width:100%; margin-top:10px;" onclick="closeContactModal()">Cancel</button>
+        </div>
+    </div>
+    <div id="search-results-overlay" class="hidden"><div style="padding:20px;"><div style="display:flex; justify-content:space-between;"><h3>🔎 Results</h3><button onclick="closeView('search-results-overlay')" class="btn-preview">Back</button></div><div id="search-results-list"></div></div></div>
     <div id="full-lib-view" class="hidden"><div style="display:flex; justify-content:space-between; padding:20px;"><h3>📚 Books</h3><button onclick="closeView('full-lib-view')" class="btn-preview">Back</button></div><div id="full-book-list" style="padding:20px;"></div></div>
     <div id="borrow-view" class="hidden"><div style="display:flex; justify-content:space-between; padding:20px;"><h3>📥 Issued</h3><button onclick="closeView('borrow-view')" class="btn-preview">Back</button></div><div id="borrow-list" style="padding:20px;"></div></div>
 
@@ -107,26 +114,25 @@
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
         
         let currentUser = null; let collegeBooks = []; let sessionSeconds = 0; let readSeconds = 0;
-        let isActive = true; let usageLogId = null; let readerLogId = null; let currentBookTitle = "";
+        let isActive = true; let currentLogId = null; let currentBookTitle = "";
 
-        // 1. VISIBILITY CHANGE: Accurate Pause/Resume for Total Usage
+        // 1. VISIBILITY LOGIC: EXCLUSIVE SEGMENTS
         document.addEventListener("visibilitychange", async () => {
             isActive = !document.hidden;
             document.getElementById('session-box').classList.toggle('paused', !isActive);
             if (!isActive) {
-                await stopUsageTracking();
-                await stopReaderTracking();
+                await stopTracking();
             } else if (currentUser) {
-                await startUsageTracking();
                 const cv = getCurrentView();
                 if (cv === 'reader-overlay') {
                     const isFull = document.getElementById('reader-title').innerText.includes("(Full)");
-                    await startReaderTracking(isFull ? "Full Read" : "Online Read", currentBookTitle);
+                    await startTracking(isFull ? "Full Read" : "Online Read", currentBookTitle);
+                } else {
+                    await startTracking("Usage", "Dashboard Active");
                 }
             }
         });
 
-        // 2. AUTH & TRACKING ENGINE
         async function handleLogin() {
             const r = document.getElementById('login-role').value, cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
             const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).get();
@@ -135,33 +141,31 @@
                 currentUser = { uid: snap.docs[0].id, ...u };
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
                 initSystem();
-                await startUsageTracking(); // Start total app usage timer
+                await startTracking("Usage", "Dashboard Active");
             } else alert("Login Failed");
         }
 
-        async function startUsageTracking() {
-            if (usageLogId) return;
-            const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Usage", activity: "App Session", startTime: Date.now(), endTime: null });
-            usageLogId = doc.id;
+        // EXCLUSIVE TRACKING: Stops any previous log before starting a new one
+        async function startTracking(type, activity) {
+            if (currentLogId) await stopTracking();
+            const doc = await db.collection("activity_logs").add({ 
+                userId: currentUser.uid, type, activity, startTime: Date.now(), endTime: null 
+            });
+            currentLogId = doc.id;
+            if (type === "Full Read") {
+                readSeconds = 0;
+                document.getElementById('engagement-timer-box').classList.remove('hidden');
+            }
         }
 
-        async function stopUsageTracking() {
-            if (usageLogId) { await db.collection("activity_logs").doc(usageLogId).update({ endTime: Date.now() }); usageLogId = null; }
-        }
-
-        async function startReaderTracking(type, activity) {
-            if (readerLogId) await stopReaderTracking();
-            const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type, activity, startTime: Date.now(), endTime: null });
-            readerLogId = doc.id;
-            if (type === "Full Read") document.getElementById('engagement-timer-box').classList.remove('hidden');
-        }
-
-        async function stopReaderTracking() {
-            if (readerLogId) { await db.collection("activity_logs").doc(readerLogId).update({ endTime: Date.now() }); readerLogId = null; }
+        async function stopTracking() {
+            if (currentLogId) { 
+                await db.collection("activity_logs").doc(currentLogId).update({ endTime: Date.now() }); 
+                currentLogId = null; 
+            }
             document.getElementById('engagement-timer-box').classList.add('hidden');
         }
 
-        // 3. SYSTEM CLOCKS
         function initSystem() {
             setInterval(() => { 
                 if(isActive) { 
@@ -171,7 +175,8 @@
                     const s = (sessionSeconds % 60).toString().padStart(2, '0');
                     document.getElementById('session-clock').innerText = `${h}:${m}:${s}`;
                     
-                    if (!document.getElementById('reader-overlay').classList.contains('hidden')) {
+                    if (!document.getElementById('reader-overlay').classList.contains('hidden') && 
+                        document.getElementById('reader-title').innerText.includes("(Full)")) {
                         readSeconds++;
                         const rm = Math.floor(readSeconds / 60).toString().padStart(2, '0');
                         const rs = (readSeconds % 60).toString().padStart(2, '0');
@@ -183,34 +188,34 @@
             loadLibrary();
         }
 
-        // 4. PDF LOGIC
+        // PDF OVERLAY: STOP USAGE, START READ
         async function openPdfPreview(id, t) { 
-            currentBookTitle = t; await startReaderTracking("Online Read", t);
+            currentBookTitle = t; await startTracking("Online Read", t);
             document.getElementById('reader-title').innerText = t + " (Preview)"; 
             document.getElementById('pdf-frame').src = `/public/${id}_read_online.pdf`; 
             document.getElementById('reader-overlay').classList.remove('hidden'); 
         }
         
         async function openFullPdf(id, t) { 
-            currentBookTitle = t; readSeconds = 0; await startReaderTracking("Full Read", t); 
+            currentBookTitle = t; await startTracking("Full Read", t); 
             document.getElementById('reader-title').innerText = t + " (Full)"; 
             document.getElementById('pdf-frame').src = `/public/${id}.pdf`; 
             document.getElementById('reader-overlay').classList.remove('hidden'); 
         }
 
         async function closeReader() { 
-            await stopReaderTracking(); 
+            await stopTracking(); 
             document.getElementById('pdf-frame').src = ''; 
             document.getElementById('reader-overlay').classList.add('hidden'); 
+            await startTracking("Usage", "Dashboard Active"); 
         }
 
         async function handleLogout() { 
-            await stopUsageTracking(); await stopReaderTracking();
+            await stopTracking();
             await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Logout", activity: "Exit", startTime: Date.now(), endTime: Date.now() }); 
             location.reload(); 
         }
 
-        // 5. UI HELPERS
         function getCurrentView() { if (!document.getElementById('reader-overlay').classList.contains('hidden')) return 'reader-overlay'; return 'dashboard'; }
         function renderItem(b) { return `<div class="book-item"><b>${b.title}</b><br><button class="btn-preview" onclick="openPdfPreview('${b.id}','${b.title}')">Preview</button><button class="btn-preview" style="background:var(--orange)" onclick="borrowBook('${b.id}','${b.title}')">Borrow</button></div>`; }
         function loadLibrary() {
@@ -233,9 +238,12 @@
         function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
         function showFullLibrary() { const list = document.getElementById('full-book-list'); list.innerHTML = ""; collegeBooks.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); }
         function closeView(id) { document.getElementById(id).classList.add('hidden'); }
-        function mirrorTyping(val) { document.getElementById('mirror-text').innerText = val || "..."; if(val.trim().length > 1) { const list = document.getElementById('search-results-list'); list.innerHTML = ""; const filtered = collegeBooks.filter(b => b.title.toLowerCase().includes(val.toLowerCase())); filtered.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('search-results-overlay').classList.remove('hidden'); } else closeView('search-results-overlay'); }
+        function showContactModal() { document.getElementById('contact-modal').classList.remove('hidden'); }
+        function closeContactModal() { document.getElementById('contact-modal').classList.add('hidden'); }
+        async function submitContact() { const m = document.getElementById('con-msg').value; if(!m) return; await db.collection("admin_messages").add({ type: "Helpdesk", college: currentUser.collegeId, message: m, user: currentUser.fullName, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); closeContactModal(); }
         async function submitSuggestion() { const s = document.getElementById('feat-suggest').value; if(!s) return; await db.collection("admin_messages").add({ type: "Suggestion", message: s, user: currentUser.fullName, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); document.getElementById('feat-suggest').value = ""; }
         async function submitRequest() { const b = document.getElementById('req-book').value; if(!b) return; await db.collection("admin_messages").add({ type: "Request", book: b, user: currentUser.fullName, college: currentUser.collegeId, userId: currentUser.studentId, date: Date.now() }); alert("Sent!"); document.getElementById('req-book').value = ""; }
+        function mirrorTyping(val) { document.getElementById('mirror-text').innerText = val || "..."; if(val.trim().length > 1) { const list = document.getElementById('search-results-list'); list.innerHTML = ""; const filtered = collegeBooks.filter(b => b.title.toLowerCase().includes(val.toLowerCase())); filtered.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('search-results-overlay').classList.remove('hidden'); } else closeView('search-results-overlay'); }
     </script>
 </body>
 </html>
