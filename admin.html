@@ -56,7 +56,7 @@
             <div id="panel-inventory">
                 <div class="grid">
                     <div>
-                        <div class="card" id="book-form">
+                        <div class="card" id="inventory-card">
                             <h2>📚 Add Global Book</h2>
                             <input type="text" id="b-title" placeholder="Book Title">
                             <input type="text" id="b-id" placeholder="Book ID (filename)">
@@ -64,54 +64,45 @@
                                 <select id="b-cat"><option value="Theology">Theology</option><option value="Acts">Acts</option><option value="Ethics">Ethics</option><option value="Church History">History</option><option value="Mission">Mission</option><option value="Bible Intro">Bible Intro</option><option value="Other Books">Other</option></select>
                                 <select id="b-lang"><option value="English">English</option><option value="Tamil">Tamil</option><option value="Malayalam">Malayalam</option></select>
                             </div>
-                            <input type="text" id="b-colls" placeholder="Allowed Colleges (comma separated)">
+                            <input type="text" id="b-colls" placeholder="Target Colleges (IMC26, ABC, etc)">
                             <button class="btn-blue" onclick="addBook()">+ Register Book</button>
                         </div>
-
                         <div class="card">
                             <h2>👥 Register Member</h2>
                             <input type="text" id="m-name" placeholder="Full Name">
-                            <input type="text" id="m-coll" placeholder="College ID">
+                            <input type="text" id="m-coll" placeholder="College ID (Exact Match)">
                             <input type="text" id="m-id" placeholder="User ID">
                             <input type="password" id="m-pass" placeholder="Password">
                             <select id="m-role"><option value="student">Student</option><option value="faculty">Faculty</option><option value="college_admin">College Admin</option></select>
                             <button class="btn-blue" style="background:var(--green);" onclick="addMember()">+ Register</button>
                         </div>
                     </div>
-
                     <div>
-                        <div class="card">
-                            <h2>📖 Inventory Controls</h2>
-                            <div class="scroll-area" id="book-list"></div>
-                        </div>
-                        <div class="card">
-                            <h2>📥 Inbox</h2>
-                            <div class="scroll-area" id="inbox-area"></div>
-                        </div>
+                        <div class="card"><h2>📖 Active Inventory</h2><div class="scroll-area" id="book-list"></div></div>
+                        <div class="card"><h2>📥 Inbox</h2><div class="scroll-area" id="inbox-area"></div></div>
                     </div>
                 </div>
             </div>
 
             <div id="panel-attendance" class="hidden">
                 <div class="card">
-                    <h2>🔍 Student Drill-Down</h2>
+                    <h2>⏱️ Real-Time Attendance</h2>
                     <div id="view-colleges">
-                        <div id="college-list-area" class="scroll-area grid" style="grid-template-columns: repeat(3, 1fr);"></div>
+                        <div id="college-list-area" class="scroll-area grid" style="grid-template-columns: repeat(3, 1fr); gap:10px;"></div>
                     </div>
                     <div id="view-students" class="hidden">
-                        <div class="breadcrumb" onclick="showColleges()">← Back to Colleges</div>
-                        <div id="student-list-area" class="scroll-area grid" style="grid-template-columns: 1fr 1fr;"></div>
+                        <div class="breadcrumb" onclick="showCollegesNav()">← Back to Colleges</div>
+                        <div id="student-list-area" class="scroll-area grid" style="grid-template-columns: 1fr 1fr; gap:10px;"></div>
                     </div>
                     <div id="view-details" class="hidden">
-                        <div class="breadcrumb" onclick="showStudentsNav()">← Back to Students</div>
+                        <div class="breadcrumb" onclick="showStudentsNavBtn()">← Back to Students</div>
                         <h3 id="det-name" style="font-size:18px; margin-bottom:10px;"></h3>
                         <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:15px;">
-                            <div class="card" style="margin:0; text-align:center;">App Usage<br><b id="sum-usage" style="color:var(--green)">0s</b></div>
-                            <div class="card" style="margin:0; text-align:center;">Preview Time<br><b id="sum-preview" style="color:var(--blue)">0s</b></div>
-                            <div class="card" style="margin:0; text-align:center;">Full Read<br><b id="sum-full" style="color:var(--orange)">0s</b></div>
+                            <div class="card" style="margin:0; text-align:center; padding:10px;">Usage<br><b id="sum-usage" style="color:var(--green)">0s</b></div>
+                            <div class="card" style="margin:0; text-align:center; padding:10px;">Preview<br><b id="sum-preview" style="color:var(--blue)">0s</b></div>
+                            <div class="card" style="margin:0; text-align:center; padding:10px;">Full Read<br><b id="sum-full" style="color:var(--orange)">0s</b></div>
                         </div>
-                        <button class="btn-blue" style="background:var(--blue); width:auto; padding: 10px 20px;" onclick="downloadStudentCSV()">📊 Download Report (CSV)</button>
-                        <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+                        <button class="btn-blue" style="background:var(--green); width:auto; padding: 10px 20px; margin-bottom:15px;" onclick="downloadStudentCSV()">📊 Export CSV</button>
                         <div class="scroll-area" id="det-logs"></div>
                     </div>
                 </div>
@@ -123,7 +114,8 @@
         const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
 
-        let loggedInRole = ""; let loggedInCollege = ""; let allUsers = []; let currentLogs = []; let currentStudentName = "";
+        let loggedInRole = ""; let loggedInCollege = ""; let allUsers = []; 
+        let currentLogs = []; let currentStudentName = ""; let selectedCollege = "";
 
         async function checkAuth() { 
             const role = document.getElementById('admin-role-select').value, id = document.getElementById('admin-id').value, pass = document.getElementById('admin-pass').value; 
@@ -139,10 +131,10 @@
             document.getElementById('auth-screen').classList.add('hidden'); 
             document.getElementById('main-portal').classList.remove('hidden');
             if(loggedInRole === 'college') {
-                document.getElementById('book-form').classList.add('hidden');
+                document.getElementById('inventory-card').classList.add('hidden');
                 document.getElementById('admin-label').innerText = loggedInCollege.toUpperCase() + " ADMIN";
             }
-            loadColleges(); loadBooks(); loadInbox(); loadAttendance();
+            loadDirectory(); loadBooks(); loadInbox();
         }
 
         function switchTab(tab) {
@@ -152,58 +144,66 @@
             document.getElementById('tab-attendance').classList.toggle('active', tab === 'attendance');
         }
 
-        function loadColleges() { /* (Logic same as previous version) */ }
-        async function addBook() { /* (Logic same as previous version) */ }
-        function loadBooks() { 
-            db.collection("library_settings").onSnapshot(snap => {
-                const list = document.getElementById('book-list'); list.innerHTML = "";
-                snap.forEach(doc => {
-                    const b = doc.data(); const id = doc.id;
-                    list.innerHTML += `<div class="list-item"><div style="display:flex; justify-content:space-between;"><b>${b.title}</b> <button class="btn-red" onclick="deleteBook('${id}')">Del</button></div><div class="control-row"><select class="tiny-select" onchange="updateBook('${id}','language',this.value)"><option value="English" ${b.language=='English'?'selected':''}>English</option><option value="Tamil" ${b.language=='Tamil'?'selected':''}>Tamil</option><option value="Malayalam" ${b.language=='Malayalam'?'selected':''}>Malayalam</option></select><button class="btn-action ${b.promoted?'active':''}" onclick="updateBook('${id}','promoted',${!b.promoted})">Promo</button></div></div>`;
-                });
-            });
-        }
-        async function updateBook(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
-        async function deleteBook(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
-
-        // --- ATTENDANCE DRILL-DOWN LOGIC ---
-        function loadAttendance() {
+        // --- UPDATED DIRECTORY & ATTENDANCE ---
+        function loadDirectory() {
             db.collection("users").onSnapshot(snap => {
                 allUsers = []; const colls = new Set();
                 snap.forEach(doc => { 
                     const u = {id: doc.id, ...doc.data()}; 
                     if(loggedInRole === 'college' && u.collegeId !== loggedInCollege) return;
-                    allUsers.push(u); colls.add(u.collegeId); 
+                    allUsers.push(u); 
+                    if(u.collegeId) colls.add(u.collegeId.trim().toUpperCase()); 
                 });
-                const area = document.getElementById('college-list-area'); area.innerHTML = "";
-                Array.from(colls).forEach(c => area.innerHTML += `<div class="list-item" style="text-align:center; padding:30px;" onclick="showStudentsNav('${c}')">📁<br>${c}</div>`);
+                const area = document.getElementById('college-list-area'); 
+                area.innerHTML = "";
+                Array.from(colls).forEach(c => {
+                    area.innerHTML += `<div class="list-item" style="text-align:center; padding:20px;" onclick="showStudentsNav('${c}')">📁<br>${c}</div>`;
+                });
+                if(loggedInRole === 'college') showStudentsNav(loggedInCollege);
             });
         }
 
         function showStudentsNav(c) {
-            document.getElementById('view-colleges').classList.add('hidden'); document.getElementById('view-students').classList.remove('hidden'); document.getElementById('view-details').classList.add('hidden');
-            const area = document.getElementById('student-list-area'); area.innerHTML = "";
-            allUsers.filter(u => u.collegeId === c && u.role !== 'college_admin').forEach(u => {
-                area.innerHTML += `<div class="list-item" onclick="showStudentDetails('${u.id}')">👤 ${u.fullName} (${u.studentId})</div>`;
-            });
+            selectedCollege = c;
+            document.getElementById('view-colleges').classList.add('hidden');
+            document.getElementById('view-students').classList.remove('hidden');
+            document.getElementById('view-details').classList.add('hidden');
+            const area = document.getElementById('student-list-area'); 
+            area.innerHTML = "";
+
+            // POWER SEARCH FIX: Matches college ID ignoring case and extra spaces
+            const filtered = allUsers.filter(u => u.collegeId && u.collegeId.trim().toUpperCase() === c.trim().toUpperCase() && (u.role === 'student' || u.role === 'faculty'));
+            
+            if(filtered.length === 0) {
+                area.innerHTML = `<p style="padding:20px;">No students found for this College ID.</p>`;
+            } else {
+                filtered.forEach(u => {
+                    area.innerHTML += `<div class="list-item" onclick="showStudentDetails('${u.id}')">👤 ${u.fullName}<br><small>${u.studentId}</small></div>`;
+                });
+            }
         }
 
         async function showStudentDetails(uid) {
             const u = allUsers.find(x => x.id === uid);
             currentStudentName = u.fullName;
-            document.getElementById('view-students').classList.add('hidden'); document.getElementById('view-details').classList.remove('hidden');
-            document.getElementById('det-name').innerText = u.fullName + " (" + u.collegeId + ")";
+            document.getElementById('view-students').classList.add('hidden');
+            document.getElementById('view-details').classList.remove('hidden');
+            document.getElementById('det-name').innerText = u.fullName;
 
             db.collection("activity_logs").where("userId", "==", uid).orderBy("startTime", "desc").onSnapshot(snap => {
                 const area = document.getElementById('det-logs'); area.innerHTML = "";
                 let usage = 0, preview = 0, full = 0; currentLogs = [];
                 snap.forEach(doc => {
-                    const l = doc.data(); const dur = l.endTime ? Math.round((l.endTime - l.startTime) / 1000) : 0;
+                    const l = doc.data(); 
+                    const dur = l.endTime ? Math.round((l.endTime - l.startTime) / 1000) : 0;
                     if(l.type === "Usage") usage += dur;
                     if(l.type === "Preview Read") preview += dur;
                     if(l.type === "Full Read") full += dur;
                     currentLogs.push({...l, dur});
-                    area.innerHTML += `<div style="padding:10px; border-bottom:1px solid #334155; display:flex; justify-content:space-between; font-size:11px;"><span>${l.type}: ${l.activity}</span><span>${formatTime(dur)}</span></div>`;
+                    area.innerHTML += `<div style="padding:10px; border-bottom:1px solid #334155; display:flex; justify-content:space-between; font-size:11px;">
+                        <span><b>${l.type}</b>: ${l.activity}</span>
+                        <span>${formatTime(dur)}</span>
+                    </div>`;
                 });
                 document.getElementById('sum-usage').innerText = formatTime(usage);
                 document.getElementById('sum-preview').innerText = formatTime(preview);
@@ -212,17 +212,29 @@
         }
 
         function downloadStudentCSV() {
-            let csv = "Type,Activity,Start,End,Duration(s)\n";
-            currentLogs.forEach(l => { csv += `${l.type},${l.activity},${new Date(l.startTime).toLocaleString()},${l.endTime ? new Date(l.endTime).toLocaleString() : 'Active'},${l.dur}\n`; });
+            if(currentLogs.length === 0) return alert("No logs available");
+            let csv = "Type,Activity,Date,Start,End,Duration(s)\n";
+            currentLogs.forEach(l => {
+                csv += `${l.type},${l.activity},${new Date(l.startTime).toLocaleDateString()},${new Date(l.startTime).toLocaleTimeString()},${l.endTime ? new Date(l.endTime).toLocaleTimeString() : 'Active'},${l.dur}\n`;
+            });
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `${currentStudentName}_Attendance.csv`; a.click();
+            const a = document.createElement('a'); a.href = url;
+            a.download = `${currentStudentName}_Attendance.csv`; a.click();
         }
 
         function formatTime(s) { const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60; return `${h}h ${m}m ${sec}s`; }
-        function showColleges() { document.getElementById('view-colleges').classList.remove('hidden'); document.getElementById('view-students').classList.add('hidden'); }
-        function showStudentsNav() { document.getElementById('view-students').classList.remove('hidden'); document.getElementById('view-details').classList.add('hidden'); }
-        function loadInbox() { /* Inbox Logic */ }
+        function showCollegesNav() { document.getElementById('view-colleges').classList.remove('hidden'); document.getElementById('view-students').classList.add('hidden'); }
+        function showStudentsNavBtn() { document.getElementById('view-students').classList.remove('hidden'); document.getElementById('view-details').classList.add('hidden'); }
+        
+        // --- REMAINING LOGIC ---
+        async function addBook() { const title = document.getElementById('b-title').value, id = document.getElementById('b-id').value, cat = document.getElementById('b-cat').value, lang = document.getElementById('b-lang').value, colls = document.getElementById('b-colls').value.split(',').map(s=>s.trim()); if(!title || !id) return alert("Fill all info!"); await db.collection("library_settings").doc(id).set({ title, category: cat, language: lang, allowedColleges: colls, recent: true, promoted: false }); alert("Book Registered!"); }
+        function loadBooks() { db.collection("library_settings").onSnapshot(snap => { const list = document.getElementById('book-list'); list.innerHTML = ""; snap.forEach(doc => { const b = doc.data(); const id = doc.id; list.innerHTML += `<div class="list-item" style="cursor:default"><div style="display:flex; justify-content:space-between;"><b>${b.title}</b> <button class="btn-red" onclick="deleteBook('${id}')">Del</button></div><div class="control-row"><select class="tiny-select" onchange="updateBook('${id}','language',this.value)"><option value="English" ${b.language=='English'?'selected':''}>English</option><option value="Tamil" ${b.language=='Tamil'?'selected':''}>Tamil</option><option value="Malayalam" ${b.language=='Malayalam'?'selected':''}>Malayalam</option></select><button class="btn-action ${b.promoted?'active':''}" onclick="updateBook('${id}','promoted',${!b.promoted})">Promo</button></div></div>`; }); }); }
+        async function updateBook(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
+        async function deleteBook(id) { if(confirm("Delete book?")) await db.collection("library_settings").doc(id).delete(); }
+        async function addMember() { const n = document.getElementById('m-name').value, c = document.getElementById('m-coll').value, i = document.getElementById('m-id').value, p = document.getElementById('m-pass').value, r = document.getElementById('m-role').value; if(!n || !c || !i) return alert("Fill info!"); await db.collection("users").add({ fullName: n, collegeId: c, studentId: i, password: p, role: r, lastActive: Date.now() }); alert("Registered!"); }
+        function loadInbox() { db.collection("admin_messages").orderBy("date","desc").onSnapshot(snap => { const area = document.getElementById('inbox-area'); area.innerHTML = ""; snap.forEach(doc => { const m = doc.data(); area.innerHTML += `<div class="inbox-msg"><span class="msg-del" onclick="deleteMsg('${doc.id}')">×</span><b>${m.type}</b>: ${m.message || m.book}<br><small>${m.user} (${m.college})</small></div>`; }); }); }
+        async function deleteMsg(id) { if(confirm("Delete Msg?")) await db.collection("admin_messages").doc(id).delete(); }
     </script>
 </body>
 </html>
