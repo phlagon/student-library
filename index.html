@@ -121,13 +121,15 @@
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
         
         let currentUser = null; let collegeBooks = []; let sessionSeconds = 0; let readSeconds = 0;
-        let isActive = true; let currentLogId = null; let readerLogId = null;
+        let isBrowserActive = true; let currentLogId = null; let readerLogId = null;
 
         document.addEventListener("visibilitychange", () => {
-            isActive = !document.hidden;
-            const sBox = document.getElementById('session-box');
-            if (isActive) { sBox.classList.remove('paused'); document.getElementById('status-text').innerText = "Active"; }
-            else { sBox.classList.add('paused'); document.getElementById('status-text').innerText = "Paused"; }
+            isBrowserActive = !document.hidden;
+            if(currentUser) {
+                const sBox = document.getElementById('session-box');
+                if (isBrowserActive) { sBox.classList.remove('paused'); document.getElementById('status-text').innerText = "Active"; }
+                else { sBox.classList.add('paused'); document.getElementById('status-text').innerText = "Paused"; }
+            }
         });
 
         async function handleLogin() {
@@ -138,17 +140,14 @@
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
                 const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Usage", activity: "Login Session", startTime: Date.now(), endTime: null });
                 currentLogId = doc.id; initSystem();
-            } else alert("Login Failed");
+            } else alert("Login Failed: Verify credentials and selected role.");
         }
 
-        async function handleLogout() { 
-            if (currentLogId) await db.collection("activity_logs").doc(currentLogId).update({ endTime: Date.now() });
-            location.reload(); 
-        }
+        async function handleLogout() { if (currentLogId) await db.collection("activity_logs").doc(currentLogId).update({ endTime: Date.now() }); location.reload(); }
 
         function initSystem() {
             setInterval(() => { 
-                if(isActive) { 
+                if(isBrowserActive) { 
                     sessionSeconds++; 
                     document.getElementById('session-clock').innerText = new Date(sessionSeconds * 1000).toISOString().substr(11, 8);
                     if (!document.getElementById('reader-overlay').classList.contains('hidden')) { readSeconds++; document.getElementById('read-clock').innerText = new Date(readSeconds * 1000).toISOString().substr(14, 5); }
@@ -176,7 +175,7 @@
             const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Online Read", activity: t, startTime: Date.now(), endTime: null });
             readerLogId = doc.id; readSeconds = 0;
             document.getElementById('reader-title').innerText = t; 
-            document.getElementById('pdf-frame').src = `/${id}_read_online.pdf`; 
+            document.getElementById('pdf-frame').src = `/${id}_read_online.pdf`; // Absolute path for Vercel Root
             document.getElementById('reader-overlay').classList.remove('hidden'); 
         }
         
@@ -184,9 +183,10 @@
             const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Full Read", activity: t, startTime: Date.now(), endTime: null });
             readerLogId = doc.id; readSeconds = 0;
             document.getElementById('reader-title').innerText = t; 
-            document.getElementById('pdf-frame').src = `/${id}.pdf`; 
+            document.getElementById('pdf-frame').src = `/${id}.pdf`; // Absolute path for Vercel Root
             document.getElementById('reader-overlay').classList.remove('hidden');
             document.getElementById('borrow-view').classList.add('hidden');
+            document.getElementById('full-lib-view').classList.add('hidden');
         }
 
         async function closeReader() { if (readerLogId) await db.collection("activity_logs").doc(readerLogId).update({ endTime: Date.now() }); document.getElementById('pdf-frame').src = ''; document.getElementById('reader-overlay').classList.add('hidden'); }
