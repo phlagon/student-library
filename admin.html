@@ -15,7 +15,7 @@
         .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid var(--border); margin-bottom: 15px; }
         h2 { color: var(--blue); margin-top: 0; font-size: 16px; display: flex; align-items: center; justify-content: space-between; }
         input, select, textarea { width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: white; box-sizing: border-box; font-size: 12px; font-family: inherit; }
-        button { width: 100%; padding: 10px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; font-family: inherit; }
+        button { width: 100%; padding: 10px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; font-family: inherit; }
         .btn-blue { background: var(--blue); color: white; }
         .btn-red { background: var(--red); color: white; width: auto; padding: 4px 8px; font-size: 10px; border-radius: 5px; }
         .btn-action { background: #334155; color: white; padding: 4px 8px; width: auto; font-size: 10px; border-radius: 5px; border: 1px solid var(--border); margin-right: 4px; }
@@ -28,7 +28,7 @@
         .multi-option { display: flex; align-items: center; gap: 8px; font-size: 11px; margin-bottom: 4px; }
         .multi-option input { width: auto; margin: 0; }
         .control-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; align-items: center; }
-        .tiny-select { width: auto; padding: 2px 5px; font-size: 10px; background: #1e293b; }
+        .tiny-select { width: auto; padding: 2px 5px; font-size: 10px; margin-bottom: 0; background: #1e293b; }
         .inbox-msg { border-left: 3px solid var(--orange); background: #161e2e; padding: 10px; margin-bottom: 8px; border-radius: 5px; font-size: 11px; position: relative; }
         .msg-del { position: absolute; right: 8px; top: 8px; color: var(--red); cursor: pointer; font-weight: bold; }
     </style>
@@ -36,7 +36,7 @@
 <body>
     <div id="auth-screen" style="position:fixed; inset:0; background:var(--bg); z-index:10000; display:flex; align-items:center; justify-content:center;">
         <div class="card" style="width:300px; text-align:center;">
-            <h2>Admin Access</h2>
+            <h2>Admin Login</h2>
             <select id="admin-role-select"><option value="super">Super Admin</option><option value="college">College Admin</option></select>
             <input type="text" id="admin-id" placeholder="Admin ID">
             <input type="password" id="admin-pass" placeholder="Password">
@@ -64,7 +64,6 @@
                     <div class="multi-select-box" id="b-colls-list"></div>
                     <button class="btn-blue" onclick="addBook()">+ Register Book</button>
                 </div>
-
                 <div class="card" id="member-card">
                     <h2>👥 Member Management</h2>
                     <input type="text" id="m-name" placeholder="Full Name">
@@ -95,16 +94,8 @@
                         <div class="scroll-area" id="det-logs" style="font-size:10px;"></div>
                     </div>
                 </div>
-
-                <div class="card">
-                    <h2>📖 Inventory Controls</h2>
-                    <div class="scroll-area" id="book-list"></div>
-                </div>
-
-                <div class="card">
-                    <h2>📥 Global Inbox</h2>
-                    <div class="scroll-area" id="inbox-area"></div>
-                </div>
+                <div class="card"><h2>📖 Inventory Controls</h2><div class="scroll-area" id="book-list"></div></div>
+                <div class="card"><h2>📥 Global Inbox</h2><div class="scroll-area" id="inbox-area"></div></div>
             </div>
         </div>
     </div>
@@ -113,7 +104,7 @@
         const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
 
-        let loggedInRole = ""; let loggedInCollege = ""; let collegeList = []; let allUsers = []; let selectedCollege = ""; let currentLogs = []; let currentStudentName = "";
+        let loggedInRole = ""; let loggedInCollege = ""; let collegeList = []; let allUsers = []; let currentLogs = []; let currentStudentName = "";
 
         async function checkAuth() { const role = document.getElementById('admin-role-select').value, id = document.getElementById('admin-id').value, pass = document.getElementById('admin-pass').value; if(role === 'super' && id === 'admin' && pass === 'theo777') { loggedInRole = "super"; startApp(); } else if (role === 'college') { const snap = await db.collection("users").where("studentId","==",id).where("password","==",pass).where("role","==","college_admin").get(); if(!snap.empty) { loggedInRole = "college"; loggedInCollege = snap.docs[0].data().collegeId; startApp(); } else alert("Invalid Credentials"); } else alert("Login Failed"); }
         function startApp() { document.getElementById('auth-screen').classList.add('hidden'); loadColleges(); loadBooks(); loadInbox(); loadAttendance(); }
