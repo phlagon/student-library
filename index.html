@@ -123,6 +123,7 @@
         let currentUser = null; let collegeBooks = []; let sessionSeconds = 0; let readSeconds = 0;
         let isBrowserActive = true; let currentLogId = null; let readerLogId = null;
 
+        // FIXED TIMER PAUSE LOGIC
         document.addEventListener("visibilitychange", () => {
             isBrowserActive = !document.hidden;
             if(currentUser) {
@@ -140,7 +141,7 @@
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
                 const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Usage", activity: "Login Session", startTime: Date.now(), endTime: null });
                 currentLogId = doc.id; initSystem();
-            } else alert("Login Failed: Verify credentials and selected role.");
+            } else alert("Login Failed");
         }
 
         async function handleLogout() { if (currentLogId) await db.collection("activity_logs").doc(currentLogId).update({ endTime: Date.now() }); location.reload(); }
@@ -175,7 +176,8 @@
             const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Online Read", activity: t, startTime: Date.now(), endTime: null });
             readerLogId = doc.id; readSeconds = 0;
             document.getElementById('reader-title').innerText = t; 
-            document.getElementById('pdf-frame').src = `/${id}_read_online.pdf`; // Absolute path for Vercel Root
+            // FIXED PATH FOR VERCEL ROOT
+            document.getElementById('pdf-frame').src = `/${id}_read_online.pdf`; 
             document.getElementById('reader-overlay').classList.remove('hidden'); 
         }
         
@@ -183,10 +185,10 @@
             const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Full Read", activity: t, startTime: Date.now(), endTime: null });
             readerLogId = doc.id; readSeconds = 0;
             document.getElementById('reader-title').innerText = t; 
-            document.getElementById('pdf-frame').src = `/${id}.pdf`; // Absolute path for Vercel Root
+            // FIXED PATH FOR VERCEL ROOT
+            document.getElementById('pdf-frame').src = `/${id}.pdf`; 
             document.getElementById('reader-overlay').classList.remove('hidden');
             document.getElementById('borrow-view').classList.add('hidden');
-            document.getElementById('full-lib-view').classList.add('hidden');
         }
 
         async function closeReader() { if (readerLogId) await db.collection("activity_logs").doc(readerLogId).update({ endTime: Date.now() }); document.getElementById('pdf-frame').src = ''; document.getElementById('reader-overlay').classList.add('hidden'); }
