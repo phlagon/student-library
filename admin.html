@@ -26,6 +26,7 @@
         .scroll-area { max-height: 500px; overflow-y: auto; }
         .hidden { display: none !important; }
         .breadcrumb { font-size: 11px; color: var(--blue); margin-bottom: 10px; cursor: pointer; }
+        .control-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; align-items: center; }
         .tiny-select { width: auto; padding: 2px 5px; font-size: 10px; background: #1e293b; }
         .inbox-msg { border-left: 3px solid var(--orange); background: #161e2e; padding: 10px; margin-bottom: 8px; border-radius: 5px; font-size: 11px; position: relative; }
         .msg-del { position: absolute; right: 8px; top: 8px; color: var(--red); cursor: pointer; font-weight: bold; }
@@ -63,7 +64,7 @@
                                 <select id="b-cat"><option value="Theology">Theology</option><option value="Acts">Acts</option><option value="Ethics">Ethics</option><option value="Church History">History</option><option value="Mission">Mission</option><option value="Bible Intro">Bible Intro</option><option value="Other Books">Other</option></select>
                                 <select id="b-lang"><option value="English">English</option><option value="Tamil">Tamil</option><option value="Malayalam">Malayalam</option></select>
                             </div>
-                            <input type="text" id="b-colls" placeholder="Allowed Colleges (IMC26, etc)">
+                            <input type="text" id="b-colls" placeholder="Allowed Colleges (comma separated)">
                             <button class="btn-blue" onclick="addBook()">+ Register Book</button>
                         </div>
                         <div class="card">
@@ -80,7 +81,7 @@
                         </div>
                     </div>
                     <div>
-                        <div class="card"><h2>📖 Inventory Controls</h2><div class="scroll-area" id="book-list"></div></div>
+                        <div class="card"><h2>📖 Active Inventory</h2><div class="scroll-area" id="book-list"></div></div>
                         <div class="card"><h2>📥 Global Inbox</h2><div class="scroll-area" id="inbox-area"></div></div>
                     </div>
                 </div>
@@ -132,7 +133,7 @@
         function startApp() { 
             document.getElementById('auth-screen').classList.add('hidden'); 
             document.getElementById('main-portal').classList.remove('hidden');
-            loadDirectory(); loadBooks(); loadInbox(); loadCollegesList();
+            loadDirectory(); loadBooks(); loadInbox();
         }
 
         function switchTab(tab) {
@@ -140,14 +141,6 @@
             document.getElementById('panel-attendance').classList.toggle('hidden', tab !== 'attendance');
             document.getElementById('tab-inventory').classList.toggle('active', tab === 'inventory');
             document.getElementById('tab-attendance').classList.toggle('active', tab === 'attendance');
-        }
-
-        function loadCollegesList() {
-            db.collection("users").onSnapshot(snap => {
-                const select = document.getElementById('m-coll-select'); select.innerHTML = `<option value="">Select College</option>`;
-                const colls = new Set(); snap.forEach(doc => { if(doc.data().collegeId) colls.add(doc.data().collegeId); });
-                colls.forEach(c => select.innerHTML += `<option value="${c}">${c}</option>`);
-            });
         }
 
         function loadDirectory() {
@@ -159,9 +152,12 @@
                     allUsers.push(u); 
                     if(u.collegeId) colls.add(u.collegeId.trim().toUpperCase()); 
                 });
-                const area = document.getElementById('college-list-area'); 
-                area.innerHTML = "";
+                const area = document.getElementById('college-list-area'); area.innerHTML = "";
                 Array.from(colls).forEach(c => { area.innerHTML += `<div class="list-item" style="text-align:center; padding:20px;" onclick="showStudentsNav('${c}')">📁<br>${c}</div>`; });
+                
+                const select = document.getElementById('m-coll-select'); select.innerHTML = `<option value="">Select College</option>`;
+                Array.from(colls).forEach(c => select.innerHTML += `<option value="${c}">${c}</option>`);
+
                 if(loggedInRole === 'college') showStudentsNav(loggedInCollege);
             });
         }
@@ -176,18 +172,20 @@
             filtered.forEach(u => { area.innerHTML += `<div class="list-item" onclick="showStudentDetails('${u.id}')">👤 ${u.fullName}<br><small>${u.studentId}</small></div>`; });
         }
 
-        async function showStudentDetails(uid) {
-            const u = allUsers.find(x => x.id === uid);
+        async function showStudentDetails(docUid) {
+            const u = allUsers.find(x => x.id === docUid);
             currentStudentName = u.fullName;
             document.getElementById('view-students').classList.add('hidden');
             document.getElementById('view-details').classList.remove('hidden');
             document.getElementById('det-name').innerText = u.fullName;
 
-            db.collection("activity_logs").where("userId", "==", uid).orderBy("startTime", "desc").onSnapshot(snap => {
+            // FIXED: Fetching using docUid (Document ID) to match Index Portal logs
+            db.collection("activity_logs").where("userId", "==", docUid).orderBy("startTime", "desc").onSnapshot(snap => {
                 const area = document.getElementById('det-logs'); area.innerHTML = "";
                 let usage = 0, preview = 0, full = 0; currentLogs = [];
                 snap.forEach(doc => {
-                    const l = doc.data(); const dur = l.endTime ? Math.round((l.endTime - l.startTime) / 1000) : 0;
+                    const l = doc.data(); 
+                    const dur = l.endTime ? Math.round((l.endTime - l.startTime) / 1000) : 0;
                     if(l.type === "Usage") usage += dur;
                     if(l.type === "Preview Read") preview += dur;
                     if(l.type === "Full Read") full += dur;
@@ -213,7 +211,7 @@
         function showCollegesNav() { document.getElementById('view-colleges').classList.remove('hidden'); document.getElementById('view-students').classList.add('hidden'); }
         function showStudentsNavBtn() { document.getElementById('view-students').classList.remove('hidden'); document.getElementById('view-details').classList.add('hidden'); }
         
-        // UTILS
+        // --- BOOKS & INBOX ---
         async function addBook() { const title = document.getElementById('b-title').value, id = document.getElementById('b-id').value, cat = document.getElementById('b-cat').value, lang = document.getElementById('b-lang').value, colls = document.getElementById('b-colls').value.split(',').map(s=>s.trim()); if(!title || !id) return alert("Fill all info!"); await db.collection("library_settings").doc(id).set({ title, category: cat, language: lang, allowedColleges: colls, recent: true, promoted: false }); alert("Book Registered!"); }
         function loadBooks() { db.collection("library_settings").onSnapshot(snap => { const list = document.getElementById('book-list'); list.innerHTML = ""; snap.forEach(doc => { const b = doc.data(); const id = doc.id; list.innerHTML += `<div class="list-item" style="cursor:default"><div style="display:flex; justify-content:space-between;"><b>${b.title}</b> <button class="btn-red" onclick="deleteBook('${id}')">Del</button></div><div class="control-row"><select class="tiny-select" onchange="updateBook('${id}','language',this.value)"><option value="English" ${b.language=='English'?'selected':''}>English</option><option value="Tamil" ${b.language=='Tamil'?'selected':''}>Tamil</option><option value="Malayalam" ${b.language=='Malayalam'?'selected':''}>Malayalam</option></select><button class="btn-action ${b.promoted?'active':''}" onclick="updateBook('${id}','promoted',${!b.promoted})">Promo</button></div></div>`; }); }); }
         async function updateBook(id, f, v) { await db.collection("library_settings").doc(id).update({ [f]: v }); }
