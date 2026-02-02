@@ -37,7 +37,7 @@
 
     <div id="auth-screen" style="position:fixed; inset:0; background:var(--bg); z-index:10000; display:flex; align-items:center; justify-content:center;">
         <div class="card" style="width:300px; text-align:center;">
-            <h2>Admin Login</h2>
+            <h2>Admin Access</h2>
             <select id="admin-role-select"><option value="super">Super Admin</option><option value="college">College Admin</option></select>
             <input type="text" id="admin-id" placeholder="Admin ID">
             <input type="password" id="admin-pass" placeholder="Password">
@@ -82,7 +82,7 @@
 
             <div>
                 <div class="card">
-                    <h2>⏱️ Attendance & Drill-Down</h2>
+                    <h2>⏱️ Attendance Drill-Down</h2>
                     <div id="view-colleges"><div id="college-list-area" class="scroll-area"></div></div>
                     <div id="view-students" class="hidden"><div class="breadcrumb" onclick="showCollegesNav()">← Back to Colleges</div><div id="student-list-area" class="scroll-area"></div></div>
                     <div id="view-details" class="hidden">
@@ -92,7 +92,7 @@
                             <div id="sum-usage">Usage: <b>0s</b></div>
                             <div id="sum-read">Read: <b>0s</b></div>
                         </div>
-                        <button class="btn-blue" style="margin-bottom:10px; background:var(--green); font-size:10px;" onclick="downloadStudentCSV()">📊 Download Student Logs</button>
+                        <button class="btn-blue" style="margin-bottom:10px; background:var(--green); font-size:10px;" onclick="downloadStudentCSV()">📊 Download This Student's Logs</button>
                         <div class="scroll-area" id="det-logs" style="font-size:10px;"></div>
                     </div>
                 </div>
@@ -146,6 +146,7 @@
             document.getElementById('view-students').classList.add('hidden'); document.getElementById('view-details').classList.remove('hidden');
             document.getElementById('det-name').innerText = u.fullName;
             const logArea = document.getElementById('det-logs'); logArea.innerHTML = "Loading logs...";
+            
             db.collection("activity_logs").where("userId","==",uid).orderBy("startTime","desc").onSnapshot(snap => {
                 logArea.innerHTML = ""; currentLogs = []; let usage = 0; let readPrev = 0; let readFull = 0;
                 snap.forEach(doc => {
