@@ -90,7 +90,7 @@
                             <div id="sum-usage">Usage: <b>0s</b></div>
                             <div id="sum-read">Read: <b>0s</b></div>
                         </div>
-                        <button class="btn-blue" style="margin-bottom:10px; background:var(--green); font-size:10px;" onclick="downloadStudentCSV()">📊 Download Logs</button>
+                        <button class="btn-blue" style="margin-bottom:10px; background:var(--green); font-size:10px;" onclick="downloadStudentCSV()">📊 Download This Student's Logs</button>
                         <div class="scroll-area" id="det-logs" style="font-size:10px;"></div>
                     </div>
                 </div>
@@ -104,7 +104,7 @@
         const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
 
-        let loggedInRole = ""; let loggedInCollege = ""; let collegeList = []; let allUsers = []; let currentLogs = []; let currentStudentName = "";
+        let loggedInRole = ""; let loggedInCollege = ""; let collegeList = []; let allUsers = []; let selectedCollege = ""; let currentLogs = []; let currentStudentName = "";
 
         async function checkAuth() { 
             const role = document.getElementById('admin-role-select').value, id = document.getElementById('admin-id').value, pass = document.getElementById('admin-pass').value; 
@@ -150,7 +150,6 @@
         async function deleteBook(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
         async function addMember() { const n = document.getElementById('m-name').value, c = document.getElementById('m-coll-new').value.toUpperCase() || document.getElementById('m-coll-select').value, i = document.getElementById('m-id').value, p = document.getElementById('m-pass').value, r = document.getElementById('m-role').value; if(!n || !c || !i) return alert("Fill info!"); await db.collection("users").add({ fullName: n, collegeId: c, studentId: i, password: p, role: r, lastActive: Date.now() }); alert("Registered!"); }
 
-        // FIXED ATTENDANCE LOAD (Real-time students)
         function loadAttendance() {
             db.collection("users").onSnapshot(snap => {
                 allUsers = []; const colls = new Set();
@@ -176,6 +175,7 @@
             document.getElementById('view-students').classList.add('hidden'); document.getElementById('view-details').classList.remove('hidden');
             document.getElementById('det-name').innerText = u.fullName;
             const logArea = document.getElementById('det-logs'); logArea.innerHTML = "Loading logs...";
+            
             db.collection("activity_logs").where("userId","==",uid).orderBy("startTime","desc").onSnapshot(snap => {
                 logArea.innerHTML = ""; currentLogs = []; let usage = 0; let readPrev = 0; let readFull = 0;
                 snap.forEach(doc => {
