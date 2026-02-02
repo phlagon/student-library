@@ -15,7 +15,7 @@
         .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid var(--border); margin-bottom: 15px; }
         h2 { color: var(--blue); margin-top: 0; font-size: 16px; display: flex; align-items: center; justify-content: space-between; }
         input, select, textarea { width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: white; box-sizing: border-box; font-size: 12px; font-family: inherit; }
-        button { width: 100%; padding: 10px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; font-family: inherit; }
+        button { width: 100%; padding: 10px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; font-family: inherit; }
         .btn-blue { background: var(--blue); color: white; }
         .btn-red { background: var(--red); color: white; width: auto; padding: 4px 8px; font-size: 10px; border-radius: 5px; }
         .btn-action { background: #334155; color: white; padding: 4px 8px; width: auto; font-size: 10px; border-radius: 5px; border: 1px solid var(--border); margin-right: 4px; }
@@ -28,12 +28,13 @@
         .multi-option { display: flex; align-items: center; gap: 8px; font-size: 11px; margin-bottom: 4px; }
         .multi-option input { width: auto; margin: 0; }
         .control-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; align-items: center; }
-        .tiny-select { width: auto; padding: 2px 5px; font-size: 10px; margin-bottom: 0; background: #1e293b; }
+        .tiny-select { width: auto; padding: 2px 5px; font-size: 10px; background: #1e293b; }
         .inbox-msg { border-left: 3px solid var(--orange); background: #161e2e; padding: 10px; margin-bottom: 8px; border-radius: 5px; font-size: 11px; position: relative; }
         .msg-del { position: absolute; right: 8px; top: 8px; color: var(--red); cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
+
     <div id="auth-screen" style="position:fixed; inset:0; background:var(--bg); z-index:10000; display:flex; align-items:center; justify-content:center;">
         <div class="card" style="width:300px; text-align:center;">
             <h2>Admin Login</h2>
@@ -64,6 +65,7 @@
                     <div class="multi-select-box" id="b-colls-list"></div>
                     <button class="btn-blue" onclick="addBook()">+ Register Book</button>
                 </div>
+
                 <div class="card" id="member-card">
                     <h2>👥 Member Management</h2>
                     <input type="text" id="m-name" placeholder="Full Name">
@@ -80,7 +82,7 @@
 
             <div>
                 <div class="card">
-                    <h2>⏱️ Attendance Drill-Down</h2>
+                    <h2>⏱️ Attendance & Drill-Down</h2>
                     <div id="view-colleges"><div id="college-list-area" class="scroll-area"></div></div>
                     <div id="view-students" class="hidden"><div class="breadcrumb" onclick="showCollegesNav()">← Back to Colleges</div><div id="student-list-area" class="scroll-area"></div></div>
                     <div id="view-details" class="hidden">
@@ -94,8 +96,16 @@
                         <div class="scroll-area" id="det-logs" style="font-size:10px;"></div>
                     </div>
                 </div>
-                <div class="card"><h2>📖 Inventory Controls</h2><div class="scroll-area" id="book-list"></div></div>
-                <div class="card"><h2>📥 Global Inbox</h2><div class="scroll-area" id="inbox-area"></div></div>
+
+                <div class="card">
+                    <h2>📖 Inventory (Live Options)</h2>
+                    <div class="scroll-area" id="book-list"></div>
+                </div>
+
+                <div class="card">
+                    <h2>📥 Global Inbox</h2>
+                    <div class="scroll-area" id="inbox-area"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -104,10 +114,10 @@
         const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
 
-        let loggedInRole = ""; let loggedInCollege = ""; let collegeList = []; let allUsers = []; let currentLogs = []; let currentStudentName = "";
+        let loggedInRole = ""; let loggedInCollege = ""; let collegeList = []; let allUsers = []; let selectedCollege = ""; let currentLogs = []; let currentStudentName = "";
 
         async function checkAuth() { const role = document.getElementById('admin-role-select').value, id = document.getElementById('admin-id').value, pass = document.getElementById('admin-pass').value; if(role === 'super' && id === 'admin' && pass === 'theo777') { loggedInRole = "super"; startApp(); } else if (role === 'college') { const snap = await db.collection("users").where("studentId","==",id).where("password","==",pass).where("role","==","college_admin").get(); if(!snap.empty) { loggedInRole = "college"; loggedInCollege = snap.docs[0].data().collegeId; startApp(); } else alert("Invalid Credentials"); } else alert("Login Failed"); }
-        function startApp() { document.getElementById('auth-screen').classList.add('hidden'); loadColleges(); loadBooks(); loadInbox(); loadAttendance(); }
+        function startApp() { document.getElementById('auth-screen').classList.add('hidden'); if(loggedInRole === 'college') { document.getElementById('portal-title').innerText = "Admin: " + loggedInCollege; document.getElementById('inventory-card').classList.add('hidden'); } loadColleges(); loadBooks(); loadInbox(); loadAttendance(); }
         function loadColleges() { db.collection("users").onSnapshot(snap => { const colls = new Set(); snap.forEach(doc => { if(doc.data().collegeId) colls.add(doc.data().collegeId); }); collegeList = Array.from(colls); const select = document.getElementById('m-coll-select'), multi = document.getElementById('b-colls-list'); select.innerHTML = `<option value="">Select College</option>`; multi.innerHTML = ""; collegeList.forEach(c => { select.innerHTML += `<option value="${c}">${c}</option>`; multi.innerHTML += `<div class="multi-option"><input type="checkbox" name="target-colls" value="${c}"><span>${c}</span></div>`; }); }); }
         async function addBook() { const title = document.getElementById('b-title').value, id = document.getElementById('b-id').value, cat = document.getElementById('b-cat').value, lang = document.getElementById('b-lang').value; const selectedColls = Array.from(document.querySelectorAll('input[name="target-colls"]:checked')).map(cb => cb.value); if(!title || !id || selectedColls.length === 0) return alert("Fill all info!"); await db.collection("library_settings").doc(id).set({ title, category: cat, language: lang, allowedColleges: selectedColls, recent: true, promoted: false }); alert("Book Registered!"); }
         function loadBooks() { db.collection("library_settings").onSnapshot(snap => { const list = document.getElementById('book-list'); list.innerHTML = ""; snap.forEach(doc => { const b = doc.data(); const id = doc.id; list.innerHTML += `<div class="list-item" style="cursor:default"><div style="display:flex; justify-content:space-between;"><b>${b.title}</b> <button class="btn-red" onclick="deleteBook('${id}')">Del</button></div><div class="control-row"><select class="tiny-select" onchange="updateBook('${id}','language',this.value)"><option value="English" ${b.language=='English'?'selected':''}>English</option><option value="Tamil" ${b.language=='Tamil'?'selected':''}>Tamil</option><option value="Malayalam" ${b.language=='Malayalam'?'selected':''}>Malayalam</option></select><select class="tiny-select" onchange="updateBook('${id}','category',this.value)"><option value="Theology" ${b.category=='Theology'?'selected':''}>Theology</option><option value="Acts" ${b.category=='Acts'?'selected':''}>Acts</option><option value="Ethics" ${b.category=='Ethics'?'selected':''}>Ethics</option><option value="Mission" ${b.category=='Mission'?'selected':''}>Mission</option><option value="Church History" ${b.category=='Church History'?'selected':''}>History</option><option value="Bible Intro" ${b.category=='Bible Intro'?'selected':''}>Intro</option></select><button class="btn-action ${b.promoted?'active':''}" onclick="updateBook('${id}','promoted',${!b.promoted})">Promo</button><input type="text" class="tiny-select" style="width:70px" value="${b.allowedColleges.join(',')}" onchange="updateBook('${id}','allowedColleges',this.value.split(','))"></div></div>`; }); }); }
@@ -136,7 +146,6 @@
             document.getElementById('view-students').classList.add('hidden'); document.getElementById('view-details').classList.remove('hidden');
             document.getElementById('det-name').innerText = u.fullName;
             const logArea = document.getElementById('det-logs'); logArea.innerHTML = "Loading logs...";
-            
             db.collection("activity_logs").where("userId","==",uid).orderBy("startTime","desc").onSnapshot(snap => {
                 logArea.innerHTML = ""; currentLogs = []; let usage = 0; let readPrev = 0; let readFull = 0;
                 snap.forEach(doc => {
@@ -150,7 +159,7 @@
             });
         }
 
-        async function downloadStudentCSV() { if(currentLogs.length === 0) return alert("No logs to download"); let csv = "Type,Activity,Start Time,End Time,Duration(s)\n"; currentLogs.forEach(l => { csv += `${l.type},${l.activity},${new Date(l.startTime).toLocaleString()},${l.endTime ? new Date(l.endTime).toLocaleString() : 'Active'},${l.duration}\n`; }); const link = document.createElement("a"); link.href = "data:text/csv;charset=utf-8," + encodeURI(csv); link.download = `${currentStudentName}_Logs.csv`; link.click(); }
+        async function downloadStudentCSV() { if(currentLogs.length === 0) return alert("No logs to download"); let csv = "Type,Activity,Start Time,End Time,Duration(s)\n"; currentLogs.forEach(l => { csv += `${l.type},${l.activity},${new Date(l.startTime).toLocaleString()},${l.endTime ? new Date(l.endTime).toLocaleString() : 'Active'},${l.duration}\n`; }); const link = document.createElement("a"); link.href = "data:text/csv;charset=utf-8," + encodeURI(csv); link.download = `${currentStudentName}_TheoLib_Logs.csv`; link.click(); }
         function formatTime(s) { const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60; return `${h}h ${m}m ${sec}s`; }
         function showCollegesNav() { document.getElementById('view-colleges').classList.remove('hidden'); document.getElementById('view-students').classList.add('hidden'); }
         function showStudentsNav() { document.getElementById('view-students').classList.remove('hidden'); document.getElementById('view-details').classList.add('hidden'); }
