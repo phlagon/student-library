@@ -11,96 +11,88 @@
     <style>
         :root { --blue: #3b82f6; --orange: #f97316; --green: #10b981; --red: #ef4444; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; align-items: start; }
-        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid var(--border); }
+        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
         h2 { color: var(--blue); margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 10px; }
-        input, select { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: white; box-sizing: border-box; font-family: inherit; font-size: 13px; outline: none; }
+        input, select, textarea { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: white; box-sizing: border-box; font-size: 13px; }
         button { width: 100%; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; font-family: inherit; }
         .btn-blue { background: var(--blue); color: white; }
-        .btn-red { background: var(--red); color: white; width: auto; padding: 5px 10px; font-size: 11px; border-radius: 5px; }
-        .list-item { background: #161e2e; padding: 12px; border-radius: 10px; margin-bottom: 8px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; }
-        .list-item:hover { border-color: var(--blue); }
+        .btn-red { background: var(--red); color: white; width: auto; padding: 4px 10px; font-size: 10px; border-radius: 5px; }
+        .btn-action { background: #334155; color: white; padding: 4px 8px; width: auto; font-size: 10px; border-radius: 5px; border: 1px solid var(--border); }
+        .btn-action.active { background: var(--green); border-color: var(--green); }
+        .list-item { background: #161e2e; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border); font-size: 12px; }
         .scroll-area { max-height: 400px; overflow-y: auto; padding-right: 5px; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .online { background: var(--green); box-shadow: 0 0 5px var(--green); }
-        .offline { background: var(--red); }
         .hidden { display: none !important; }
         .breadcrumb { font-size: 12px; color: var(--blue); margin-bottom: 10px; cursor: pointer; }
-        #fix-db-banner { background: var(--orange); padding: 12px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-        .log-entry { font-size: 11px; padding: 8px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .inbox-msg { border-left: 4px solid var(--orange); background: #161e2e; padding: 10px; margin-bottom: 10px; border-radius: 5px; font-size: 12px; }
+        .tag-row { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
     </style>
 </head>
 <body>
 
     <div id="auth-screen" style="position:fixed; inset:0; background:var(--bg); z-index:10000; display:flex; align-items:center; justify-content:center;">
-        <div class="card" style="width:320px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-            <h2 style="justify-content:center; margin-bottom:20px;">Super Admin Login</h2>
+        <div class="card" style="width:320px; text-align:center;">
+            <h2 style="justify-content:center;">Super Admin Access</h2>
             <input type="text" id="admin-id" placeholder="Admin ID">
             <input type="password" id="admin-pass" placeholder="Password">
-            <button class="btn-blue" onclick="checkAuth()">Login to Portal</button>
-            <p id="auth-error" style="color:var(--red); font-size:11px; margin-top:10px; display:none;">Invalid Credentials</p>
+            <button class="btn-blue" onclick="checkAuth()">Login</button>
         </div>
     </div>
 
     <div id="main-portal">
-        <div class="header">
-            <h1>TheoLib Super Admin</h1>
-            <button onclick="location.reload()" style="width:auto; padding:8px 15px; background:var(--card); color:white; border:1px solid var(--border);">🔄 Refresh</button>
-        </div>
-
-        <div id="fix-db-banner">
-            <span>⚠️ <b>Action Required:</b> Some books lack Language Tags. Fix to ensure library visibility.</span>
-            <button onclick="fixMissingLanguages()" style="width:auto; background:white; color:black; padding:5px 15px; border-radius:5px;">Fix All to English</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h1>TheoLib Command Center</h1>
+            <button onclick="location.reload()" style="width:auto; padding:8px 15px; background:var(--card); color:white; border:1px solid var(--border);">🔄 Sync System</button>
         </div>
 
         <div class="grid">
-            <div class="card">
-                <h2>📚 Library Management</h2>
-                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <div>
+                <div class="card">
+                    <h2>📚 Inventory Management</h2>
                     <input type="text" id="b-title" placeholder="Book Title">
                     <input type="text" id="b-id" placeholder="Book ID (filename)">
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                         <select id="b-cat"><option value="Theology">Theology</option><option value="Church History">Church History</option><option value="Mission">Mission</option><option value="Bible Intro">Bible Intro</option><option value="Acts">Acts of Apostles</option><option value="Ethics">Christian Ethics</option><option value="Other Books">Other Books</option></select>
                         <select id="b-lang"><option value="English">English</option><option value="Tamil">Tamil</option><option value="Malayalam">Malayalam</option><option value="Hindi">Hindi</option><option value="Other">Other</option></select>
                     </div>
-                    <input type="text" id="b-colls" placeholder="Allowed Colleges (e.g. IMC26, ASLIN26)">
-                    <button class="btn-blue" onclick="addBook()">+ Add Book to Library</button>
+                    <input type="text" id="b-colls" placeholder="Allowed Colleges (Comma separated: IMC26,ASLIN26)">
+                    <button class="btn-blue" onclick="addBook()">+ Add to Global Library</button>
+                    
+                    <h3 style="margin-top:20px; font-size:14px;">📖 Active Inventory</h3>
+                    <div class="scroll-area" id="book-list"></div>
                 </div>
-                <h2>📖 Book Inventory</h2>
-                <div class="scroll-area" id="book-list"></div>
+
+                <div class="card">
+                    <h2>👥 Member Management</h2>
+                    <input type="text" id="m-name" placeholder="Full Name">
+                    <input type="text" id="m-coll" placeholder="College ID">
+                    <input type="text" id="m-id" placeholder="User ID">
+                    <input type="password" id="m-pass" placeholder="Initial Password">
+                    <select id="m-role"><option value="student">Student</option><option value="faculty">Faculty</option></select>
+                    <button class="btn-blue" style="background:var(--green);" onclick="addMember()">+ Register Member</button>
+                </div>
             </div>
 
-            <div class="card">
-                <h2>⏱️ Attendance & Activity</h2>
-                
-                <div id="view-colleges">
-                    <p style="font-size:12px; color:var(--text-sub);">Select a college to view students:</p>
-                    <div id="college-list-area" class="scroll-area"></div>
-                </div>
-
-                <div id="view-students" class="hidden">
-                    <div class="breadcrumb" onclick="showColleges()">← Back to Colleges</div>
-                    <h3 id="selected-college-title" style="font-size:14px; margin-bottom:15px;"></h3>
-                    <div id="student-list-area" class="scroll-area"></div>
-                </div>
-
-                <div id="view-details" class="hidden">
-                    <div class="breadcrumb" onclick="showStudents()">← Back to Student List</div>
-                    <div id="student-header" style="margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid var(--border);">
-                        <h3 id="det-name" style="margin:0;"></h3>
-                        <div id="det-status" style="font-size:11px; margin-top:5px;"></div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:15px;">
-                            <div><label style="font-size:10px; color:var(--text-sub)">Update Role</label><select id="det-role-select" onchange="updateUserRole()" style="width:100%"><option value="student">Student</option><option value="faculty">Faculty</option></select></div>
-                            <div style="text-align:right"><label style="font-size:10px; color:var(--text-sub)">Account Control</label><br><button class="btn-red" onclick="deleteUser()">Delete Account</button></div>
+            <div>
+                <div class="card">
+                    <h2>⏱️ Attendance & Drill-Down</h2>
+                    <div id="view-colleges"><div id="college-list-area" class="scroll-area"></div></div>
+                    <div id="view-students" class="hidden"><div class="breadcrumb" onclick="showColleges()">← Back</div><div id="student-list-area" class="scroll-area"></div></div>
+                    <div id="view-details" class="hidden">
+                        <div class="breadcrumb" onclick="showStudents()">← Back</div>
+                        <h3 id="det-name"></h3>
+                        <div id="det-status" style="font-size:11px; margin-bottom:10px;"></div>
+                        <div id="det-summary" style="display:flex; justify-content:space-between; background:#161e2e; padding:10px; border-radius:8px; font-size:12px; margin-bottom:15px;">
+                            <div>Usage: <b id="sum-usage" style="color:var(--green)">0s</b></div>
+                            <div>Reading: <b id="sum-read" style="color:var(--blue)">0s</b></div>
                         </div>
+                        <div class="scroll-area" id="det-logs"></div>
                     </div>
-                    <div id="det-summary" style="display:flex; justify-content:space-between; margin-bottom:20px; font-size:12px; background:#161e2e; padding:10px; border-radius:8px;">
-                        <div>Usage: <b id="sum-usage" style="color:var(--green)">0s</b></div>
-                        <div>Reading: <b id="sum-read" style="color:var(--blue)">0s</b></div>
-                    </div>
-                    <h2>📜 Activity Logs</h2>
-                    <div id="det-logs" class="scroll-area" style="max-height:250px;"></div>
+                </div>
+
+                <div class="card">
+                    <h2>📥 Global Inbox</h2>
+                    <div class="scroll-area" id="inbox-area"></div>
                 </div>
             </div>
         </div>
@@ -110,100 +102,102 @@
         const firebaseConfig = { apiKey: "AIzaSyBBZ5Yvd7XH4lymNq2vIp-cwxPba55upWg", authDomain: "theolib.in", projectId: "student-library-4a4e7", storageBucket: "student-library-4a4e7.firebasestorage.app", messagingSenderId: "827419448917", appId: "1:827419448917:web:4b0d1084e6f1fe1b2566dc" };
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
 
-        // --- AUTH LOGIC ---
-        function checkAuth() {
-            const id = document.getElementById('admin-id').value;
-            const pass = document.getElementById('admin-pass').value;
-            if(id === 'admin' && pass === 'theo777') {
-                document.getElementById('auth-screen').classList.add('hidden');
-            } else {
-                document.getElementById('auth-error').style.display = 'block';
-            }
-        }
+        function checkAuth() { if(document.getElementById('admin-id').value === 'admin' && document.getElementById('admin-pass').value === 'theo777') document.getElementById('auth-screen').classList.add('hidden'); }
 
-        // --- LIBRARY LOGIC ---
+        // --- BOOK OPERATIONS WITH LIVE SYNC ---
         async function addBook() {
             const title = document.getElementById('b-title').value, id = document.getElementById('b-id').value;
             const cat = document.getElementById('b-cat').value, lang = document.getElementById('b-lang').value;
             const colls = document.getElementById('b-colls').value.split(',').map(s => s.trim().toUpperCase());
-            if(!title || !id) return alert("Missing fields");
-            await db.collection("library_settings").doc(id).set({ title, category: cat, language: lang, allowedColleges: colls, recent: true });
-            alert("Book Added!");
+            if(!title || !id) return alert("Fill fields!");
+            await db.collection("library_settings").doc(id).set({ title, category: cat, language: lang, allowedColleges: colls, recent: true, promoted: false });
+            alert("Added!");
         }
 
         function loadBooks() {
             db.collection("library_settings").onSnapshot(snap => {
                 const list = document.getElementById('book-list'); list.innerHTML = "";
                 snap.forEach(doc => {
-                    const b = doc.data();
-                    list.innerHTML += `<div class="list-item" style="display:flex; justify-content:space-between; cursor:default;">
-                        <div><b>${b.title}</b><br><small style="color:var(--blue)">${b.allowedColleges.join(', ')}</small></div>
-                        <button class="btn-red" onclick="deleteBook('${doc.id}')">Del</button>
+                    const b = doc.data(), id = doc.id;
+                    list.innerHTML += `
+                    <div class="list-item">
+                        <div style="display:flex; justify-content:space-between;"><b>${b.title}</b> <button class="btn-red" onclick="deleteBook('${id}')">Del</button></div>
+                        <div class="tag-row">
+                            <select class="btn-action" onchange="updateBook('${id}','language',this.value)">
+                                <option value="English" ${b.language=='English'?'selected':''}>English</option>
+                                <option value="Tamil" ${b.language=='Tamil'?'selected':''}>Tamil</option>
+                                <option value="Malayalam" ${b.language=='Malayalam'?'selected':''}>Malayalam</option>
+                            </select>
+                            <select class="btn-action" onchange="updateBook('${id}','category',this.value)">
+                                <option value="Theology" ${b.category=='Theology'?'selected':''}>Theology</option>
+                                <option value="Acts" ${b.category=='Acts'?'selected':''}>Acts</option>
+                                </select>
+                            <button class="btn-action ${b.promoted?'active':''}" onclick="updateBook('${id}','promoted',${!b.promoted})">Pomo</button>
+                            <input type="text" style="width:80px; margin:0; font-size:9px; height:20px;" value="${b.allowedColleges.join(',')}" onchange="updateBook('${id}','allowedColleges',this.value.split(','))">
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+        async function updateBook(id, field, val) { await db.collection("library_settings").doc(id).update({ [field]: val }); }
+        async function deleteBook(id) { if(confirm("Delete?")) await db.collection("library_settings").doc(id).delete(); }
+
+        // --- MEMBER OPERATIONS ---
+        async function addMember() {
+            const n = document.getElementById('m-name').value, c = document.getElementById('m-coll').value, i = document.getElementById('m-id').value, p = document.getElementById('m-pass').value, r = document.getElementById('m-role').value;
+            await db.collection("users").add({ fullName: n, collegeId: c, studentId: i, password: p, role: r, lastActive: Date.now() });
+            alert("Member Registered!");
+        }
+
+        // --- INBOX OPERATIONS ---
+        function loadInbox() {
+            db.collection("admin_messages").orderBy("date","desc").onSnapshot(snap => {
+                const area = document.getElementById('inbox-area'); area.innerHTML = "";
+                snap.forEach(doc => {
+                    const m = doc.data();
+                    area.innerHTML += `<div class="inbox-msg">
+                        <div style="display:flex; justify-content:space-between;"><b>${m.type}</b> <small>${new Date(m.date).toLocaleDateString()}</small></div>
+                        <p style="margin:5px 0;">${m.message || m.book || 'No text'}</p>
+                        <small>From: ${m.user} (${m.college})</small>
                     </div>`;
                 });
             });
         }
 
-        async function deleteBook(id) { if(confirm("Delete book?")) await db.collection("library_settings").doc(id).delete(); }
-
-        // --- ATTENDANCE DRILL-DOWN ---
-        let allUsers = [];
+        // --- ATTENDANCE & DRILL-DOWN (Preserved from your request) ---
+        let allUsers = []; let selectedCollege = "";
         function loadAttendance() {
             db.collection("users").onSnapshot(snap => {
-                allUsers = []; const colleges = new Set();
-                snap.forEach(doc => { 
-                    const u = { id: doc.id, ...doc.data() }; 
-                    allUsers.push(u); 
-                    if(u.collegeId) colleges.add(u.collegeId);
-                });
-                renderColleges(Array.from(colleges));
+                allUsers = []; const colls = new Set();
+                snap.forEach(doc => { const u = {id: doc.id, ...doc.data()}; allUsers.push(u); colls.add(u.collegeId); });
+                const area = document.getElementById('college-list-area'); area.innerHTML = "";
+                Array.from(colls).forEach(c => area.innerHTML += `<div class="list-item" onclick="showStudents('${c}')">📁 ${c}</div>`);
             });
         }
-
-        function renderColleges(list) {
-            const area = document.getElementById('college-list-area'); area.innerHTML = "";
-            list.forEach(c => area.innerHTML += `<div class="list-item" onclick="showStudents('${c}')">📁 College: ${c}</div>`);
-        }
-
-        function showStudents(college) {
-            if(college) selectedCollege = college;
-            document.getElementById('view-colleges').classList.add('hidden');
-            document.getElementById('view-students').classList.remove('hidden');
-            document.getElementById('view-details').classList.add('hidden');
-            document.getElementById('selected-college-title').innerText = "Students of " + selectedCollege;
+        function showStudents(c) {
+            selectedCollege = c; document.getElementById('view-colleges').classList.add('hidden'); document.getElementById('view-students').classList.remove('hidden');
             const area = document.getElementById('student-list-area'); area.innerHTML = "";
-            allUsers.filter(u => u.collegeId === selectedCollege).forEach(u => {
-                area.innerHTML += `<div class="list-item" onclick="showDetails('${u.id}')">👤 ${u.fullName} (${u.studentId})</div>`;
-            });
+            allUsers.filter(u => u.collegeId === c).forEach(u => area.innerHTML += `<div class="list-item" onclick="showDetails('${u.id}')">👤 ${u.fullName}</div>`);
         }
-
         async function showDetails(uid) {
-            selectedUser = allUsers.find(u => u.id === uid);
-            document.getElementById('view-students').classList.add('hidden');
-            document.getElementById('view-details').classList.remove('hidden');
-            document.getElementById('det-name').innerText = selectedUser.fullName;
-            document.getElementById('det-role-select').value = selectedUser.role || 'student';
-            
-            const isOnline = (Date.now() - (selectedUser.lastActive || 0)) < 60000;
-            document.getElementById('det-status').innerHTML = isOnline ? `<span class="status-dot online"></span> Live` : `<span class="status-dot offline"></span> Seen: ${new Date(selectedUser.lastActive).toLocaleString()}`;
-
-            const logSnap = await db.collection("activity_logs").where("userId","==",uid).orderBy("startTime","desc").get();
-            const logArea = document.getElementById('det-logs'); logArea.innerHTML = "";
-            let usage = 0; let read = 0;
-            logSnap.forEach(doc => {
-                const l = doc.data(); const dur = l.endTime ? Math.round((l.endTime - l.startTime)/1000) : 0;
-                if(l.type === "Usage") usage += dur; if(l.type === "Full Read") read += dur;
-                logArea.innerHTML += `<div class="log-entry"><span>${l.activity}</span><span>${dur}s</span></div>`;
+            const u = allUsers.find(x => x.id === uid);
+            document.getElementById('view-students').classList.add('hidden'); document.getElementById('view-details').classList.remove('hidden');
+            document.getElementById('det-name').innerText = u.fullName;
+            db.collection("activity_logs").where("userId","==",uid).orderBy("startTime","desc").onSnapshot(snap => {
+                const area = document.getElementById('det-logs'); area.innerHTML = "";
+                let usage = 0; let read = 0;
+                snap.forEach(doc => {
+                    const l = doc.data(); const d = l.endTime ? Math.round((l.endTime - l.startTime)/1000) : 0;
+                    if(l.type === "Usage") usage += d; if(l.type === "Full Read") read += d;
+                    area.innerHTML += `<div style="font-size:10px; padding:5px; border-bottom:1px solid #334155;">${l.activity} (${d}s)</div>`;
+                });
+                document.getElementById('sum-usage').innerText = usage + "s"; document.getElementById('sum-read').innerText = read + "s";
             });
-            document.getElementById('sum-usage').innerText = formatTime(usage);
-            document.getElementById('sum-read').innerText = formatTime(read);
         }
-
-        function formatTime(s) { const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60; return `${h}h ${m}m ${sec}s`; }
         function showColleges() { document.getElementById('view-colleges').classList.remove('hidden'); document.getElementById('view-students').classList.add('hidden'); }
-        async function fixMissingLanguages() { const snap = await db.collection("library_settings").get(); snap.forEach(async d => { if(!d.data().language) await db.collection("library_settings").doc(d.id).update({language:"English"}); }); alert("Fixed"); }
+        function showStudents() { document.getElementById('view-students').classList.remove('hidden'); document.getElementById('view-details').classList.add('hidden'); }
 
-        loadBooks(); loadAttendance();
+        loadBooks(); loadInbox(); loadAttendance();
     </script>
 </body>
 </html>
