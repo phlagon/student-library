@@ -125,14 +125,19 @@
 
         async function handleLogin() {
             const r = document.getElementById('login-role').value, cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
-            // ADDED ROLE CHECK
+            // role enforcement check
             const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).where("role","==",r).get();
             if(!snap.empty) {
                 currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
-                const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Usage", activity: "Login Session", startTime: Date.now(), endTime: null });
-                currentLogId = doc.id; initSystem();
-            } else alert("Login Failed: Verify credentials and role.");
+                
+                // create session log
+                const doc = await db.collection("activity_logs").add({
+                    userId: currentUser.uid, type: "Usage", activity: "Login Session", startTime: Date.now(), endTime: null
+                });
+                currentLogId = doc.id;
+                initSystem();
+            } else alert("Login Failed: Verify credentials and role selection.");
         }
 
         async function handleLogout() { 
