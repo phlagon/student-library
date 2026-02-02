@@ -121,34 +121,18 @@
         firebase.initializeApp(firebaseConfig); const db = firebase.firestore();
         
         let currentUser = null; let collegeBooks = []; let sessionSeconds = 0; let readSeconds = 0;
-        let isActive = true; let currentLogId = null; let readerLogId = null; let currentBookTitle = "";
-        let selectedLanguage = "English";
-
-        function setLanguage(lang, btn) {
-            selectedLanguage = lang;
-            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            loadLibrary();
-        }
-
-        document.addEventListener("visibilitychange", async () => {
-            isActive = !document.hidden;
-            document.getElementById('session-box').classList.toggle('paused', !isActive);
-        });
+        let isActive = true; let currentLogId = null; let readerLogId = null;
 
         async function handleLogin() {
             const r = document.getElementById('login-role').value, cid = document.getElementById('login-coll-id').value.trim(), uid = document.getElementById('login-user-id').value.trim(), pass = document.getElementById('login-pass').value.trim();
-            const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).get();
+            // ADDED ROLE CHECK
+            const snap = await db.collection("users").where("collegeId","==",cid).where("studentId","==",uid).where("password","==",pass).where("role","==",r).get();
             if(!snap.empty) {
                 currentUser = { uid: snap.docs[0].id, ...snap.docs[0].data() };
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
-                
-                const doc = await db.collection("activity_logs").add({
-                    userId: currentUser.uid, type: "Usage", activity: "Login Session", startTime: Date.now(), endTime: null
-                });
-                currentLogId = doc.id;
-                initSystem();
-            } else alert("Login Failed");
+                const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Usage", activity: "Login Session", startTime: Date.now(), endTime: null });
+                currentLogId = doc.id; initSystem();
+            } else alert("Login Failed: Verify credentials and role.");
         }
 
         async function handleLogout() { 
@@ -156,52 +140,14 @@
             location.reload(); 
         }
 
-        function initSystem() {
-            setInterval(() => { 
-                if(isActive) { 
-                    sessionSeconds++; 
-                    document.getElementById('session-clock').innerText = new Date(sessionSeconds * 1000).toISOString().substr(11, 8);
-                    if (!document.getElementById('reader-overlay').classList.contains('hidden')) {
-                        readSeconds++;
-                        document.getElementById('read-clock').innerText = new Date(readSeconds * 1000).toISOString().substr(14, 5);
-                    }
-                } 
-            }, 1000);
-            setInterval(() => { document.getElementById('real-time-clock').innerText = new Date().toLocaleTimeString(); }, 1000);
-            loadLibrary();
-        }
-
-        function loadLibrary() {
-            db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).where("language","==",selectedLanguage).onSnapshot(snap => {
-                collegeBooks = []; const rec = document.getElementById('recent-list'), trend = document.getElementById('trending-list');
-                rec.innerHTML = trend.innerHTML = "";
-                snap.forEach(doc => { 
-                    const b = {id: doc.id, ...doc.data()}; collegeBooks.push(b);
-                    rec.innerHTML += renderItem(b); if(b.recent) trend.innerHTML += renderItem(b);
-                });
-                document.getElementById('top-total').innerText = collegeBooks.length;
-            });
-            db.collection("borrows").where("userId","==",currentUser.uid).onSnapshot(snap => {
-                const list = document.getElementById('borrow-list'); list.innerHTML = "";
-                document.getElementById('top-issued').innerText = snap.size;
-                snap.forEach(doc => { const d = doc.data(); list.innerHTML += `<div class="book-item"><b>${d.title}</b><br><button class="btn-preview" style="background:var(--green)" onclick="openFullPdf('${d.bookId}','${d.title}')">Read</button> <button class="btn-preview" style="background:red" onclick="returnBook('${doc.id}')">Return</button></div>`; });
-            });
-        }
-
         async function openPdfPreview(id, t) { 
-            currentBookTitle = t;
-            const doc = await db.collection("activity_logs").add({
-                userId: currentUser.uid, type: "Online Read", activity: t, startTime: Date.now(), endTime: null
-            });
+            const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Online Read", activity: t, startTime: Date.now(), endTime: null });
             readerLogId = doc.id;
             document.getElementById('reader-title').innerText = t; document.getElementById('pdf-frame').src = `/${id}_read_online.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); 
         }
         
         async function openFullPdf(id, t) { 
-            currentBookTitle = t;
-            const doc = await db.collection("activity_logs").add({
-                userId: currentUser.uid, type: "Full Read", activity: t, startTime: Date.now(), endTime: null
-            });
+            const doc = await db.collection("activity_logs").add({ userId: currentUser.uid, type: "Full Read", activity: t, startTime: Date.now(), endTime: null });
             readerLogId = doc.id;
             document.getElementById('reader-title').innerText = t; document.getElementById('pdf-frame').src = `/${id}.pdf`; document.getElementById('reader-overlay').classList.remove('hidden'); 
         }
@@ -211,11 +157,14 @@
             document.getElementById('pdf-frame').src = ''; document.getElementById('reader-overlay').classList.add('hidden'); 
         }
 
+        function setLanguage(lang, btn) { document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); loadLibrary(lang); }
+        function initSystem() { setInterval(() => { if(isActive) { sessionSeconds++; document.getElementById('session-clock').innerText = new Date(sessionSeconds * 1000).toISOString().substr(11, 8); if (!document.getElementById('reader-overlay').classList.contains('hidden')) { readSeconds++; document.getElementById('read-clock').innerText = new Date(readSeconds * 1000).toISOString().substr(14, 5); } } }, 1000); setInterval(() => { document.getElementById('real-time-clock').innerText = new Date().toLocaleTimeString(); }, 1000); loadLibrary('English'); }
+        function loadLibrary(lang) { db.collection("library_settings").where("allowedColleges","array-contains",currentUser.collegeId).where("language","==",lang).onSnapshot(snap => { collegeBooks = []; const rec = document.getElementById('recent-list'), trend = document.getElementById('trending-list'); rec.innerHTML = trend.innerHTML = ""; snap.forEach(doc => { const b = {id: doc.id, ...doc.data()}; collegeBooks.push(b); rec.innerHTML += renderItem(b); if(b.recent) trend.innerHTML += renderItem(b); }); document.getElementById('top-total').innerText = collegeBooks.length; }); db.collection("borrows").where("userId","==",currentUser.uid).onSnapshot(snap => { const list = document.getElementById('borrow-list'); list.innerHTML = ""; document.getElementById('top-issued').innerText = snap.size; snap.forEach(doc => { const d = doc.data(); list.innerHTML += `<div class="book-item"><b>${d.title}</b><br><button class="btn-preview" style="background:var(--green)" onclick="openFullPdf('${d.bookId}','${d.title}')">Read</button> <button class="btn-preview" style="background:red" onclick="returnBook('${doc.id}')">Return</button></div>`; }); }); }
         function renderItem(b) { return `<div class="book-item"><b>${b.title}</b><br><button class="btn-preview" onclick="openPdfPreview('${b.id}','${b.title}')">Preview</button><button class="btn-preview" style="background:var(--orange)" onclick="borrowBook('${b.id}','${b.title}')">Borrow</button></div>`; }
         async function borrowBook(id, t) { await db.collection("borrows").add({ userId: currentUser.uid, bookId: id, title: t, date: Date.now() }); alert("Issued!"); }
         async function returnBook(id) { if(confirm("Return book?")) await db.collection("borrows").doc(id).delete(); }
         function mirrorTyping(val) { const list = document.getElementById('search-results-list'); document.getElementById('mirror-text').innerText = val || "..."; if(val.trim().length > 1) { list.innerHTML = ""; collegeBooks.filter(b => b.title.toLowerCase().includes(val.toLowerCase())).forEach(b => list.innerHTML += renderItem(b)); document.getElementById('search-results-overlay').classList.remove('hidden'); } else document.getElementById('search-results-overlay').classList.add('hidden'); }
-        function loadCat(cat) { const list = document.getElementById('full-book-list'); list.innerHTML = ""; const filtered = collegeBooks.filter(b => b.category === cat); if(filtered.length === 0) list.innerHTML = `<p style="padding:20px; color:var(--text-sub)">No ${selectedLanguage} books here.</p>`; else filtered.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); }
+        function loadCat(cat) { const list = document.getElementById('full-book-list'); list.innerHTML = ""; const filtered = collegeBooks.filter(b => b.category === cat); if(filtered.length === 0) list.innerHTML = `<p style="padding:20px; color:var(--text-sub)">No books here.</p>`; else filtered.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); }
         function toggleProfile() { document.getElementById('p-name').innerText = currentUser.fullName; document.getElementById('p-role-box').innerText = (currentUser.role||'student').toUpperCase(); document.getElementById('p-coll-id-display').innerText = currentUser.collegeId; document.getElementById('p-user-id-display').innerText = currentUser.studentId; document.getElementById('profile-overlay').classList.toggle('hidden'); }
         function showBorrowView() { document.getElementById('borrow-view').classList.remove('hidden'); }
         function showFullLibrary() { const list = document.getElementById('full-book-list'); list.innerHTML = ""; collegeBooks.forEach(b => list.innerHTML += renderItem(b)); document.getElementById('full-lib-view').classList.remove('hidden'); }
